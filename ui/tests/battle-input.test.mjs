@@ -5,6 +5,7 @@ import {runInNewContext} from 'node:vm';
 import {battleKeyAction,defaultBattleKeys} from '../keyboard.js';
 import {createResultPopup} from '../battle-result-popup.js';
 import {battleScreenConfiguration} from '../battle-screen.js';
+import {battleCameraView} from '../battle-view.js';
 import {catalog} from '../simulation-profile.js';
 import {calculateNative} from '../native-calculation.js';
 
@@ -31,7 +32,12 @@ assert.deepEqual(battleKeyAction('KeyC',defaultBattleKeys,{...state,rows:1,page:
 const screen=readFileSync(new URL('../battle-screen.js',import.meta.url),'utf8');
 assert.ok(!screen.includes('keyQueue'));
 assert.ok(screen.includes("readBattleJson('/api/battle-session/input'"));
-assert.ok(screen.includes('runtime.endCamera.zoom>=(state.rows===2?8803:10000)'));
+const live={...state,intro:24},camera={center:1000,zoom:2.5,minimum:.49};
+assert.equal(battleCameraView({...live,intro:23},{},camera,1422),null);
+assert.equal(battleCameraView({...live,paused:1},{},camera,1422),null);
+assert.equal(battleCameraView(live,{endCameraActive:true},camera,1422),null);
+assert.deepEqual(battleCameraView(live,{endCameraActive:false,cameraMaximum:.9633},camera,1422),
+ {...camera,viewport_width:1422,cameraWidth:960,maximum:.9633});
 const snapshot={formation:{slots:Array(10).fill(null),profile:{facilities:Object.fromEntries(['worker','wallet','cannonAttack','cannonCharge'].map(key=>[key,{level:1,plus:0}])),treasures:Object.fromEntries(catalog.treasures.map(v=>[v.id,100]))}},map:{series:'EOC',number:1,rules:[]},items:{speedup:true},deployment:{slots:Array.from({length:10},()=>({cost:0,reasons:0}))}};
 for(const speed of [2,3]){const {config}=battleScreenConfiguration({combos:[]},{...snapshot,speed});assert.equal(config.speed,speed);assert.equal(config.items,1);}
 
@@ -41,16 +47,20 @@ globalThis.document={createElement(){return {getContext:()=>({measureText:()=>({
 globalThis.fetch=async(path,options)=>{
  assert.equal(path,'/api/battle-popup');const input=JSON.parse(options.body);calls.push(input);
  assert.ok(input.length<=50);assert.ok(Buffer.byteLength(options.body)<=16384);
- return {ok:true,json:async()=>input.map(row=>({parts:[[0,0,10,10,0,0,10,10]],textScale:Array(row.count).fill(1),textX:Array(row.count).fill(100),textY:300}))};
+ return {ok:true,json:async()=>input.map(row=>({body:[0,401,670,144],parts:[[0,0,10,10,0,0,10,10]],textScale:Array(row.count).fill(1),textX:Array(row.count).fill(100),textY:300}))};
 };
 try{
  const popup=createResultPopup(error=>errors.push(error)),atlas={atlases:{img005_1:{image:'popup',rects:[[0,0,100,100],[],[],[],[],[],[],[],[6,6]]}}};
  const messages=Array.from({length:12},(_,index)=>'reward '+index);
  await popup.prepare(messages,1422,atlas);assert.deepEqual(calls.map(v=>v.length),[50,10]);
  await popup.prepare(messages,1422,atlas);assert.equal(calls.length,2);
- const context={save(){},restore(){},drawImage:(...args)=>draws.push(args)};
- popup.paint(context,{index:11,scaleFrame:4,phase:1,flash:0},1422,atlas,new Map([['popup',{}]]));
+ const translations=[],context={save(){},restore(){},translate:(...args)=>translations.push(args),drawImage:(...args)=>draws.push(args)};
+ const ready={index:11,scaleFrame:4,phase:1,flash:0},images=new Map([['popup',{}]]);
+ popup.paint(context,ready,atlas,images);
  assert.equal(draws.length,2);assert.deepEqual(errors,[]);
- popup.stop();draws.length=0;popup.paint(context,{index:0},1422,atlas,new Map());assert.equal(draws.length,0);
+ assert.deepEqual(translations,[]);
+ popup.paint(context,ready,atlas,images,480);
+ assert.deepEqual(translations,[[0,7]]);
+ popup.stop();draws.length=0;popup.paint(context,{index:0},atlas,images);assert.equal(draws.length,0);
 }finally{globalThis.document=beforeDocument;globalThis.fetch=beforeFetch;}
 console.log('first paint, direct keys and batched reward popup passed');

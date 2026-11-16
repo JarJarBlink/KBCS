@@ -2,7 +2,7 @@
 import {nativeFont,loadNativeFonts} from './native-font.js';
 import {readBattleKeys,battleKeyAction,editableKeyTarget} from './keyboard.js';
 import {createSessionId} from './src/shared/browser/session-id.js';
-import {battleAspects,battleViewportWidth,battlePlaybackRate} from './battle-view.js';
+import {battleAspects,battleViewportWidth,battleCameraView,battlePlaybackRate} from './battle-view.js';
 import {audioBlobUrl} from './src/shared/browser/audio-preview.js';
 import {createBattleResults} from './battle-results.js';
 import {createBattleSounds} from './battle-audio.js';
@@ -280,7 +280,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   }
   return y>=134&&y<(state.rows===2?449:543)&&!view?.slots.some(([sx,sy,w,h])=>x>=sx&&x<=sx+w&&y>=sy-1&&y<=sy+h+2);
  }
- const cameraView=()=>state.intro>=24&&!state.paused&&!runtime.endCameraActive?{...camera,viewport_width:screenWidth,cameraWidth:960,maximum:runtime.cameraMaximum??1}:null;
+ const cameraView=()=>battleCameraView(state,runtime,camera,screenWidth);
  const gestures=initializeSceneGestures(canvas,cameraView,value=>{cameraMotion.clear();camera={...camera,...value};++cameraVersion;},{acceptPointer:event=>{if(!cameraArea(event))return false;pointer={...pointer,phase:3};cameraPointers.add(event.pointerId);return true;},acceptWheel:cameraArea,wheelTarget:(...args)=>cameraMotion.zoom(...args)});
  let resultPress;
  function input(event){if(!state.paused&&comboArea(event)){event.preventDefault();if(event.type==='pointerdown')pointer.phase=3;if(event.type==='pointerup'){pointer.phase=3;skipCombos=true;++settingsVersion;}return;}const ended=!!runtime.result?.mode;if(cameraPointers.has(event.pointerId)){if(event.type==='pointerup'||event.type==='pointercancel')cameraPointers.delete(event.pointerId);return;}if(ended&&!runtime.receipt&&!runtime.continuePrompt&&runtime.ending.phase!==5)return;if(state.intro<24||playbackPaused&&!state.paused&&!(cheats&4))return;event.preventDefault();const phase={pointerdown:1,pointerup:2,pointercancel:3,pointermove:4}[event.type];if(phase===4&&!state.pointer_down&&pointer.phase!==1)return;const point=coordinates(event);pointer={...point,phase:phase===4?4:0};if(phase===1)canvas.setPointerCapture(event.pointerId);if(phase===4)return;
