@@ -1074,7 +1074,7 @@ impl Session {
         let mut screen = start.config;
         let mut state = start.state;
         if let Some(speedup) = snapshot["items"]["speedup"].as_bool() {
-            // 006d6d04: 持ち込んだスピードアップは2倍から始まり、3倍設定は切替上限となる。
+            // 006d6d04の通常速度とブースト分岐に、準備で選んだ初期倍率を渡す。
             screen.items = (screen.items & !1) | i32::from(speedup);
             screen.speed = if speedup && snapshot["speed"] == 3 {
                 3
@@ -1082,7 +1082,7 @@ impl Session {
                 2
             };
             state.items_on = (state.items_on & !1) | i32::from(speedup);
-            state.speed_mode = i32::from(speedup);
+            state.speed_mode = if speedup { screen.speed - 1 } else { 0 };
         }
         let config = battle::Config {
             environment,
@@ -1426,8 +1426,12 @@ impl Session {
             title_draw,
         })
     }
-    pub fn draw(&mut self, input: &crate::scene::Input) -> Result<crate::scene::Frame<'_>> {
-        let intro = self.combo_layout(input.frame, input.viewport_width)?;
+    pub fn draw(
+        &mut self,
+        input: &crate::scene::Input,
+        combo_frame: i32,
+    ) -> Result<crate::scene::Frame<'_>> {
+        let intro = self.combo_layout(combo_frame, input.viewport_width)?;
         let visuals = native(self.core.visuals())?.to_vec();
         let (actors, _) = native(self.core.actors())?;
         let references = native(self.core.active_actors())?;
@@ -1824,10 +1828,21 @@ impl Session {
         let ending = native(self.core.ending())?;
         let end_camera = native(self.core.end_camera())?;
         let camera_limits = native(self.core.camera_limits())?;
+        let boss_line = native(self.core.defeat_boss_hp())?
+            .map(|hp| {
+                self.receipt
+                    .text("boss_hp")
+                    .map(|label| format!("{label}{hp}%"))
+            })
+            .transpose()?;
         let continue_prompt = if ending.phase == 3
             && let Some((lines, _)) = &self.continue_text
             && native(self.core.outcome())?.mode == 2
         {
+            let mut lines = lines.clone();
+            if let Some(boss) = &boss_line {
+                lines.push(format!("({boss})"));
+            }
             json!({"layout":native(self.core.continue_view())?,"cost":kbcs_data::inventory::CONTINUE_CAT_FOOD_COST,"balance":self.continue_balance,"error":self.continue_error,"lines":lines})
         } else {
             Value::Null
@@ -1840,6 +1855,7 @@ impl Session {
             "defeatHint": {"layout":hint,"lines":hint_lines},
             "ex": native(self.core.ex())?,
             "endCamera": end_camera,
+            "endingHudSlide": camera_limits.slide,
             "endCameraActive": camera_limits.automatic,
             "cameraMaximum": camera_limits.maximum,
             "music": native(self.core.music())?,
@@ -1848,6 +1864,7 @@ impl Session {
             "continuePrompt": continue_prompt,
             "noContinue": self.continue_notice.is_some(),
             "continueNotice": self.continue_notice,
+            "defeatBossHp": boss_line,
             "receipt": self.receipt.saved,
             "receiptError": self.receipt.error,
             "rewardRolls": native(self.core.rewards())?,

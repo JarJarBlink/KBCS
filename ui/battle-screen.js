@@ -23,7 +23,8 @@ export function battleScreenConfiguration(database,snapshot){
  const team=new Map(formation.slots.slice(0,5).filter(Boolean).map(v=>[v.unitId,v.form]));
  const combo=type=>database.combos.filter(v=>v.type===type&&comboAvailable(v,formation.slots)&&v.members.every(m=>team.has(m.id)&&team.get(m.id)>=m.form)).reduce((sum,v)=>sum+database.comboEffects[type].values[v.grade],0);
  const rule=(map.rules||[]).find(v=>v.id===0),fixed=sortieFixedMoney(map,snapshot.fixedMoney),mask=battleItems.reduce((bits,v,index)=>bits|(items[v.key]?1<<index:0),0);
- return {config:{worker_level:facility('worker'),wallet_level:facility('wallet'),attack_level:facility('cannonAttack'),charge_level:facility('cannonCharge'),chapter:['EOC','EOCZ'].includes(map.series)?map.number:3,income_treasure:treasure(3),wallet_treasure:treasure(4),charge_treasure:treasure(1),speed_treasure:treasure(17),income_combo:combo(8),wallet_combo:combo(9),charge_combo:combo(7),charge_start_combo:combo(3),items:mask,speed:snapshot.speed===3?3:2,fixed_money:rule?fixed*100:-1,costs:deployment.slots.map(v=>v.cost),present:formation.slots.map(v=>Number(!!v)),blocked:deployment.slots.map(v=>v.reasons)},worker:items.rich||rule?7:Math.min(7,combo(4)),money:rule?fixed*100:combo(5)*100};
+ const speed=mask&1&&snapshot.speed===3?3:2;
+ return {config:{worker_level:facility('worker'),wallet_level:facility('wallet'),attack_level:facility('cannonAttack'),charge_level:facility('cannonCharge'),chapter:['EOC','EOCZ'].includes(map.series)?map.number:3,income_treasure:treasure(3),wallet_treasure:treasure(4),charge_treasure:treasure(1),speed_treasure:treasure(17),income_combo:combo(8),wallet_combo:combo(9),charge_combo:combo(7),charge_start_combo:combo(3),items:mask,speed,fixed_money:rule?fixed*100:-1,costs:deployment.slots.map(v=>v.cost),present:formation.slots.map(v=>Number(!!v)),blocked:deployment.slots.map(v=>v.reasons)},speedMode:mask&1?speed-1:0,worker:items.rich||rule?7:Math.min(7,combo(4)),money:rule?fixed*100:combo(5)*100};
 }
 export async function prepareBattleScreen(database,snapshot,assets,signal,report,enemies){
  await loadNativeFonts();
@@ -82,7 +83,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  const presentationWarning=resources.referencePresentation?'参照版の戦闘UI素材で表示しています。':'';
  precisionWarning.textContent=presentationWarning;precisionWarning.hidden=!presentationWarning;
  const keyBindings=readBattleKeys();
- let state={frame:0,intro:12,rows:2,page:0,page_frame:0,page_direction:1,paused:0,money:resources.money,worker:resources.worker,cannon:0,holding:-1,hold_frames:0,hold_wait:0,pointer_down:0,pointer_x:0,pointer_y:0,guard:0,pending_control:-1,items_on:resources.config.items,request_slot:-1,request_cannon:0,ui_frame:0,speed_mode:resources.config.items&1,wallet_flash:0,description_item:-1,description_wait:0,start_x:0,start_y:0,gesture:0,page_step:1,request_action:0,bgm_level:3,se_level:3,vibration_on:0,info_mode:0,info_slot:0,saved_rows:2,hud_frame:0};
+ let state={frame:0,intro:12,rows:2,page:0,page_frame:0,page_direction:1,paused:0,money:resources.money,worker:resources.worker,cannon:0,holding:-1,hold_frames:0,hold_wait:0,pointer_down:0,pointer_x:0,pointer_y:0,guard:0,pending_control:-1,items_on:resources.config.items,request_slot:-1,request_cannon:0,ui_frame:0,speed_mode:resources.speedMode,wallet_flash:0,description_item:-1,description_wait:0,start_x:0,start_y:0,gesture:0,page_step:1,request_action:0,bgm_level:3,se_level:3,vibration_on:0,info_mode:0,info_slot:0,saved_rows:2,hud_frame:0};
  let runtime={wait:Array(10).fill(0),maximum:Array(10).fill(0)},sessionCreated=false,skipCombos=false,returnPending=false,inspector,inspectionDirty=false;
  Object.assign(state,{rows:resources.options.rows,saved_rows:resources.options.rows,bgm_level:resources.options.bgmLevel,se_level:resources.options.seLevel});
  let savedOptions=JSON.stringify(resources.options),saveOptions=Promise.resolve();
@@ -184,8 +185,10 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(!view)return;
   ++paints;if(!playbackPaused&&!state.paused&&!document.hidden&&state.intro>=24)++activePaints;context.clearRect(0,0,screenWidth,640);
   if(runtime.result?.mode&&runtime.ending.phase){results.paint(context,screenWidth,sprite,number,resources.atlas,resources.images);paintFade();return;}
-  const moneyBase=view.money_base,moneyRight=screenWidth-34,capX=number(view.wallet_max/100,moneyBase,moneyRight,10),slashX=capX-29;
-  sprite('img001_ja',moneyBase+10,slashX,10);number(state.money/100,moneyBase,slashX-1,10);sprite('img001_ja',moneyBase+11,moneyRight,10);
+  // 005d0044 / 005d0a68 / 005d1f2c / 005d2408 / 006e21c0。背景と同じ終了時計を使う。
+  const slide=runtime.endingHudSlide??0,moneyY=10-slide;
+  const moneyBase=view.money_base,moneyRight=screenWidth-34,capX=number(view.wallet_max/100,moneyBase,moneyRight,moneyY),slashX=capX-29;
+  sprite('img001_ja',moneyBase+10,slashX,moneyY);number(state.money/100,moneyBase,slashX-1,moneyY);sprite('img001_ja',moneyBase+11,moneyRight,moneyY);
   // 005d0508は後ろのページを先に描き、選択ページを重ねる。
   function slots(){
   const order=view.order;
@@ -206,6 +209,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
    if(index<5&&!state.info_mode&&view.modes[index]===1&&!skipCombos&&runtime.comboIntro?.layout.blink<2&&runtime.comboIntro.combo?.members.some(member=>member.id===snapshot.formation.slots[index]?.unitId))sprite('img002_ja',44,x-8,y-8,w+16,h+16);
   }
   }
+  context.save();context.translate(0,slide);
   slots();
   const canUpgrade=state.worker<7&&state.money>=view.upgrade_cost;
   sprite('img002_ja',view.wallet_base,-48,519);
@@ -213,7 +217,9 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   else {const base=canUpgrade?35:46,digits=String(Math.trunc(view.upgrade_cost/100)),right=4+[...digits].reduce((sum,v)=>sum+resources.atlas.atlases.img001_ja.rects[base+Number(v)][2]-3,3);number(view.upgrade_cost/100,base,right,611,-3);sprite('img001_ja',canUpgrade?45:56,right,611,22,26);sprite('img001_ja',canUpgrade?13:24,4,510);sprite('img001_ja',(canUpgrade?15:26)+state.worker,73,510);}
   if(view.cannon_base>=0)sprite('img002_ja',view.cannon_base,screenWidth-146,510);
   for(let i=0;i<view.cannon_bands;++i)sprite('img002_ja',11+i,screenWidth-146,i===9?510:628-i*12);if(view.cannon_label>=0)sprite('img002_ja',view.cannon_label,screenWidth-129,581);
-  sprite('img002_ja',2,...view.pause_icon);
+  context.restore();
+  const [pauseX,pauseY,pauseW,pauseH]=view.pause_icon;
+  sprite('img002_ja',2,pauseX-slide,pauseY,pauseW,pauseH);
   const hud=runtime.hud,scale=hud.scale;
   for(let side=0;side<2;++side){
    const [x,y]=hud.anchors[side],[hp,maximum,unknown]=hud.health[side];
@@ -221,7 +227,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
    else{number(hp,57,x,y,0,scale);number(maximum,57,x+18*scale,y,0,scale,true);}
    sprite('img001_ja',67,x,y,18*scale,18*scale);
   }
-  for(const icon of view.item_icons)if(icon[3])sprite('mapicon',...icon);
+  for(const [cut,x,y,w,h] of view.item_icons)if(w)sprite('mapicon',cut,x,y-slide,w,h);
   const [warning,warningX,warningY]=hud.warning;
   if(warning){
    context.font=nativeFont(30);context.textAlign='center';context.textBaseline='top';context.fillStyle='#000';

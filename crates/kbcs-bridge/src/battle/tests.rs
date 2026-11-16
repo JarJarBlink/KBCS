@@ -396,6 +396,43 @@ fn cannon_cheat_recharges_without_interrupting_the_shot() {
 }
 
 #[test]
+fn ending_camera_respects_the_updated_zoom_and_scroll_bounds() {
+    for rows in [1, 2] {
+        for lost in [false, true] {
+            let mut c = config();
+            c.state.rows = rows;
+            let mut battle = Battle::new(&c, &[], &[]).unwrap();
+            let zoom = 0.49;
+            battle
+                .camera(&render::Layout {
+                    center: 480. / zoom + if lost { 0. } else { 40. },
+                    zoom,
+                    ..Default::default()
+                })
+                .unwrap();
+            edit(&mut battle, usize::from(!lost), 0, |w| w[8] = 0);
+            tick(&mut battle, 1);
+            assert!(battle.camera_limits().unwrap().automatic);
+            for _ in 0..40 {
+                tick(&mut battle, 1);
+                let camera = battle.end_camera().unwrap();
+                let limits = battle.camera_limits().unwrap();
+                assert!(f64::from(camera.zoom) / 10000. <= limits.maximum);
+                let right =
+                    c.environment.stage_width as f32 - 9600. / ((camera.zoom as f32 / 100.) / 100.);
+                assert!((0..=right as i32).contains(&camera.left));
+                if !limits.automatic {
+                    assert_eq!(battle.outcome().unwrap().mode, if lost { 2 } else { 1 });
+                    assert_eq!(camera.left == 0, !lost);
+                    break;
+                }
+            }
+            assert!(!battle.camera_limits().unwrap().automatic);
+        }
+    }
+}
+
+#[test]
 fn defeat_title_finishes_moving_before_the_hint_opens() {
     let mut battle = Battle::new(&config(), &[], &[]).unwrap();
     battle.hints(&[7], &[3], 3).unwrap();
@@ -453,6 +490,30 @@ fn defeat_title_finishes_moving_before_the_hint_opens() {
 }
 
 #[test]
+fn defeat_boss_hp_reports_living_and_pending_bosses() {
+    let enemy: Vec<i32> = serde_json::from_value(fixture()["breakerEnemy"].clone()).unwrap();
+    let row = stage::Row([37, 1, 2000, 1000, 1000, 100, 0, 0, 2, 100, 0, 100, 0, 0]);
+    let mut battle = Battle::new(&config(), &[profile(&enemy, 1, 37)], &[row]).unwrap();
+    assert_eq!(battle.defeat_boss_hp().unwrap(), None);
+    edit(&mut battle, 0, 0, |w| w[8] = 0);
+    tick(&mut battle, 1);
+    assert_eq!(battle.defeat_boss_hp().unwrap(), Some(100));
+    edit(&mut battle, 1, 2, |w| {
+        (w[7], w[8], w[64]) = (300, 119, 2);
+    });
+    assert_eq!(battle.defeat_boss_hp().unwrap(), Some(39));
+    edit(&mut battle, 1, 1, |w| {
+        (w[7], w[8], w[64]) = (300, 1, 2);
+    });
+    assert_eq!(battle.defeat_boss_hp().unwrap(), Some(1));
+
+    let mut no_boss = Battle::new(&config(), &[], &[]).unwrap();
+    edit(&mut no_boss, 0, 0, |w| w[8] = 0);
+    tick(&mut no_boss, 1);
+    assert_eq!(no_boss.defeat_boss_hp().unwrap(), None);
+}
+
+#[test]
 fn forbidden_continue_shows_notice_before_the_hint() {
     let mut battle = Battle::new(&config(), &[], &[]).unwrap();
     battle.continue_policy(ContinuePolicy::Forbidden).unwrap();
@@ -478,9 +539,16 @@ fn forbidden_continue_shows_notice_before_the_hint() {
             ..Default::default()
         })
         .unwrap();
-    tick(&mut battle, 6);
+    for _ in 0..6 {
+        tick(&mut battle, 1);
+        assert!(battle.sounds().unwrap().is_empty());
+    }
     assert_eq!(battle.ending().unwrap().phase, 4);
     assert_eq!(battle.hint().unwrap().id, 7);
+    tick(&mut battle, 1);
+    let sounds = battle.sounds().unwrap();
+    assert_eq!(sounds.len(), 1);
+    assert_eq!(sounds[0].id, 42);
 }
 
 #[test]

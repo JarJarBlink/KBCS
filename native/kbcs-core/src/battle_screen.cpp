@@ -42,7 +42,9 @@ void layout(const KbcsBattleScreenConfig &c,const KbcsBattleScreenState &s,KbcsB
  const int screen=width(c),center=screen/2,shift=(screen-960)/2;
  o.scene_y=s.rows==2?-51:0;o.wallet_max=wallet(c,s.worker);o.income=income(c,s.worker);o.upgrade_cost=upgrade(c,s.worker);o.cannon_max=charge(c);o.cannon_initial=o.cannon_max*(100-c.charge_start_combo)/100;o.cannon_gauge=(o.cannon_max-s.cannon)*130/o.cannon_max;
  o.money_base=s.wallet_flash%4==1||s.wallet_flash%4==2?68:0;o.speed_value=s.speed_mode?s.speed_mode+1:1;
- const bool flash=s.hud_frame%6>=3;o.cannon_base=s.cannon?8:flash?7:-1;o.cannon_label=s.cannon?-1:flash?10:9;o.cannon_bands=s.cannon?o.cannon_gauge/13:flash?0:10;o.wallet_base=s.worker==7||s.money>=o.upgrade_cost?6:5;
+ const bool flash=s.hud_frame%6>=3;o.cannon_base=s.cannon?8:flash?7:-1;o.cannon_label=s.cannon?-1:flash?10:9;o.cannon_bands=s.cannon?o.cannon_gauge/13:flash?0:10;
+ // 005d2408。昇級可能時だけ砲の準備表示と同じ時計で部品6/24を切り替える。
+ o.wallet_base=s.worker==7?6:s.money<o.upgrade_cost?5:flash?24:6;
  for(int i=0;i<10;++i) {
   int x=xs[i]+shift,y=544,mode=1;
   if(s.rows==2) {x=xs[i%5]+shift;if(i<5)y-=95;}
@@ -188,12 +190,12 @@ extern "C" uint32_t kbcs_core_battle_screen_advance_custom(const KbcsBattleScree
   if(!s.pointer_down&&!(tick==0&&(in.phase==1||in.phase==2))){s.hold_frames=0;if(s.hold_wait>0&&--s.hold_wait==0)s.holding=-1;}
   if(s.wallet_flash&&!s.paused)--s.wallet_flash;
   if(s.intro<24){++s.intro;continue;}
-  if(s.battle_mode){s.speed_mode=0;s.pointer_down=0;s.holding=-1;s.hold_frames=0;s.hold_wait=0;s.guard=0;s.pending_control=-1;}
+  if(s.battle_mode){s.pointer_down=0;s.holding=-1;s.hold_frames=0;s.hold_wait=0;s.guard=0;s.pending_control=-1;}
   if(hook&&!s.paused){const auto code=hook(user,4,&s);if(code)return code;}
   if(s.intro<24)break; // コンティニューの復帰Fはまとめて更新していても全面暗転のまま返す。
   if(s.page_frame&&!s.paused&&!(tick==0&&(in.control==4||in.control==8||in.control==9))){s.page_frame+=s.page_step?s.page_step:1;if(s.page_frame>5){s.page=1-s.page;s.page_frame=0;}else if(s.page_frame<1)s.page_frame=0;}
   if(tick==0&&in.phase){s.pointer_x=in.x;s.pointer_y=in.y;if(in.phase==1){s.pointer_down=1;s.start_x=in.x;s.start_y=in.y;s.gesture=0;}}
-  if(!s.paused){++s.hud_frame;const int steps=stepping?1:s.speed_mode?s.speed_mode+1:1;
+  if(!s.paused){++s.hud_frame;const int steps=stepping||s.battle_mode?1:s.speed_mode+1;
    for(int i=0;i<steps;++i){++s.frame;if(hook){const auto code=hook(user,0,&s);if(code)return code;}else kbcs_core_battle_screen_economy(&c,&s);}}
   // 006d6d04: 経済は論理更新、ボタンの待機は表示更新で一度だけ進める。
   if(s.guard){if(++s.guard>5){s.guard=0;const int target=s.pending_control;s.pending_control=-1;

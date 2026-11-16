@@ -247,10 +247,10 @@ extern "C" uint32_t kbcs_core_battle_scene_layout(const KbcsSceneInput *in,int32
   const double viewport=in->viewport_width?std::max(960,in->viewport_width):960;
   const double width=std::max(1.,in->width*.4),maximum=in->battle_rows?battle_camera_limit(in->battle_rows,slot_slide)/10000.:2.;
   // 009eadc8 / 006d6d04: 下限は戦闘座標の幅から整数%で求め、横長画面でも左右の境界は960を基準にする。
-  const double minimum=in->battle_rows?std::min(maximum,(960000/int(std::max(1.,in->width*4))+1)/100.):std::min(1.,viewport/width);
-  // 終了演出の倍率は、手動操作の上限で丸め直さない。
-  const bool automatic=in->battle_rows&&in->focus==4;
-  const double zoom=automatic?std::clamp(in->zoom,.01,10.):in->focus==3?minimum:std::clamp(in->zoom,minimum,in->battle_rows&&slot_slide?10.:maximum);
+  const double native_minimum=in->battle_rows?battle_camera_minimum(int(std::max(1.,in->width*4)))/10000.:std::min(1.,viewport/width);
+  const double minimum=std::min(maximum,native_minimum);
+  const double limit=in->battle_rows&&in->focus==4?std::max(maximum,native_minimum):maximum;
+  const double zoom=in->focus==3?minimum:std::clamp(in->zoom,minimum,limit);
   const double desired=in->focus==1?320:in->focus==2?width-320:in->focus==3?width/2:in->center;
   const double half=(in->battle_rows?960.:viewport)*.5/zoom,center=in->focus==4?desired:width<=half*2?width/2:std::clamp(desired,half,width-half);
   const auto x=[&](double value){return viewport*.5+(value-center)*zoom;};

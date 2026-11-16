@@ -605,6 +605,15 @@ impl Battle {
         let code = unsafe { kbcs_core_battle_end_camera(self.0.as_ptr(), &mut out) };
         if code == 0 { Ok(out) } else { Err(code) }
     }
+    pub fn defeat_boss_hp(&self) -> Result<Option<i32>, u32> {
+        let mut percent = -1;
+        let code = unsafe { kbcs_core_battle_defeat_boss_hp(self.0.as_ptr(), &mut percent) };
+        if code == 0 {
+            Ok((percent >= 0).then_some(percent))
+        } else {
+            Err(code)
+        }
+    }
     pub fn camera_limits(&self) -> Result<CameraLimits, u32> {
         let mut limits = [0; 4];
         let code = unsafe { kbcs_core_battle_camera_limits(self.0.as_ptr(), limits.as_mut_ptr()) };
@@ -1054,6 +1063,7 @@ unsafe extern "C" {
     fn kbcs_core_battle_rewards(battle: *const RawBattle, out: *mut Rewards) -> u32;
     fn kbcs_core_battle_music(battle: *const RawBattle, out: *mut Music) -> u32;
     fn kbcs_core_battle_end_camera(battle: *const RawBattle, out: *mut EndCamera) -> u32;
+    fn kbcs_core_battle_defeat_boss_hp(battle: *const RawBattle, percent: *mut i32) -> u32;
     fn kbcs_core_battle_ex(battle: *const RawBattle, out: *mut crate::transition::Output) -> u32;
     fn kbcs_core_battle_ending(battle: *const RawBattle, out: *mut Ending) -> u32;
     fn kbcs_core_battle_ending_map(battle: *const RawBattle, out: *mut [i32; 4]) -> u32;

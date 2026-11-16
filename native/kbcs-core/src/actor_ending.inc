@@ -23,7 +23,7 @@ extern "C" uint32_t kbcs_core_battle_hint_candidates(const KbcsBattleHintContext
 extern "C" uint32_t kbcs_core_battle_popup_step(int32_t release,KbcsBattlePopup *state){
  if(!state||release<0||release>1||state->phase<0||state->phase>3||state->scale_frame<0||state->scale_frame>4)return 1;
  auto &s=*state;
- // 008865b8 / 005f72cc: type0はタップ解放でSE11→close、5表示更新後に次の報酬へ。
+ // 008865b8: type0はタップ解放で閉じ始め、5表示更新後に終了イベントを送る。
  if(s.phase==0){if(s.scale_frame>3)s.phase=1;else ++s.scale_frame;}
  else if(s.phase==1){++s.flash;if(release){s.phase=2;s.wait=0;}}
  else if(s.phase==2&&++s.wait>=5){s.phase=3;s.wait=0;}
@@ -68,14 +68,14 @@ extern "C" uint32_t kbcs_core_battle_ending_step(int32_t mode,int32_t point,Kbcs
   else if(e.phase==6){const int previous=e.panel;e.panel+=20;if(previous>61){e.panel=82;e.phase=7;}}
  return 0;
 }
-static uint32_t end_camera_step(KbcsBattleEndCamera *state,int slide,bool zooming,bool &castle_reached){
+static uint32_t end_camera_move(KbcsBattleEndCamera *state,int slide,bool &castle_reached){
  if(!state||state->width<2800||state->rows<1||state->rows>2||state->zoom<100||state->zoom>100000||state->moving<0||state->moving>2)return 1;
  auto &s=*state;
- // 005cb0e0: battle_zoom_castle_y=20、段別アンカー520/505、二段補正-51。
  const int cap=battle_camera_limit(s.rows,slide);
  if(s.moving==2){if(s.left<82&&s.zoom>=cap){s.left=0;s.moving=0;}else s.left-=s.left/2;}
  else if(s.moving==1){
-  const float scale=float(s.zoom/100)/100.f;const int target=int((scale*float(s.width)-9600.f)/scale),delta=target-s.left;
+  // 006d726c: 目標の計算にはARM64のfmaddと整数%の倍率を使う。
+  const float scale=float(s.zoom/100)/100.f;const int target=int(std::fma(float(s.width),scale,-9600.f)/scale),delta=target-s.left;
   if(delta<82&&s.zoom>=cap){s.zoom=cap;s.left=s.width-9600;s.moving=0;}
   else{
    s.left+=delta/2;
@@ -84,13 +84,23 @@ static uint32_t end_camera_step(KbcsBattleEndCamera *state,int slide,bool zoomin
    if(castle_reached)s.left=s.width-9600;
   }
  }
- // 005e1a5c / 005eb040 / 005edb40 / 005ef020: カメラ座標を更新したあと、phase0で+800する。
- if(zooming)s.zoom+=800;
  return 0;
+}
+static void end_camera_bounds(KbcsBattleEndCamera &s,int slide){
+ // 006d76e0..006d77c0: phase更新後の下がり量で倍率を制限し、その倍率で右端を計算する。
+ const int minimum=battle_camera_minimum(s.width);
+ s.zoom=s.zoom<minimum?minimum:std::min(s.zoom,battle_camera_limit(s.rows,slide));
+ const float right=float(s.width)-9600.f/((float(s.zoom)/100.f)/100.f);
+ if(float(s.left)>right)s.left=int(right);
+ else s.left=std::max(0,s.left);
 }
 extern "C" uint32_t kbcs_core_battle_end_camera_step(KbcsBattleEndCamera *state){
  bool castle_reached=false;
- return end_camera_step(state,0,true,castle_reached);
+ const auto code=end_camera_move(state,0,castle_reached);
+ if(code)return code;
+ state->zoom+=800;
+ end_camera_bounds(*state,10);
+ return 0;
 }
 extern "C" uint32_t kbcs_core_battle_music_cross(const KbcsBattleRewardRules *rules,int32_t previous,int32_t current,int32_t maximum,KbcsBattleMusic *state){
  if(!rules||!state||previous<0||current<0||maximum<0)return 1;

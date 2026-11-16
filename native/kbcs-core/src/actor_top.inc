@@ -7,8 +7,9 @@ extern "C" uint32_t kbcs_core_battle_score_display(int32_t score,KbcsScoreDispla
 }
 namespace {
 struct TopDraw {
- const KbcsRenderCut *cuts;int size;KbcsDrawCommand *out;int capacity,count=0;int texture=0;int red=255,green=255,blue=255;
+ const KbcsRenderCut *cuts;int size;KbcsDrawCommand *out;int capacity,count=0;int texture=0;int red=255,green=255,blue=255,y_offset=0;
  void rect(KbcsRenderCut cut,double x,double y,double w,double h){
+  y+=y_offset;
   if(count>=capacity)throw std::out_of_range("top capacity");auto &c=out[count++];c={};c.texture=texture;c.layer=10;c.count=4;c.opacity=1;
   const double points[]={x,y,x,y+h,x+w,y+h,x+w,y};std::copy_n(points,8,c.points);c.cut[0]=cut.x;c.cut[1]=cut.y;c.cut[2]=cut.width;c.cut[3]=cut.height;c.colors[0]=red;c.colors[1]=green;c.colors[2]=blue;c.colors[3]=1;
  }
@@ -37,11 +38,12 @@ extern "C" uint32_t kbcs_core_battle_top_draw(const KbcsBattle *battle,const Kbc
   if(title){d.texture=2;d.rect(*title,62,10,title->width,title->height);d.texture=0;}
   if(rules.score_type!=1&&rules.score_type!=3){*written=d.count;return 0;}
   if(count<160)return 1;
+  d.y_offset=-battle->battleSlide();
   d.box(106,cuts[107].x-cuts[106].x,center-134,10,269,42);d.sprite(rules.score_type==3?159:104,center-(rules.score_type==3?119:122),rules.score_type==3?15:17);d.sprite(105,center+100,19);
   const int value=rules.score_type==3?battle->points.score:battle->score_display.value;int digits=1;for(int v=std::max(0,value);v>=10;v/=10)++digits;
   d.number(value,14,float(center+100-(cuts[14].width-1)*digits/2),float(17+cuts[14].height/2),-1,rules.score_type==3?1.f:float(battle->score_display.scale)/100.f,5);
   if(rules.score_type==3&&rules.point.fever_count>=3&&fever_count>9){
-   TopDraw f{fever,fever_count,out+d.count,capacity-d.count};f.texture=1;const int x=center-fever[8].width/2,y=70;
+   TopDraw f{fever,fever_count,out+d.count,capacity-d.count};f.texture=1;f.y_offset=d.y_offset;const int x=center-fever[8].width/2,y=70;
    f.sprite(battle->points.wait>0?8+(battle->points.frame/3)%2:8,x,y);
    const int blank=battle->points.wait>0?int((1.-double(battle->points.wait)/rules.point.fever[2])*294.):294-battle->points.gauge;
    if(blank>0)f.rect(f.cut(7),x+301-blank,77,blank,32);

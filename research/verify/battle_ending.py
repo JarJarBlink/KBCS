@@ -8,7 +8,7 @@ from stages import Native,ROOT,SHA,digest
 n=Native();g=0x40000000;n.cpu.mem_map(g,0x800000)
 controllers={1:0x5e1a5c,4:0x5edb40,7:0x5ef020}
 with sqlite3.connect((n.cache/'cache.sqlite').as_uri()+'?mode=ro',uri=True) as db:
- for address in [*controllers.values(),0x5cb0e0]:n.ends[address]=address+db.execute('SELECT size FROM functions WHERE address=?',(f'{address:08x}',)).fetchone()[0]
+ for address in [*controllers.values(),0x5eb040,0x5cb0e0]:n.ends[address]=address+db.execute('SELECT size FROM functions WHERE address=?',(f'{address:08x}',)).fetchone()[0]
 runtime=os.add_dll_directory('D:/KBC/KBC-LINEbot-v2/.tools/llvm-mingw-20260922-ucrt-x86_64/bin') if os.name=='nt' else None
 lib=c.CDLL(str(a.library.resolve()));assert lib.kbcs_core_abi_version()==5
 class Popup(c.Structure):
@@ -44,7 +44,6 @@ n.terminals=set()
 for rows,anchor,offset,expected in [(1,520,0,10000),(2,505,-51,8803)]:
  put(0x34a4,anchor);put(0x343c,10000);n.cpu.mem_write(g+0x1405,bytes([rows==2]));n.helpers={0x9019f4:20,0x5c8a6c:offset}
  assert n.call(0x5cb0e0,g)==expected
- state=Camera(14400,10000,1,24000,rows);assert lib.kbcs_core_battle_end_camera_step(c.byref(state))==0 and (state.zoom,state.moving)==(expected+800,0)
 counts['zoom_cap']=2
 class SceneInput(c.Structure):
  _fields_=[(k,c.c_double) for k in ['width','center','zoom']]+[('cut_height',c.c_int32),('castle',c.c_int32*3)]+[(k,c.c_int32) for k in ['focus','viewport','rows']]
@@ -59,18 +58,60 @@ def camera_parameter():
  raw=n.cpu.mem_read(n.cpu.reg_read(n.reg.UC_ARM64_REG_X1),24)
  name=(n.cpu.mem_read(struct.unpack('<Q',raw[16:24])[0],24).split(b'\0')[0] if raw[0]&1 else raw[1:1+(raw[0]>>1)]).decode('ascii')
  return {'battle_zoom_slot_y':500,'battle_slot_2lines_y':-15,'battle_slot_2lines_line':95}[name]
-n.helpers={**allocators,0x9019f4:camera_parameter,0x417f20:0,0x4184d0:0}
+camera_helpers={**allocators,0x9019f4:camera_parameter,0x417f20:0,0x4184d0:0}
+native_caps={}
 counts['camera_offset']=0
 for rows,anchor in [(1,520),(2,505)]:
  put(0x34a4,anchor);n.cpu.mem_write(g+0x1405,bytes([rows==2]))
  for slide in [0,10,20,30,40,1000]:
   put(0x32f804,slide)
-  for zoom in [4900,8803,10000,26000,45200]:
+  put(0x343c,10000);n.helpers=camera_helpers
+  offset=n.call(0x5c8a6c,g)
+  n.helpers={0x9019f4:20,0x5c8a6c:offset}
+  native_caps[rows,slide]=n.call(0x5cb0e0,g)
+  n.helpers=camera_helpers
+  for zoom in [4900,6500,7900,8500,8803]:
    put(0x343c,zoom);expected=n.call(0x5c8a6c,g)
    scene=SceneInput(5000,1000,zoom/10000,510,(c.c_int32*3)(),4,1422,rows);layout=SceneLayout()
    assert lib.kbcs_core_battle_scene_layout(c.byref(scene),slide,c.byref(layout))==0
    assert layout.offset==expected,(rows,slide,zoom,layout.offset,expected)
    counts['camera_offset']+=1
+
+# 同じ表示更新の移動、終了controller、共通座標制限をARM64で順に実行する。
+sp=n.stack+0x8000
+n.ends[0x6d6d04]=0x6d77c4
+def camera_segment(begin,end):
+ n.entry=0x6d6d04;n.terminals={end}
+ n.cpu.reg_write(n.reg.UC_ARM64_REG_SP,sp)
+ n.cpu.reg_write(n.reg.UC_ARM64_REG_X27,g+0x9ee48)
+ n.cpu.emu_start(begin,n.stop+4,count=500)
+ assert n.cpu.reg_read(n.reg.UC_ARM64_REG_PC)==end
+counts['ending_camera_update']=0
+for rows in [1,2]:
+ for mode,controller in {**controllers,2:0x5eb040}.items():
+  move=1 if mode==2 else 0 if mode==4 else 2
+  for width in [12000,20000,50000]:
+   for zoom in [2900,6500,native_caps[rows,0]]:
+    for left in [0,81,width-9600]:
+     put(0x83e10,left);put(0x83e2c,move);put(0x343c,zoom);put(0x9ee48,width)
+     put(0x83e38,0);put(0x83e3c,0);put(0x32f804,0);put(0x32f9a0,0)
+     put(0x83e6c,960000//width+1)
+     for index,value in [(0x58,n.memory+0x4000),(0x60,g+0x83dfc),(0xf8,g+0x32e9e0),(0x1b0,g)]:
+      n.cpu.mem_write(sp+index,struct.pack('<Q',value))
+     n.helpers={0x5bc00c:lambda:get(0x83e2c),0x5bc02c:lambda:put(0x83e2c,0) or 0,
+                0x5bc058:mode,0x5cb0e0:native_caps[rows,0],0x5e0048:0,0x9bd60c:0,0xa0b03c:int(mode==7)}
+     n.cpu.reg_write(n.reg.UC_ARM64_REG_W21,zoom//100)
+     camera_segment(0x6d7230,0x6d73c0)
+     n.terminals=set();run(controller)
+     assert n.cpu.reg_read(n.reg.UC_ARM64_REG_W0)&1 and get(0x32f804)==10
+     n.helpers[0x5cb0e0]=native_caps[rows,10]
+     n.cpu.reg_write(n.reg.UC_ARM64_REG_X20,g)
+     camera_segment(0x6d76e0,0x6d77c0)
+     state=Camera(left,zoom,move,width,rows)
+     assert lib.kbcs_core_battle_end_camera_step(c.byref(state))==0
+     expected=(get(0x83e10),get(0x343c),get(0x83e2c))
+     assert (state.left,state.zoom,state.moving)==expected,(rows,mode,width,zoom,left,expected,state.left,state.zoom,state.moving)
+     counts['ending_camera_update']+=1
 class Material(c.Structure):
  _fields_=[('count',c.c_float),('multiplier',c.c_float),('miss',c.c_int32),('weights',c.c_int32*16)]
 class Ex(c.Structure):
@@ -150,5 +191,5 @@ for tick in range(18):
  expected=struct.unpack('<4i',n.cpu.mem_read(popup+0x60,16));assert (state.phase,state.scale_frame,state.flash,state.wait)==expected,(tick,expected,state.phase,state.scale_frame,state.flash,state.wait)
  if state.phase==3:break
 counts['popup_continuous']=tick+1
-report={'version':'15.7.2','nativeSha256':SHA,'librarySha256':digest(a.library.read_bytes()),'cases':counts,'result':'equal','controlled':['popup queue is empty','point-stage expiry popup absent','EX selection result and entropy are stubbed here; ex_transition.py verifies its kernel','input/window/network getters','camera parameters use JP data with zero safe-area insets'],'actual':['005e1a5c/005edb40/005ef020 continuous controller writes','005cb0e0 scale cap arithmetic','005c8a6c Y offsets during ending slide']}
+report={'version':'15.7.2','nativeSha256':SHA,'librarySha256':digest(a.library.read_bytes()),'cases':counts,'result':'equal','controlled':['popup queue is empty','point-stage expiry popup absent','EX selection result and entropy are stubbed here; ex_transition.py verifies its kernel','input/window/network getters','camera parameters use JP data with zero safe-area insets'],'actual':['005e1a5c/005edb40/005ef020 continuous controller writes','005cb0e0 scale cap arithmetic','005c8a6c Y offsets during ending slide','006d7230 and 006d76e0 movement and bounds around the ending controller']}
 (ROOT/'research/.local/battle-ending-1572.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8-sig');print(json.dumps(report,ensure_ascii=True))

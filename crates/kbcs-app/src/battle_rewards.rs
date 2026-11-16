@@ -603,7 +603,7 @@ impl Receipt {
         self.error = None;
         Ok(())
     }
-    fn text(&self, key: &str) -> Result<&str> {
+    pub(crate) fn text(&self, key: &str) -> Result<&str> {
         self.text
             .get(key)
             .map(String::as_str)

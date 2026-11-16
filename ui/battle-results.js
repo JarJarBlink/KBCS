@@ -36,7 +36,9 @@ export function createBattleResults(controls){
  return {
   update(value,width,atlas){runtime=value;
    // phase0から準備し、勝利文字/経験値の演出中に通知の配置を取得する。
-   if(runtime.result.mode===2&&runtime.continueNotice)popup.prepare([runtime.continueNotice],width,atlas);
+   if(runtime.result.mode===2&&runtime.continueNotice){
+    popup.prepare([[runtime.continueNotice,runtime.defeatBossHp].filter(Boolean).join('<br>')],width,atlas);
+   }
    else if(runtime.receipt)popup.prepare(runtime.receipt.notifications||[],width,atlas);
    const visible=!!(runtime.result.mode&&(runtime.receipt||runtime.receiptError||runtime.continuePrompt?.error));button.hidden=!visible;panel.hidden=!visible;if(!visible){last=undefined;return;}
    const key=runtime.receipt?'saved':runtime.receiptError||runtime.continuePrompt?.error;if(key!==last||lastEx!==runtime.ex?.source){last=key;lastEx=runtime.ex?.source;render();}
@@ -53,7 +55,7 @@ export function createBattleResults(controls){
     if(layout.panel[2])sprite('img005',0,...layout.panel);
     if(!layout.ready)return;
     context.save();context.font=nativeFont(30);context.fillStyle='#fff';context.textAlign='center';context.textBaseline='top';
-    const text=error?[error]:lines;for(const [i,line] of text.entries())context.fillText(line,center,422-text.length*18+i*36,650);
+    const text=error?[error]:lines;for(const [i,line] of text.entries())context.fillText(line,center,440-text.length*18+i*36,650);
     context.restore();
     // 005ecde0: 必要ネコカンと、「はい」「いいえ」の部品。
     number(cost,0,center+345,306);sprite('img006_ja',21,center+162,306,55,42);sprite('img002_ja',43,center+113,320,60,30);

@@ -127,6 +127,7 @@ uint32_t kbcs_core_battle_continue_payment(KbcsBattle*,int32_t paid);
 uint32_t kbcs_core_battle_ending_step(int32_t mode,int32_t point,KbcsBattleEnding*);
 uint32_t kbcs_core_battle_music(const KbcsBattle*,KbcsBattleMusic*);
 uint32_t kbcs_core_battle_end_camera(const KbcsBattle*,KbcsBattleEndCamera*);
+uint32_t kbcs_core_battle_defeat_boss_hp(const KbcsBattle*,int32_t*);
 uint32_t kbcs_core_battle_ex(const KbcsBattle*,KbcsExTransitionOutput*);
 uint32_t kbcs_core_battle_end_camera_step(KbcsBattleEndCamera*);
 uint32_t kbcs_core_battle_camera_limits(const KbcsBattle*,int32_t out[4]);

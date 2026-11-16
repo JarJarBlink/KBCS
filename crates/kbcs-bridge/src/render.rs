@@ -277,8 +277,9 @@ fn battle_zoom_and_scroll_limits_use_the_native_camera_width() {
     assert_eq!((standard.zoom, standard.center), (wide.zoom, wide.center));
     input.zoom = 2.;
     assert_eq!(layout(&input).unwrap().zoom, 0.8803);
+    input.focus = 4;
     let ending = battle_layout(&input, 1000).unwrap();
-    assert_eq!((ending.zoom, ending.y_offset), (2., -15.));
+    assert_eq!((ending.zoom, ending.y_offset), (0.9633, -15.));
 }
 pub struct Model {
     parts: Vec<Part>,

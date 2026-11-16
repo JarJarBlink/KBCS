@@ -131,8 +131,14 @@ struct KbcsBattle {
   preserve_castle=0;
   if(continue_frame>=0){if(++continue_frame==11)resumeBattle(screen);return;}
   if(result.mode){
-   if(end_camera.width&&(!ending.phase||end_camera.moving))check(end_camera_step(&end_camera,battleSlide(),!ending.phase,end_camera_castle_reached));
+   const bool zooming=!ending.phase,automatic=end_camera.width&&(zooming||end_camera.moving);
+   if(automatic)check(end_camera_move(&end_camera,battleSlide(),end_camera_castle_reached));
    advanceEnding();
+   if(automatic){
+    // 終了phase0が倍率を加算したあと、共通の戦闘更新で表示前に収める。
+    if(zooming)end_camera.zoom+=800;
+    end_camera_bounds(end_camera,battleSlide());
+   }
   }
   if(config.rules.score_type==3)check(kbcs_core_battle_point_display(&config.rules.point,&points));
   if(result.mode)return;
@@ -244,7 +250,9 @@ struct KbcsBattle {
   }
   if(ending.phase==5||ending.phase==8){
    auto &p=ending.popup;const bool release=popup_release&&p.phase==1;popup_release=false;
-   check(kbcs_core_battle_popup_step(release,&p));++ending.frame;if(release)sound(current_frame,11);
+   check(kbcs_core_battle_popup_step(release,&p));++ending.frame;
+   // 005fed64の不可通知は無音で閉じ、次のヒントの開始音だけを鳴らす。
+   if(release&&ending.phase==8)sound(current_frame,11);
    if(p.phase==3){
     if(ending.phase==5){p={};beginDefeatHint();}
     else{++p.index;p.phase=p.scale_frame=p.flash=p.wait=0;ending.phase=3;ending.frame=30;}
@@ -731,6 +739,19 @@ extern "C" uint32_t kbcs_core_battle_ex(const KbcsBattle *battle,KbcsExTransitio
  ActorPoolScope pool_scope(battle?&battle->pool:nullptr);if(!battle||!out)return 1;*out=battle->ex;return 0;}
 extern "C" uint32_t kbcs_core_battle_end_camera(const KbcsBattle *battle,KbcsBattleEndCamera *out){
  ActorPoolScope pool_scope(battle?&battle->pool:nullptr);if(!battle||!out)return 1;*out=battle->end_camera;return 0;}
+extern "C" uint32_t kbcs_core_battle_defeat_boss_hp(const KbcsBattle *battle,int32_t *percent){
+ if(!battle||!percent)return 1;
+ *percent=-1;
+ if(battle->result.mode!=2||battle->config.environment.unit_modes[1]&1)return 0;
+ // 005eb040: 敵枠順で体力が残る最初のボスを採用し、単精度で割合を切り捨てる。
+ for(int slot=0;slot<51;++slot){
+  const auto &w=actorAt(battle->actors,1,slot).words;
+  if(w[64]&&w[8]>0&&w[7]>0){*percent=std::max(1,int(float(w[8])/float(w[7])*100.f));return 0;}
+ }
+ // 未出現のボスを表示するKBCSの指定。既に生成済みの出現行と区別する。
+ for(size_t i=0;i<battle->rows.size();++i)if(battle->rows[i].cells[8]&&!battle->states[i].spawned){*percent=100;break;}
+ return 0;
+}
 extern "C" uint32_t kbcs_core_battle_camera_limits(const KbcsBattle *battle,int32_t out[4]){
  if(!battle||!out)return 1;
  const auto &end=battle->end_camera;

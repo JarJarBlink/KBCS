@@ -1,4 +1,4 @@
-﻿use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[repr(C)]
 #[derive(Clone, Default, Debug, Deserialize, Serialize)]
@@ -746,6 +746,7 @@ fn native_screen_witnesses() {
         },
     );
     assert_eq!(sped.state.frame, 3);
+    assert_eq!(sped.state.hud_frame, base.hud_frame + 1);
     let controls: serde_json::Value = serde_json::from_str(
         include_str!("../../../native/kbcs-core/tests/battle-controls-vectors.json")
             .trim_start_matches('\u{feff}'),
@@ -972,7 +973,33 @@ fn native_screen_witnesses() {
         maximum.layout.wallet_base,
         controls["walletMax"][0][0].as_i64().unwrap() as i32
     );
+    let upgrade_cost = call(
+        config.clone(),
+        State {
+            worker: 0,
+            ..base.clone()
+        },
+        Input::default(),
+    )
+    .layout
+    .upgrade_cost;
     for hud_frame in 0..6 {
+        for (money, cut) in [
+            (upgrade_cost, if hud_frame < 3 { 6 } else { 24 }),
+            (upgrade_cost - 1, 5),
+        ] {
+            let wallet = call(
+                config.clone(),
+                State {
+                    money,
+                    worker: 0,
+                    hud_frame,
+                    ..base.clone()
+                },
+                Input::default(),
+            );
+            assert_eq!(wallet.layout.wallet_base, cut);
+        }
         assert_eq!(
             call(
                 config.clone(),

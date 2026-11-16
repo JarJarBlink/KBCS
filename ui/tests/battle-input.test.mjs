@@ -39,7 +39,12 @@ assert.equal(battleCameraView(live,{endCameraActive:true},camera,1422),null);
 assert.deepEqual(battleCameraView(live,{endCameraActive:false,cameraMaximum:.9633},camera,1422),
  {...camera,viewport_width:1422,cameraWidth:960,maximum:.9633});
 const snapshot={formation:{slots:Array(10).fill(null),profile:{facilities:Object.fromEntries(['worker','wallet','cannonAttack','cannonCharge'].map(key=>[key,{level:1,plus:0}])),treasures:Object.fromEntries(catalog.treasures.map(v=>[v.id,100]))}},map:{series:'EOC',number:1,rules:[]},items:{speedup:true},deployment:{slots:Array.from({length:10},()=>({cost:0,reasons:0}))}};
-for(const speed of [2,3]){const {config}=battleScreenConfiguration({combos:[]},{...snapshot,speed});assert.equal(config.speed,speed);assert.equal(config.items,1);}
+for(const speed of [2,3]){
+ const {config,speedMode}=battleScreenConfiguration({combos:[]},{...snapshot,speed});
+ assert.equal(config.speed,speed);assert.equal(config.items,1);assert.equal(speedMode,speed-1);
+}
+const noSpeed=battleScreenConfiguration({combos:[]},{...snapshot,items:{speedup:false},speed:3});
+assert.equal(noSpeed.config.items,0);assert.equal(noSpeed.speedMode,0);
 
 const beforeDocument=globalThis.document,beforeFetch=globalThis.fetch;
 const calls=[],draws=[],errors=[];

@@ -1,4 +1,4 @@
-﻿use crate::cache::Cache;
+use crate::cache::Cache;
 use anyhow::{Context, Result, ensure};
 use include_dir::{Dir, include_dir};
 use kbcs_data::{import, store::Database};
@@ -583,9 +583,11 @@ impl Service {
             // 描画がSceneを借用する前に、同じ配置でHUDを作る。
             let hud_layout = session.layout(&request.scene)?;
             runtime["hud"] = serde_json::to_value(session.hud(&hud_layout)?)?;
+            // 006d6d04は倍速分の論理更新に入る前にコンボの時計を1回だけ進める。
+            let combo_frame = battle.state.hud_frame;
             runtime["comboIntro"] =
-                session.combo_intro(battle.state.frame, request.scene.viewport_width)?;
-            let frame = session.draw(&request.scene)?;
+                session.combo_intro(combo_frame, request.scene.viewport_width)?;
+            let frame = session.draw(&request.scene, combo_frame)?;
             return Reply::battle(
                 BattleFrame {
                     battle: &battle,
