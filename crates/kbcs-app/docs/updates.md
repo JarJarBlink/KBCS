@@ -2,7 +2,7 @@
 
 GUI/preview起動→Service::start_updates→updates::Manager::check。CLIのService::newだけではネットワーク処理を始めない。データと本体の確認エラーは独立させる。公式DBが開けない初回はデータの自動取得を始める。既存DBはversion_codeとrelease_tag/release_publishedを比較する。ホームの再確認でも同じ状態を使う。
 
-UIは全ページのmain.js→updates.jsが初回通知を管理する。startup claimはプロセス内で1回だけで、ページ再読み込みごとに確認し直さない。「いいえ」は自動取得をせず、ホームのデータ管理から実行できる案内を出す。初回取得は進捗、バックグラウンド継続、失敗時の再試行案内を表示する。home.jsは同じ状態を購読する。
+UIは全ページのmain.js→updates.jsが初回通知を管理する。startup claimはプロセス内で1回だけで、ページ再読み込みごとに確認し直さない。「いいえ」は自動取得をせず、ホームのデータ管理から実行できる案内を出す。本体とデータの更新候補が揃った場合は、本体を先に案内する。本体を見送るか再起動を後回しにした場合は、続けてデータ更新を案内する。本体の更新で再起動する場合は、次回起動時にデータを確認する。初回取得は進捗、バックグラウンド継続、失敗時の再試行案内を表示する。home.jsは同じ状態を購読する。
 
 API: GET /api/updates（確認/進捗/導入済み版）、POST /check、/startup、/download {kind:data|app}、/apply。先頭はすべて/api/updates。旧/api/importの標準GitHub URLも統合リリースへ接続し、明示したローカルGit原本の手動取り込みを維持する。処理はバックグラウンド。DB snapshotを切り替え、snapshot名を含む既存キャッシュキーを利用する。
 

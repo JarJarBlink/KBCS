@@ -125,7 +125,7 @@ async function depart(){
 }
 node('launch').addEventListener('click',depart);
 node('cancel').addEventListener('click',()=>{controller?.abort();node('blackout').hidden=true;});
-function returnToPreparation(){battle?.stop();battle=null;prepared=null;loadedAssets=null;node('initial').hidden=true;node('setup').hidden=false;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:false}));stageMedia.refresh();}
+function returnToPreparation(toMap=false){battle?.stop();battle=null;prepared=null;loadedAssets=null;if(toMap){location.assign(node('stage-navigation').querySelector('a').href);return;}node('initial').hidden=true;node('setup').hidden=false;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:false}));stageMedia.refresh();}
 node('formation').addEventListener('change',event=>chooseFormation(event.target.value));
 node('stages').addEventListener('click',event=>{const target=event.target.closest('[data-stage]');if(target){stage=stages.find(value=>value.index===Number(target.dataset.stage));renderStage();}});
 node('crowns').addEventListener('click',event=>{const target=event.target.closest('[data-crown]');if(target){crown=Number(target.dataset.crown);renderStage();}});

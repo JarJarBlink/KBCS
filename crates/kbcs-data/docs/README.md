@@ -74,6 +74,10 @@ combos::readのgroupは既存source_file/NyancomboData.csv列2から補う。tar
 
 `inventory::Store`は公式DBと別のuser/inventory.sqliteを所有する。itemのdisplay_countはユーザー編集可能、earnedは獲得累計。battleの結果JSON、claimの初回旗、recordのクリア数/最高記録、characterの所持/基本Lv/＋値/第3・第4解放を保持する。`begin`で戦闘番号を採番し、`finish`は結果・加算・旗・所持状態を同じtransactionで確定する。同じ番号の再呼出は保存済み結果を返す。通知の取得前後の数はtransaction内で決め、再取得で二重加算しない。
 
+KBCS独自のネコカン配布は報酬ID13に保存する。通常起動時は累計150・表示数30を加算し、クリア（結果mode 1）の確定時は同じ戦闘トランザクションで累計30・表示数15を加算する。結果の報酬一覧・通知には配布行を作らない。上限は既存の持ち物と同じ。
+
+戦闘のコンティニューは `spend_continue_cat_food` の単一UPDATEで残数の確認と表示数からの30個の引き落としを行う。獲得累計は保持する。
+
 `catalog`はGatyaitembuyの先頭見出しを除き最初の12列だけ数値として読む。列12以降の日本語コメントを数値化しない。drop_charaも見出しを除く。これが持ち物で発生した「数値CSVの不正なセル」の原因だった。名前は内部アイテム行、公開IDは列3、キャラ入手旗はdrop_chara列1。原本名と変換先IDを混同しない。
 
 キャラ状態は戦闘の編成設定から独立する。進化権だけでは所持済みにしない。取得旗が異なる同じunitもあり、unitのownedだけから各報酬の初回旗を推測しない。`finish`は取得前状態との一致を検査し、同じtransactionの後続報酬には直前の状態を渡す。

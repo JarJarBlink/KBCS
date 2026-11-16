@@ -1,10 +1,14 @@
 ﻿use anyhow::{Context, Result, ensure};
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, path::Path, time::Duration};
 
 pub struct Store(Connection);
+// Gatyaitembuy.csvの内部番号22・報酬ID13はネコカン。
+const CAT_FOOD_ID: i32 = 13;
+const MAX_ITEM_COUNT: i64 = 9_007_199_254_740_991;
+pub const CONTINUE_CAT_FOOD_COST: i64 = 30;
 #[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Character {
@@ -80,11 +84,31 @@ impl Store {
     }
     pub fn update_display(&self, value: &Display) -> Result<()> {
         ensure!(
-            value.id >= 0 && (0..=9_007_199_254_740_991).contains(&value.count),
+            value.id >= 0 && (0..=MAX_ITEM_COUNT).contains(&value.count),
             "表示数の範囲が不正です"
         );
         self.0.execute("INSERT INTO item(id,display_count) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET display_count=excluded.display_count", params![value.id,value.count])?;
         Ok(())
+    }
+    pub fn grant_launch_cat_food(&self) -> Result<()> {
+        grant_cat_food(&self.0, 150, 30)
+    }
+    pub fn cat_food_display(&self) -> Result<i64> {
+        Ok(self
+            .0
+            .query_row(
+                "SELECT display_count FROM item WHERE id=?",
+                [CAT_FOOD_ID],
+                |row| row.get(0),
+            )
+            .optional()?
+            .unwrap_or(0))
+    }
+    pub fn spend_continue_cat_food(&self) -> Result<bool> {
+        Ok(self.0.execute(
+            "UPDATE item SET display_count=display_count-?2 WHERE id=?1 AND display_count>=?2",
+            params![CAT_FOOD_ID, CONTINUE_CAT_FOOD_COST],
+        )? == 1)
     }
     pub fn items(&self) -> Result<Value> {
         let mut query = self
@@ -116,7 +140,9 @@ impl Store {
         grants: &[Grant],
         records: &[(String, i32)],
     ) -> Result<Value> {
-        let tx = self.0.transaction()?;
+        let tx = self
+            .0
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let saved: Option<String> = tx
             .query_row("SELECT result FROM battle WHERE id=?", [battle], |r| {
                 r.get(0)
@@ -165,7 +191,7 @@ impl Store {
                 .checked_add(grant.amount)
                 .context("獲得累計の上限を超えました")?;
             ensure!(
-                after <= 9_007_199_254_740_991 && total <= 9_007_199_254_740_991,
+                after <= MAX_ITEM_COUNT && total <= MAX_ITEM_COUNT,
                 "持ち物の上限を超えました"
             );
             if grant.amount > 0 {
@@ -183,6 +209,10 @@ impl Store {
         for (key, value) in records {
             set_record(&tx, key, *value)?;
         }
+        // KBCS独自の配布は、原本の報酬一覧と通知へ追加しない。
+        if result["mode"] == 1 {
+            grant_cat_food(&tx, 30, 15)?;
+        }
         result["rewards"] = json!(rows);
         result["notifications"] = json!(notifications);
         tx.execute(
@@ -193,6 +223,17 @@ impl Store {
         Ok(result)
     }
 }
+fn grant_cat_food(connection: &Connection, earned: i64, display: i64) -> Result<()> {
+    connection.execute(
+        "INSERT INTO item(id,display_count,earned) VALUES(?1,?2,?3)
+         ON CONFLICT(id) DO UPDATE SET
+            display_count=min(?4,item.display_count+excluded.display_count),
+            earned=min(?4,item.earned+excluded.earned)",
+        params![CAT_FOOD_ID, display, earned, MAX_ITEM_COUNT],
+    )?;
+    Ok(())
+}
+
 fn read_character(connection: &Connection, unit: i32) -> Result<Character> {
     let value: Option<String> = connection
         .query_row(
@@ -333,6 +374,48 @@ fn character(
     Ok(
         json!({"id":id,"name":if form>=2 {format!("第{}形態進化権：{name}",form+1)}else{name},"icon":icon,"unit":unit,"form":form,"unitName":unit_name,"rarity":rarity,"limit":limit}),
     )
+}
+
+#[test]
+fn cat_food_bonuses_update_both_counts_without_a_receipt_row() {
+    let mut store = Store::memory().unwrap();
+    let count = |store: &Store| store.items().unwrap()[0].clone();
+
+    store.grant_launch_cat_food().unwrap();
+    assert_eq!(
+        count(&store),
+        json!({"id":CAT_FOOD_ID,"earned":150,"displayCount":30})
+    );
+    store
+        .update_display(&Display {
+            id: CAT_FOOD_ID,
+            count: 2,
+        })
+        .unwrap();
+    store.grant_launch_cat_food().unwrap();
+    assert_eq!(
+        count(&store),
+        json!({"id":CAT_FOOD_ID,"earned":300,"displayCount":32})
+    );
+
+    let battle = store.begin().unwrap();
+    let clear = store.finish(battle, json!({"mode":1}), &[], &[]).unwrap();
+    assert_eq!(clear["rewards"], json!([]));
+    assert_eq!(clear["notifications"], json!([]));
+    assert_eq!(
+        store.finish(battle, json!({"mode":1}), &[], &[]).unwrap(),
+        clear
+    );
+    let defeat = store.begin().unwrap();
+    store.finish(defeat, json!({"mode":2}), &[], &[]).unwrap();
+    assert_eq!(
+        count(&store),
+        json!({"id":CAT_FOOD_ID,"earned":330,"displayCount":47})
+    );
+    assert!(store.spend_continue_cat_food().unwrap());
+    assert!(!store.spend_continue_cat_food().unwrap());
+    assert_eq!(store.cat_food_display().unwrap(), 17);
+    assert_eq!(count(&store)["earned"], 330);
 }
 
 #[test]

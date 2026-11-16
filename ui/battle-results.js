@@ -12,6 +12,11 @@ export function createBattleResults(controls){
  function render(){
   panel.replaceChildren();const receipt=runtime.receipt;
   const heading=document.createElement('h3');heading.textContent=runtime.result.mode===1?'クリア結果':runtime.result.mode===4||runtime.result.mode===7?'戦闘結果':'敗北';panel.append(heading);
+  if(runtime.result.mode===2&&runtime.noContinue){const note=document.createElement('p');note.textContent='このステージはコンティニューできません';panel.append(note);}
+  if(runtime.continuePrompt){
+   if(runtime.continuePrompt.error){const note=document.createElement('p');note.setAttribute('role','alert');note.textContent=runtime.continuePrompt.error;panel.append(note);}
+   return;
+  }
   if(runtime.receiptError){const error=document.createElement('p');error.setAttribute('role','alert');error.textContent='報酬を保存できませんでした。再試行中：'+runtime.receiptError;panel.append(error);return;}
   if(!receipt){panel.append(document.createTextNode('結果を保存しています…'));return;}
   const title=document.createElement('p');title.textContent=receipt.stageName;panel.append(title);
@@ -29,15 +34,34 @@ export function createBattleResults(controls){
  }
  fetch('/api/inventory/catalog').then(r=>r.json()).then(value=>{for(const item of value.items||[])metadata.set(item.id,item);if(runtime?.receipt)render();}).catch(()=>{});
  return {
-  update(value,width,atlas){runtime=value;const visible=!!runtime.result.mode;button.hidden=!visible;panel.hidden=!visible;if(!visible)return;
+  update(value,width,atlas){runtime=value;const visible=!!(runtime.result.mode&&(runtime.receipt||runtime.receiptError||runtime.continuePrompt?.error));button.hidden=!visible;panel.hidden=!visible;if(!visible){last=undefined;return;}
    // phase0から準備し、勝利文字/経験値の演出中に通知の配置を取得する。
    if(runtime.receipt)popup.prepare(runtime.receipt.notifications||[],width,atlas);
-   const key=runtime.receipt?'saved':runtime.receiptError;if(key!==last||lastEx!==runtime.ex?.source){last=key;lastEx=runtime.ex?.source;render();}
+   const key=runtime.receipt?'saved':runtime.receiptError||runtime.continuePrompt?.error;if(key!==last||lastEx!==runtime.ex?.source){last=key;lastEx=runtime.ex?.source;render();}
   },
   paint(context,width,sprite,number,atlas,images){
    if(!runtime?.result.mode)return;
    const e=runtime.ending,r=runtime.result,dojo=r.mode===4,name=dojo?'img004_DOJO_ja':'img004_ja';
    if(e.title[2]>=0)sprite(name,e.title[2],e.title[0],e.title[1]);
+   const prompt=runtime.continuePrompt;
+   if(prompt){
+    const {layout,lines,cost,balance,error}=prompt,center=Math.trunc(width/2);
+    if(layout.panel[2])sprite('img005',0,...layout.panel);
+    if(!layout.ready)return;
+    context.save();context.font=nativeFont(30);context.fillStyle='#fff';context.textAlign='center';context.textBaseline='top';
+    const text=error?[error]:lines;for(const [i,line] of text.entries())context.fillText(line,center,422-text.length*18+i*36,650);
+    context.restore();
+    // 005ecde0: 必要ネコカンと、「はい」「いいえ」の部品。
+    number(cost,0,center+345,306);sprite('img006_ja',21,center+162,306,55,42);sprite('img002_ja',43,center+113,320,60,30);
+    for(const [i,b] of layout.buttons.entries()){
+     sprite('img101',0,...b);sprite('img006_ja',4+i,...layout.labels[i]);
+     if(layout.pressed===i+1)sprite('img101',layout.guard&&Math.trunc(layout.guard/2)%2?2:1,...b);
+    }
+    // 00751608: img024_ja部品11の幅290を右端から引いた基準位置。
+    if(balance!=null){sprite('img006_ja',21,width-272,588,55,42);sprite('img006_ja',18,width-230,588,27,26);sprite('img006_ja',24,width-280,617,76,25);number(balance,0,width-6,592);}
+    return;
+   }
+   if(runtime.receipt&&runtime.endingMap?.[2])sprite('img001_ja',120,...runtime.endingMap);
    const hint=runtime.defeatHint;
    if(r.mode===2&&e.phase===4&&hint?.layout.id>=0){
     sprite('img005',0,...hint.layout.panel);

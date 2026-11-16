@@ -166,6 +166,14 @@ impl Service {
         }
     }
 
+    pub fn grant_launch_cat_food(&self) {
+        if let Err(error) = kbcs_data::inventory::Store::open(&self.root)
+            .and_then(|store| store.grant_launch_cat_food())
+        {
+            eprintln!("起動時のネコカンを保存できませんでした: {error:#}");
+        }
+    }
+
     pub fn start_updates(&self) {
         self.updates.check(true);
     }
@@ -1298,6 +1306,7 @@ pub fn serve(root: PathBuf, region: String, source: String, bind: &str) -> Resul
     );
     let server = tiny_http::Server::http(address).map_err(|error| anyhow::anyhow!("{error}"))?;
     let service = Service::new(root, region, source);
+    service.grant_launch_cat_food();
     service.start_updates();
     println!("KBCS preview: http://{bind}/");
     for mut request in server.incoming_requests() {

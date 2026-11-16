@@ -34,8 +34,10 @@ extern "C" uint32_t kbcs_core_actor_summon(const KbcsSummonInput *input,KbcsSumm
 }
 struct KbcsBattle {
  BattleInspector inspector;
- KbcsBattleRewardRules reward_rules=[]{KbcsBattleRewardRules r{};r.music[0]=-1;r.music[1]=-1;r.start_sound=-1;return r;}();KbcsBattleRewards rewards{};KbcsBattleEnding ending{};bool popup_release=false,ending_clicked=false;
+ KbcsBattleRewardRules reward_rules=[]{KbcsBattleRewardRules r{};r.music[0]=-1;r.music[1]=-1;r.start_sound=-1;return r;}();KbcsBattleRewards rewards{};KbcsBattleEnding ending{};bool popup_release=false,ending_clicked=false,map_pressed=false,return_to_map=false;
  bool end_sound=false;int return_frame=-1,hint_id=-1,hint_fallback_lines=0;std::vector<int32_t> hint_ids,hint_lines;KbcsScoreDisplay score_display{0,0,0,0,100};
+ bool continue_allowed=false,continue_pending=false;
+ int continue_pressed=0,continue_choice=0,continue_frame=-1,continues=0;
  KbcsBattleMusic music{-1,0,0,0,0,0};
  KbcsBattleEndCamera end_camera{};KbcsExTransitionOutput ex{};
  KbcsBattleConfig config;
@@ -124,9 +126,10 @@ struct KbcsBattle {
   }
   return out;
  }
- void display(){
+ void display(KbcsBattleScreenState &screen){
   // 006d7208。倍速の論理ループでは消さず、表示更新の先頭だけで初期化する。
   preserve_castle=0;
+  if(continue_frame>=0){if(++continue_frame==11)resumeBattle(screen);return;}
   if(result.mode){if(end_camera.width)check(kbcs_core_battle_end_camera_step(&end_camera));advanceEnding();}
   if(config.rules.score_type==3)check(kbcs_core_battle_point_display(&config.rules.point,&points));
   if(result.mode)return;
@@ -172,9 +175,64 @@ struct KbcsBattle {
   if(type==1){for(int i=0;i<count;++i)sound(current_frame,ids[i]);}
   else if(!type){int32_t index=0;check(kbcs_core_random_bounded(&seed,count,&index));sound(current_frame,ids[index]);}
  }
+ void beginDefeatHint(){
+  ending.phase=4;ending.frame=0;
+  int32_t pick=0;if(!hint_ids.empty())check(kbcs_core_random_bounded(&seed,int32_t(hint_ids.size()),&pick));hint_id=hint_ids.empty()?0:hint_ids[pick];
+ }
+ // 00695904の復帰分岐。城と敵の位置を戻し、出現行・HP・戦闘RNGを引き継ぐ。
+ void resumeBattle(KbcsBattleScreenState &screen){
+  const KbcsActorDefinition definition{};const KbcsSpawnRequest request{};Context context{definition,config.environment,actors,request,seed};
+  auto &castle=actorAt(actors,0,0).words;castle[1]=0;castle[8]=castle[7];
+  for(int slot=1;slot<actorEnd();++slot){
+   auto &enemy=actorAt(actors,1,slot);auto &w=enemy.words;
+   if(w[1]==2)n_00a94274(context,1,slot,0);
+   if(slot!=config.environment.castle_slot)w[3]=2800;
+   inspector.sample(1,slot,screen.frame,enemy);
+  }
+  // 005c2d60 / 005c2c30 / 005c27f4 / 00a93114。
+  std::fill_n(production.wait,10,0);std::fill_n(production.maximum,10,0);std::fill_n(red_gauge,10,0);
+  screen.worker=7;screen.cannon=0;castle[12]=0;
+  KbcsBattleScreenState copy{};KbcsBattleScreenLayout layout{};const KbcsBattleScreenInput idle{};
+  check(kbcs_core_battle_screen_step(&config.screen,&screen,&idle,&copy,&layout));
+  production.money=screen.money=layout.wallet_max;
+  for(auto &side:impacts)for(auto &impact:side)std::fill_n(impact,4,0);
+  for(auto &entry:pool.extra){for(auto &impact:entry.impacts)std::fill_n(impact,4,0);entry.waves.fill(0);}
+  critical_visuals={};waves={};segments={};areas={};cannon={};sniper={};sniper_phase=0;
+  warning[0]=warning[1]=0;computer={};
+  result.mode=result.reason=result.finished_frame=0;
+  rewards={};ending={};hint_id=-1;end_sound=false;continue_frame=-1;++continues;
+  screen.battle_mode=0;screen.intro=12;screen.wallet_flash=0;screen.description_item=-1;screen.description_wait=0;
+  end_camera={config.environment.stage_width-9600,end_camera.zoom,0,config.environment.stage_width,screen.rows};
+  // 005c20ec(0,1)で戦闘曲に戻る。HP閾値の切替済み情報はそのまま使う。
+  music.id=reward_rules.music[music.changed?1:0];music.started=1;music.delay=music.wait=0;++music.serial;
+ }
+ KbcsBattleContinue continueView() const {
+  KbcsBattleContinue view{};view.resumes=continues;
+  if(result.mode!=2||ending.phase!=3)return view;
+  const int center=(config.screen.viewport_width?config.screen.viewport_width:960)/2;
+  static constexpr int scales[]={0,50,80,90,100},sizes[]={0,0,6,-10,0,0};
+  const int scale=scales[std::clamp(ending.frame,0,4)],w=690*scale/100,h=229*scale/100;
+  const int panel[]={center-w/2,462-h/2,w,h};std::copy_n(panel,4,view.panel);
+  view.ready=ending.frame>=4;view.pending=continue_pending;view.pressed=continue_choice?continue_choice:continue_pressed;view.guard=continue_choice?ending.guard:0;
+  for(int i=0;i<2;++i){
+   const int z=continue_choice==i+1?sizes[std::clamp(ending.guard,0,5)]:0,x=center+(i?61:-229);
+   const int button[]={x-z/2,480-z/2,168+z,72+z},label[]={x+9-z/2,488-z/2,150+z,55+z};
+   std::copy_n(button,4,view.buttons[i]);std::copy_n(label,4,view.labels[i]);
+  }
+  return view;
+ }
  void advanceEnding(){
   // 結果のrelease待ちを終えたら、006994e8の前半で覆い切ってから画面を戻す。
-  if(return_frame>=0){return_frame=std::min(11,return_frame+1);if(return_frame==11)ending.action=302;return;}
+  if(return_frame>=0){return_frame=std::min(11,return_frame+1);if(return_frame==11)ending.action=return_to_map?309:302;return;}
+  if(result.mode==2&&ending.phase==3){
+   if(continue_pending)return;
+   ending.frame=std::min(ending.frame+1,5);
+   if(continue_choice&&++ending.guard>5){
+    const int choice=continue_choice;continue_choice=ending.guard=0;
+    if(choice==1)continue_pending=true;else beginDefeatHint();
+   }
+   return;
+  }
   if(ending.phase==8){
    auto &p=ending.popup;const bool release=popup_release&&p.phase==1;popup_release=false;
    check(kbcs_core_battle_popup_step(release,&p));++ending.frame;if(release)sound(current_frame,11);
@@ -185,15 +243,37 @@ struct KbcsBattle {
   // 005bc00cが終了カメラの完了を返すまで、phase0を進めない。
   if(!ending.phase&&ending.frame>=19&&end_camera.moving){++ending.frame;return;}
    const int previous=ending.phase;check(kbcs_core_battle_ending_step(result.mode,config.rules.score_type==3,&ending));if(result.mode==2&&previous==4&&ending.frame==1)sound(current_frame,42);if(ending_clicked){ending.guard=1;ending_clicked=false;}if(ending.action==302){return_frame=0;ending.action=0;}if(previous==6&&ending.phase==7&&result.mode==1)check(kbcs_core_stage_ex(&reward_rules.ex,reward_rules.ex_choices,reward_rules.ex_count,&seed,&ex));
-   if(result.mode==2&&previous!=4&&ending.phase==4){int32_t pick=0;if(!hint_ids.empty())check(kbcs_core_random_bounded(&seed,int32_t(hint_ids.size()),&pick));hint_id=hint_ids.empty()?0:hint_ids[pick];}
+   if(result.mode==2&&previous!=4&&ending.phase==4){if(continue_allowed)ending.phase=3;else beginDefeatHint();}
+ }
+ // 005e144cの部品120。005ecde0は敗北ヒント、005ee758/005efbacは結果phase7で描く。
+ std::array<int32_t,4> endingMapButton() const {
+  if(!result.mode||ending.phase!=(result.mode==2?4:7)||return_frame>=0)return {};
+  const int width=config.screen.viewport_width?config.screen.viewport_width:960;
+  return {width-81,10,71,71};
  }
  void endingInput(const KbcsBattleScreenInput &input){
+  if(result.mode==2&&ending.phase==3){
+   if(continue_pending||continue_frame>=0||ending.guard)return;
+   const auto view=continueView();int target=0;
+   if(view.ready)for(int i=0;i<2;++i){const auto &b=view.buttons[i];if(b[0]<=input.x&&input.x<=b[0]+b[2]&&b[1]<=input.y&&input.y<=b[1]+b[3])target=i+1;}
+   if(input.phase==1){continue_pressed=target;if(target)sound(current_frame,10);}
+   else if(input.phase==2){if(target&&target==continue_pressed){continue_choice=target;ending.guard=1;sound(current_frame,11);}continue_pressed=0;}
+   else if(input.phase==3)continue_pressed=0;
+   return;
+  }
   if(ending.phase==8){if(input.phase==2&&ending.popup.phase==1)popup_release=true;return;}
   if(ending.guard||ending.action||return_frame>=0)return;KbcsBattleEnding view{};check(kbcs_core_battle_ending(this,&view));
   const auto *b=view.button;const bool inside=input.x>=b[0]&&input.x<=b[0]+b[2]&&input.y>=b[1]&&input.y<=b[1]+b[3];
-  if(input.phase==1){ending.pressed=view.ready&&inside;if(ending.pressed)sound(current_frame,10);}
-  else if(input.phase==2){if(ending.pressed&&inside&&view.ready){ending_clicked=true;sound(current_frame,11);}ending.pressed=0;}
-  else if(input.phase==3)ending.pressed=0;
+  const auto map=endingMapButton();
+  const bool inside_map=view.ready&&map[2]>0&&input.x>=map[0]&&input.x<=map[0]+map[2]&&input.y>=map[1]&&input.y<=map[1]+map[3];
+  if(input.phase==1){
+   map_pressed=inside_map;ending.pressed=view.ready&&inside;
+   if(map_pressed||ending.pressed)sound(current_frame,10);
+  }else if(input.phase==2){
+   if(map_pressed&&inside_map){return_to_map=true;ending_clicked=true;sound(current_frame,11);}
+   else if(ending.pressed&&inside&&view.ready){ending_clicked=true;sound(current_frame,11);}
+   map_pressed=false;ending.pressed=0;
+  }else if(input.phase==3){map_pressed=false;ending.pressed=0;}
  }
  int cost(const KbcsBattleProfile &p) const {
   if(p.deployment_slot<0||p.deployment_slot>9)return p.cost;
@@ -352,6 +432,7 @@ struct KbcsBattle {
   check(kbcs_core_actor_frame_marks(actors,&config.environment));
  }
  void logical(KbcsBattleScreenState &screen){
+  if(continue_frame>=0||continue_pending)return;
   inspector.begin();
   current_frame=screen.frame;diagnostic[0]=screen.frame;diagnostic[1]=1;sniper_phase+=6.f;
   if(!result.mode&&config.rules.score_type==3){int32_t changed=0;check(kbcs_core_battle_point_fever(&config.rules.point,&points,&changed));if(changed>0)sound(screen.frame,194);}
@@ -450,6 +531,8 @@ struct KbcsBattle {
   if(!result.mode){uint32_t ready=0;int32_t recharges[10]{};for(const auto &p:definitions)if(p.deployment_slot>=0&&p.deployment_slot<10)recharges[p.deployment_slot]=recharge(p);
    check(kbcs_core_production_clock(&production,recharges,&ready));for(int i=0;i<10;++i)if(ready&(1U<<i))sound(screen.frame,27);
   }
+  // 006db7a0: 遅延を適用した同じ論理更新の末尾から減算する。
+  for(auto &remaining:red_gauge)if(remaining>0)--remaining;
   const int previous_cannon=screen.cannon;kbcs_core_battle_screen_economy(&config.screen,&screen);
   if(previous_cannon>0&&!screen.cannon)sound(screen.frame,28);
   hits.metal.clear();production.money=screen.money;actorAt(actors,0,0).words[12]=screen.cannon;
@@ -518,7 +601,7 @@ struct KbcsBattle {
    if(event==0)battle.logical(*screen);else if(event==1)battle.deploy(*screen);
    else if(event==2)battle.fire(*screen);
    else if(event==3)battle.automatic(*screen);
-   else if(event==4){battle.display();if(battle.ending.action)screen->request_action=battle.ending.action;}
+   else if(event==4){battle.display(*screen);if(battle.ending.action)screen->request_action=battle.ending.action;}
    else if(event==5){if(!screen->paused)battle.musicDisplay();if(battle.config.rules.score_type==3)battle.check(kbcs_core_battle_point_render(&battle.config.rules.point,&battle.points));if(battle.config.rules.score_type==1)battle.check(kbcs_core_battle_score_display(battle.result.score,&battle.score_display));}
    else if(event>=KBCS_BATTLE_SCREEN_SOUND)battle.sound(screen->frame,event-KBCS_BATTLE_SCREEN_SOUND);
 
@@ -586,7 +669,8 @@ extern "C" uint32_t kbcs_core_battle_advance(KbcsBattle *battle,const KbcsBattle
  try{battle->refill(battle->config.state);}catch(const AttackFailure &error){return error.code;}catch(...){return 3;}
  const auto code=kbcs_core_battle_screen_advance_custom(&screen,&battle->config.state,input,out,view,KbcsBattle::hook,battle,(battle->cheats&KBCS_BATTLE_INSTANT)!=0);
  if(code){battle->failed=true;return code;}
- if(battle->return_frame>=0){const auto fade=kbcs_core_battle_screen_fade(screen.viewport_width,battle->return_frame,view);if(fade)return fade;}
+ const int wipe=battle->continue_frame>=0?battle->continue_frame:battle->return_frame;
+ if(wipe>=0){const auto fade=kbcs_core_battle_screen_fade(screen.viewport_width,wipe,view);if(fade)return fade;}
  battle->config.state=*out;return 0;
 }
 extern "C" uint32_t kbcs_core_battle_actors(const KbcsBattle *battle,const KbcsActor **actors,const int32_t **profiles){
@@ -666,6 +750,25 @@ extern "C" uint32_t kbcs_core_battle_ending(const KbcsBattle *battle,KbcsBattleE
  e.label[0]=width/2-127-delta/2;e.label[1]=e.button[1]+17-delta/2;e.label[2]=254+delta;e.label[3]=55+delta;
  *out=e;return 0;
 }
+extern "C" uint32_t kbcs_core_battle_ending_map(const KbcsBattle *battle,int32_t out[4]){
+ if(!battle||!out)return 1;
+ const auto button=battle->endingMapButton();
+ std::copy(button.begin(),button.end(),out);
+ return 0;
+}
+extern "C" uint32_t kbcs_core_battle_allow_continue(KbcsBattle *battle,int32_t allowed){
+ if(!battle||battle->config.state.frame||battle->result.mode||allowed<0||allowed>1)return 1;
+ battle->continue_allowed=allowed!=0;return 0;
+}
+extern "C" uint32_t kbcs_core_battle_continue_view(const KbcsBattle *battle,KbcsBattleContinue *out){
+ if(!battle||!out)return 1;
+ *out=battle->continueView();return 0;
+}
+extern "C" uint32_t kbcs_core_battle_continue_payment(KbcsBattle *battle,int32_t paid){
+ if(!battle||!battle->continue_pending||paid<0||paid>1)return 1;
+ battle->continue_pending=false;if(paid)battle->continue_frame=0;
+ return 0;
+}
 extern "C" uint32_t kbcs_core_battle_deployment(const KbcsBattle *battle,KbcsBattleDeployment *out){
  ActorPoolScope pool_scope(battle?&battle->pool:nullptr);
  if(!battle||!out)return 1;try{*out=battle->deployment(battle->config.state);return 0;}catch(const AttackFailure &error){return error.code;}catch(...){return 3;}
@@ -703,7 +806,7 @@ extern "C" uint32_t kbcs_core_battle_hud(const KbcsBattle *battle,const KbcsScen
  KbcsBattleHud value{};value.title[0]=62;value.title[1]=10;value.scale=scene->zoom;
 
  for(int i=0;i<10;++i){auto &s=value.summons[i];s[0]=battle->summonActive(i);s[2]=battle->summons.wait[i];s[3]=battle->summons.used[i];
-  s[4]=int(float(std::cos(double(s[2]*10)*3.141592653589793/180.))*31.f+224.f);if(!s[0]||s[3]||s[2]>0)continue;for(const auto &p:battle->definitions)if(p.deployment_slot==i)for(int j=1;j<actorEnd();++j)if(actorAt(battle->actors,0,j).words[0]==p.spawn.raw&&actorAt(battle->actors,0,j).words[1]!=4)s[1]=1;
+  s[4]=int(float(std::cos(double(s[2]*10)*3.141592653589793/180.))*31.f+224.f);if(!s[0]||s[3])continue;for(const auto &p:battle->definitions)if(p.deployment_slot==i)for(int j=1;j<actorEnd();++j)if(actorAt(battle->actors,0,j).words[0]==p.spawn.raw&&actorAt(battle->actors,0,j).words[1]!=4)s[1]=1;
  }
  // 005d18a4: 押下時のアイコン拡縮とは別の、元の枠座標へゲージを置く。
  for(const auto &p:battle->definitions)if(p.deployment_slot>=0&&p.deployment_slot<10){

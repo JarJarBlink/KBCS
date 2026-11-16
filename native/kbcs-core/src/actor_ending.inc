@@ -59,7 +59,7 @@ extern "C" uint32_t kbcs_core_battle_ending_step(int32_t mode,int32_t point,Kbcs
   if(mode==2){
    if(e.phase==1&&e.frame>43){e.phase=2;e.frame=0;}
    // 005eb894..: 80更新の待機後、文字を10pxずつ-100まで移動する。
-   // コンティニュー画面は扱わず、その後のヒントを開く。panelは敗北時だけ文字のY差分。
+   // 所有戦闘は許可されていればこの境界でphase3へ分岐する。panelは敗北時だけ文字のY差分。
    else if(e.phase==2&&old>=80){e.panel=std::max(-100,e.panel-10);if(e.panel==-100){e.phase=4;e.frame=0;}}
    return 0;
   }

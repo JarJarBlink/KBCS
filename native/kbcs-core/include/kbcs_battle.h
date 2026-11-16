@@ -106,6 +106,9 @@ typedef struct {int32_t index,count,phase,scale_frame,flash,wait;} KbcsBattlePop
 typedef struct {int32_t viewport,count,widths[8],scale_frame,cut[4],padding[2];} KbcsBattlePopupInput;
 typedef struct {int32_t body[4],text_y,text_x[8],parts[9][8];float text_scale[8];} KbcsBattlePopupLayout;
 typedef struct {int32_t phase,frame,panel,title[3],bar_x,number_x,shade,ready,button[4],visual_button[4],label[4],pressed,guard,action;KbcsBattlePopup popup;} KbcsBattleEnding;
+typedef struct {
+ int32_t ready,pending,resumes,panel[4],buttons[2][4],labels[2][4],pressed,guard;
+} KbcsBattleContinue;
 typedef struct {int32_t mode,map_id,stage,crown,special,progress,cosmos;} KbcsBattleHintContext;
 typedef struct {int32_t id,panel[4],text_y,ready;} KbcsBattleHint;
 uint32_t kbcs_core_battle_hint_candidates(const KbcsBattleHintContext*,const int32_t *groups,int32_t count,const int32_t *settings,int32_t rows,int32_t columns,int32_t *out,int32_t *out_count);
@@ -117,6 +120,10 @@ uint32_t kbcs_core_battle_popup_layout(const KbcsBattlePopupInput*,KbcsBattlePop
 uint32_t kbcs_core_battle_reward_rules(KbcsBattle*,const KbcsBattleRewardRules*);
 uint32_t kbcs_core_battle_rewards(const KbcsBattle*,KbcsBattleRewards*);
 uint32_t kbcs_core_battle_ending(const KbcsBattle*,KbcsBattleEnding*);
+uint32_t kbcs_core_battle_ending_map(const KbcsBattle*,int32_t out[4]);
+uint32_t kbcs_core_battle_allow_continue(KbcsBattle*,int32_t allowed);
+uint32_t kbcs_core_battle_continue_view(const KbcsBattle*,KbcsBattleContinue*);
+uint32_t kbcs_core_battle_continue_payment(KbcsBattle*,int32_t paid);
 uint32_t kbcs_core_battle_ending_step(int32_t mode,int32_t point,KbcsBattleEnding*);
 uint32_t kbcs_core_battle_music(const KbcsBattle*,KbcsBattleMusic*);
 uint32_t kbcs_core_battle_end_camera(const KbcsBattle*,KbcsBattleEndCamera*);

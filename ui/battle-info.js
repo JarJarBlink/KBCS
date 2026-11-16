@@ -11,7 +11,6 @@ export function unitInfoInput(unit,member,manifest){
  const added=new Set(applied.flatMap(talent=>[...talent.targets,...(talent.effect.kind==='target'?[talent.effect.key]:[])]));
  return {center:0,y:159,form:form?.index||0,attributes:targets.map(key=>Number(form?.targets.includes(key)||false)),abilities:manifest.abilityKeys.map(list=>Number(list.some(key=>keys.has(key)))),talents:manifest.abilities.map(row=>{const talent=applied.find(talent=>talent.id===row[3]);return talent?member.talents[talent.index]===talent.maxLevel?2:1:0;}),new_attributes:targets.map(key=>Number(added.has(key))),orbs:form?.index>=2?member.orbs.filter(id=>id!=null).length:0};
 }
-export function unitDescription(form){const lines=Array.isArray(form?.description)?form.description:String(form?.description||'').split('\n'),result=[];for(const line of lines){if(!line||result.length===3)break;result.push(line);}return result;}
 export async function prepareBattleInfo(database,snapshot,signal){
  const [manifest,equipment]=await Promise.all([readBattleJson('/images/native-combo/manifest.json',{signal}),readBattleJson('/api/formation-equipment',{signal})]),units=new Map(database.units.map(unit=>[unit.id,unit]));
  const orbs=new Map(equipment.items.filter(item=>item.support!=='unsupported').map(item=>[item.id,item.equipment])),images=new Map();

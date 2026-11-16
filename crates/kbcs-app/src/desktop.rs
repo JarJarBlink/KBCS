@@ -60,6 +60,7 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
     let mut service = Service::new(root.clone(), region, source);
     service.desktop = true;
     if !check {
+        service.grant_launch_cat_food();
         service.start_updates();
         crate::shortcut::ensure_once(root.clone());
     }

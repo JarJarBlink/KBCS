@@ -1,4 +1,4 @@
-﻿use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result, ensure};
 use kbcs_bridge::{actor, battle, battle_screen, production, render, stage};
 use kbcs_data::{equipment, formations::Document, store::Database};
 use serde::Deserialize;
@@ -58,6 +58,11 @@ pub struct Session {
     pub combo_skipped: bool,
     receipt: crate::battle_rewards::Receipt,
     defeat_hints: Vec<Vec<String>>,
+    no_continue: bool,
+    continue_text: Option<(Vec<String>, String)>,
+    continue_balance: Option<i64>,
+    continue_error: Option<String>,
+    continues_on_camera: i32,
     ending_camera_applied: bool,
     cannon_clips: BTreeMap<i32, Clip>,
     cannon_cuts: Vec<render::Cut>,
@@ -1194,14 +1199,24 @@ impl Session {
         // 009f560cで対応を確認した時計から、共通演出モデルを登録する。
         for (offset, clock) in constants["clocks"].as_object().context("演出時計なし")? {
             let animation = clock["path"].as_str().context("演出ファイルなし")?;
-            let entry = effect_catalog["entries"]
+            let entries = effect_catalog["entries"]
                 .as_array()
-                .context("効果一覧なし")?
+                .context("効果一覧なし")?;
+            let uses_animation = |entry: &&Value| {
+                entry["animations"]
+                    .as_array()
+                    .is_some_and(|a| a.iter().any(|v| v["path"] == animation))
+            };
+            // 005d4824の陣営別モデル。敵側は味方用の画像グループへ代替しない。
+            let reflection_model = matches!(offset.as_str(), "0x29d8" | "0x2a10")
+                .then(|| animation.replace(".maanim", ".mamodel"));
+            let entry = entries
                 .iter()
-                .find(|e| {
-                    e["animations"]
-                        .as_array()
-                        .is_some_and(|a| a.iter().any(|v| v["path"] == animation))
+                .filter(uses_animation)
+                .find(|entry| {
+                    reflection_model
+                        .as_ref()
+                        .is_none_or(|model| entry["model"] == model.as_str())
                 })
                 .with_context(|| format!("演出のモデルなし: {animation}"))?;
             let model = load_model(
@@ -1283,6 +1298,29 @@ impl Session {
             config.screen.items as u32,
         )?;
         native(core.reward_rules(&reward_rules))?;
+        let no_continue = stage["noContinue"] == true;
+        let continue_text = if persist_rewards && !no_continue && !matches!(rules.score_type, 1 | 3)
+        {
+            // 005eb040 / 005ecde0: Warning2の行2が通常の復活確認、行0が不足時の文面。
+            let bytes = kbcs_data::source::asset(&database, root, "res/Warning2_ja.csv")?;
+            let warnings = kbcs_data::model::csv_rows(&bytes)?;
+            let lines = warnings
+                .get(2)
+                .context("コンティニュー確認の原本文面がありません")?
+                .iter()
+                .take_while(|line| line.as_str() != "＠")
+                .cloned()
+                .collect();
+            let insufficient = warnings
+                .first()
+                .and_then(|row| row.first())
+                .context("ネコカン不足の原本文面がありません")?
+                .clone();
+            Some((lines, insufficient))
+        } else {
+            None
+        };
+        native(core.allow_continue(continue_text.is_some()))?;
         let title = kbcs_data::stage_media::battle_title(&database, map, stage)?;
         let title_draw = title["image"]
             .as_str()
@@ -1342,6 +1380,11 @@ impl Session {
             combo_skipped: false,
             receipt,
             defeat_hints,
+            no_continue,
+            continue_text,
+            continue_balance: None,
+            continue_error: None,
+            continues_on_camera: 0,
             ending_camera_applied: false,
             cannon_clips,
             cannon_cuts,
@@ -1668,18 +1711,65 @@ impl Session {
         Ok(frame)
     }
     pub fn settle(&mut self) -> Result<()> {
+        if let Some((_, insufficient)) = &self.continue_text
+            && native(self.core.outcome())?.mode == 2
+        {
+            match native(self.core.ending())?.phase {
+                0..=2 => return Ok(()),
+                3 => {
+                    let pending = native(self.core.continue_view())?.pending != 0;
+                    if pending {
+                        let payment = self.receipt.spend_continue_cat_food();
+                        let paid = payment.as_ref().is_ok_and(|&paid| paid);
+                        // Sessionのロック内で、受理待ちの1操作につき一度だけ支払う。
+                        native(self.core.continue_payment(paid))?;
+                        self.continue_error = match payment {
+                            Ok(true) => None,
+                            Ok(false) => Some(insufficient.clone()),
+                            Err(error) => {
+                                Some(format!("ネコカンを消費できませんでした。{error:#}"))
+                            }
+                        };
+                    }
+                    if pending || (self.continue_balance.is_none() && self.continue_error.is_none())
+                    {
+                        match self.receipt.cat_food_display() {
+                            Ok(balance) => self.continue_balance = Some(balance),
+                            Err(error) => {
+                                self.continue_error.get_or_insert_with(|| {
+                                    format!("ネコカンの所持数を読み込めませんでした。{error:#}")
+                                });
+                            }
+                        }
+                    }
+                    return Ok(());
+                }
+                _ => {}
+            }
+        }
+        self.continue_balance = None;
+        self.continue_error = None;
         let first = self.receipt.saved.is_none();
         self.receipt.settle(&self.core);
-        if first && let Some(saved) = &self.receipt.saved {
-            native(
-                self.core
-                    .notifications(saved["notifications"].as_array().map_or(0, Vec::len) as i32),
-            )?;
+        if first
+            && let Some(notifications) = self
+                .receipt
+                .saved
+                .as_ref()
+                .and_then(|saved| saved["notifications"].as_array())
+            && !notifications.is_empty()
+        {
+            native(self.core.notifications(notifications.len() as i32))?;
         }
         Ok(())
     }
     pub fn ending_camera(&mut self, input: &mut crate::scene::Input) -> Result<()> {
         let camera = native(self.core.end_camera())?;
+        let continues = native(self.core.continue_view())?.resumes;
+        if continues != self.continues_on_camera {
+            self.continues_on_camera = continues;
+            self.ending_camera_applied = false;
+        }
         let moving =
             camera.moving != 0 || camera.zoom < if camera.rows == 2 { 8803 } else { 10000 };
         if camera.width > 0 && (!self.ending_camera_applied || moving) {
@@ -1702,12 +1792,21 @@ impl Session {
         };
         let hint = native(self.core.hint())?;
         let hint_lines = self.defeat_hints.get(hint.id as usize);
+        let ending = native(self.core.ending())?;
+        let continue_prompt = if ending.phase == 3
+            && let Some((lines, _)) = &self.continue_text
+            && native(self.core.outcome())?.mode == 2
+        {
+            json!({"layout":native(self.core.continue_view())?,"cost":kbcs_data::inventory::CONTINUE_CAT_FOOD_COST,"balance":self.continue_balance,"error":self.continue_error,"lines":lines})
+        } else {
+            Value::Null
+        };
         let units: Vec<_> = references.iter().filter(|value|value.slot > 0).map(|value| {
             let a = &value.actor.words;
             json!({"side":value.side,"slot":value.slot,"profile":value.profile,"raw":a[0],"layer":a[5],"frame":a[2],"action":a[1],"hp":a[8],"maximum":a[7],"x":a[3],"y":a[4],"serial":a[240]})
         }).collect();
         Ok(
-            json!({"defeatHint":{"layout":hint,"lines":hint_lines},"ex":native(self.core.ex())?,"endCamera":native(self.core.end_camera())?,"music":native(self.core.music())?,"ending":native(self.core.ending())?,"receipt":self.receipt.saved,"receiptError":self.receipt.error,"rewardRolls":native(self.core.rewards())?,"units":count(0),"enemies":count(1),"castleHp":[actors[0][0].words[8],actors[1][0].words[8]],"precision":self.precision,"wait":production.wait,"maximum":production.maximum,"costs":native(self.core.prices())?,"produced":production.produced,"extras":native(self.core.extras())?,"points":native(self.core.points())?,"lastCosts":production.last_cost,"seed":seed,"actors":units,"cannon":[actors[0][0].words[9],actors[0][0].words[10],actors[0][0].words[13]],"sniper":native(self.core.sniper_status())?,"computer":native(self.core.computer())?,"sounds":native(self.core.sounds())?,"result":native(self.core.outcome())?,"deployment":native(self.core.deployment())?,"rules":self.rules}),
+            json!({"defeatHint":{"layout":hint,"lines":hint_lines},"ex":native(self.core.ex())?,"endCamera":native(self.core.end_camera())?,"music":native(self.core.music())?,"ending":ending,"endingMap":native(self.core.ending_map())?,"continuePrompt":continue_prompt,"noContinue":self.no_continue,"receipt":self.receipt.saved,"receiptError":self.receipt.error,"rewardRolls":native(self.core.rewards())?,"units":count(0),"enemies":count(1),"castleHp":[actors[0][0].words[8],actors[1][0].words[8]],"precision":self.precision,"wait":production.wait,"maximum":production.maximum,"costs":native(self.core.prices())?,"produced":production.produced,"extras":native(self.core.extras())?,"points":native(self.core.points())?,"lastCosts":production.last_cost,"seed":seed,"actors":units,"cannon":[actors[0][0].words[9],actors[0][0].words[10],actors[0][0].words[13]],"sniper":native(self.core.sniper_status())?,"computer":native(self.core.computer())?,"sounds":native(self.core.sounds())?,"result":native(self.core.outcome())?,"deployment":native(self.core.deployment())?,"rules":self.rules}),
         )
     }
     pub fn layout(&self, input: &crate::scene::Input) -> Result<render::Layout> {

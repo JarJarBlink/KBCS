@@ -79,11 +79,11 @@ void layout(const KbcsBattleScreenConfig &c,const KbcsBattleScreenState &s,KbcsB
    else if(action==307){sprite(1,339,x,y,w,h);sprite(1,343,x+8,y+14,112,34);}
   }
  }
- // 006ddfb8 / 002b12d0: 長押しの開き方は0→50→90→100%。説明行の高さは加算する。
+ // 006ddfb8 / 002b12d0: 長押しの開き方は0→50→90→100%。
  if(s.info_mode||(!s.paused&&s.holding>=0&&(s.hold_frames>=14||s.hold_wait))){
-  const int sizes[4]={0,50,90,100},slot=s.info_mode?s.info_slot:s.holding;
+  const int sizes[4]={0,50,90,100};
   const int percent=s.info_mode?100:sizes[s.hold_frames>=14?std::min(3,s.hold_frames-13):s.hold_wait],w=946*percent/100,h=180*percent/100;
-  o.info_box[0]=center-w/2;o.info_box[1]=93+(180-h)/2;o.info_box[2]=w;o.info_box[3]=h+39*c.description_lines[slot];
+  o.info_box[0]=center-w/2;o.info_box[1]=93+(180-h)/2;o.info_box[2]=w;o.info_box[3]=h;
  }
  fade(screen,s.intro,o);
 }
@@ -190,6 +190,7 @@ extern "C" uint32_t kbcs_core_battle_screen_advance_custom(const KbcsBattleScree
   if(s.intro<24){++s.intro;continue;}
   if(s.battle_mode){s.speed_mode=0;s.pointer_down=0;s.holding=-1;s.hold_frames=0;s.hold_wait=0;s.guard=0;s.pending_control=-1;}
   if(hook&&!s.paused){const auto code=hook(user,4,&s);if(code)return code;}
+  if(s.intro<24)break; // コンティニューの復帰Fはまとめて更新していても全面暗転のまま返す。
   if(s.page_frame&&!s.paused&&!(tick==0&&(in.control==4||in.control==8||in.control==9))){s.page_frame+=s.page_step?s.page_step:1;if(s.page_frame>5){s.page=1-s.page;s.page_frame=0;}else if(s.page_frame<1)s.page_frame=0;}
   if(tick==0&&in.phase){s.pointer_x=in.x;s.pointer_y=in.y;if(in.phase==1){s.pointer_down=1;s.start_x=in.x;s.start_y=in.y;s.gesture=0;}}
   if(!s.paused){++s.hud_frame;const int steps=stepping?1:s.speed_mode?s.speed_mode+1:1;
@@ -197,6 +198,7 @@ extern "C" uint32_t kbcs_core_battle_screen_advance_custom(const KbcsBattleScree
   // 006d6d04: 経済は論理更新、ボタンの待機は表示更新で一度だけ進める。
   if(s.guard){if(++s.guard>5){s.guard=0;const int target=s.pending_control;s.pending_control=-1;
     if(target>=0&&target<10&&c.present[target]&&!c.blocked[target]&&(hook||I(c.costs[target])*100<=s.money)){s.request_slot=target;if(hook){const auto code=hook(user,1,&s);if(code)return code;}}
+    else if(target>=0&&target<10){const auto code=sound(15);if(code)return code;}
     else if(target==200)toggle_speed(c,s);
     else if(target==203||target==205)s.items_on^=1<<(target-200);
     else if(target==100)s.paused=1;

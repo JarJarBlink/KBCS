@@ -56,6 +56,8 @@ GET /api/formations?current=ID&direction=-1|0|1 は前/現在/次、POSTは{id,r
 
 2026-10-28: `battle_rewards::Receipt`は開始時にDBの版・原本ステージ・報酬・名前/キャラ対応を解決し、勝敗後にC++の抽選結果からStoreの原子的な結果保存へ渡す。表示数・累計・クリア数・スコア・キャラ所持を同時保存する。失敗はreceiptErrorへ示し再試行、戦闘描画を強制停止しない。`battle-replay`だけはmemory Storeに固定し、ユーザーの持ち物を変えない。GET/PUT `/api/inventory`、GET `/api/inventory/catalog`、POST `/api/battle-popup`はService共通。通知の時計/座標はC++、原本文面と保存はRust、文字と画像の描画はUI。
 
+`Service::grant_launch_cat_food`は通常のデスクトップ起動とループバックプレビューの起動で各1回、公式データ取得前に持ち物へ保存する。ページ再読み込みやデスクトップ診断で加算しない。
+
 2026-10-26: POST/DELETE /api/battle-sessionとPOST /api/battle-session/frameはC++所有戦闘を使う。実DB/編成のプロフィール解決、排他、描画と追加画像の暗転中読み込みを接続。[契約と未接続の範囲](../../../native/kbcs-core/docs/battle-runtime.md)。battle-replay CLIは既存アプリを操作せず同じServiceへ入力を通す。
 
 

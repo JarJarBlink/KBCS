@@ -214,6 +214,19 @@ pub struct Ending {
 }
 
 #[repr(C)]
+#[derive(Default, serde::Serialize)]
+pub struct ContinueView {
+    pub ready: i32,
+    pub pending: i32,
+    pub resumes: i32,
+    pub panel: [i32; 4],
+    pub buttons: [[i32; 4]; 2],
+    pub labels: [[i32; 4]; 2],
+    pub pressed: i32,
+    pub guard: i32,
+}
+
+#[repr(C)]
 pub struct HintContext {
     pub mode: i32,
     pub map_id: i32,
@@ -581,6 +594,24 @@ impl Battle {
         let mut out = crate::transition::Output::default();
         let code = unsafe { kbcs_core_battle_ex(self.0.as_ptr(), &mut out) };
         if code == 0 { Ok(out) } else { Err(code) }
+    }
+    pub fn ending_map(&self) -> Result<[i32; 4], u32> {
+        let mut bounds = [0; 4];
+        let code = unsafe { kbcs_core_battle_ending_map(self.0.as_ptr(), &mut bounds) };
+        if code == 0 { Ok(bounds) } else { Err(code) }
+    }
+    pub fn allow_continue(&mut self, allowed: bool) -> Result<(), u32> {
+        let code = unsafe { kbcs_core_battle_allow_continue(self.0.as_ptr(), i32::from(allowed)) };
+        if code == 0 { Ok(()) } else { Err(code) }
+    }
+    pub fn continue_view(&self) -> Result<ContinueView, u32> {
+        let mut out = ContinueView::default();
+        let code = unsafe { kbcs_core_battle_continue_view(self.0.as_ptr(), &mut out) };
+        if code == 0 { Ok(out) } else { Err(code) }
+    }
+    pub fn continue_payment(&mut self, paid: bool) -> Result<(), u32> {
+        let code = unsafe { kbcs_core_battle_continue_payment(self.0.as_ptr(), i32::from(paid)) };
+        if code == 0 { Ok(()) } else { Err(code) }
     }
     pub fn ending(&self) -> Result<Ending, u32> {
         let mut out = Ending::default();
@@ -990,6 +1021,10 @@ unsafe extern "C" {
     fn kbcs_core_battle_end_camera(battle: *const RawBattle, out: *mut EndCamera) -> u32;
     fn kbcs_core_battle_ex(battle: *const RawBattle, out: *mut crate::transition::Output) -> u32;
     fn kbcs_core_battle_ending(battle: *const RawBattle, out: *mut Ending) -> u32;
+    fn kbcs_core_battle_ending_map(battle: *const RawBattle, out: *mut [i32; 4]) -> u32;
+    fn kbcs_core_battle_allow_continue(battle: *mut RawBattle, allowed: i32) -> u32;
+    fn kbcs_core_battle_continue_view(battle: *const RawBattle, out: *mut ContinueView) -> u32;
+    fn kbcs_core_battle_continue_payment(battle: *mut RawBattle, paid: i32) -> u32;
     fn kbcs_core_battle_hint_candidates(
         context: *const HintContext,
         groups: *const i32,

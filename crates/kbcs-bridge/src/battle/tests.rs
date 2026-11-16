@@ -1,4 +1,4 @@
-﻿use super::*;
+use super::*;
 use serde_json::Value;
 
 fn fixture() -> Value {
@@ -309,10 +309,41 @@ fn production_delay_reaches_owned_wait_and_red_hud() {
                 hud.gauges[0][4] > hud.gauges[0][3],
                 "red must cover delayed progress"
             );
+            edit(&mut battle, 1, 1, |w| w[246] = 0);
+            tick(&mut battle, 14);
+            let hud = battle
+                .hud(
+                    &render::Layout {
+                        zoom: 1.,
+                        ..Default::default()
+                    },
+                    [0, 0],
+                )
+                .unwrap();
+            assert!(hud.gauges[0][2] > 0, "the unit is still recharging");
+            assert_eq!(hud.gauges[0][4], 0);
             return;
         }
     }
     panic!("production delay did not reach the owned runtime");
+}
+
+#[test]
+fn empty_slot_sounds_after_five_display_updates() {
+    let mut battle = Battle::new(&config(), &[], &[]).unwrap();
+    let frame = battle
+        .advance(&battle_screen::Input {
+            control: 1000,
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(frame.state.guard, 1);
+    for _ in 0..4 {
+        tick(&mut battle, 1);
+        assert!(!battle.sounds().unwrap().iter().any(|v| v.id == 15));
+    }
+    tick(&mut battle, 1);
+    assert!(battle.sounds().unwrap().iter().any(|v| v.id == 15));
 }
 
 #[test]
@@ -391,6 +422,112 @@ fn defeat_title_finishes_moving_before_the_hint_opens() {
     assert_eq!(battle.ending().unwrap().title[1], 142);
     assert_eq!(battle.hint().unwrap().panel[2], 690);
     assert_eq!(battle.hint().unwrap().ready, 1);
+    assert_eq!(battle.ending_map().unwrap(), [879, 10, 71, 71]);
+    for phase in [1, 2] {
+        battle
+            .advance(&battle_screen::Input {
+                control: 11,
+                phase,
+                x: 900,
+                y: 48,
+                ..Default::default()
+            })
+            .unwrap();
+    }
+    for _ in 0..20 {
+        let frame = battle
+            .advance(&battle_screen::Input {
+                ticks: 1,
+                ..Default::default()
+            })
+            .unwrap();
+        if frame.state.request_action == 309 {
+            assert_eq!(frame.layout.fade_count, 1);
+            assert_eq!(frame.layout.fade_sizes[0], 4);
+            assert_eq!(frame.layout.fade[0][4], 960);
+            return;
+        }
+    }
+    panic!("map return did not finish");
+}
+
+#[test]
+fn continue_resumes_the_same_battle_and_decline_opens_the_hint() {
+    let mut c = config();
+    c.screen.fixed_money = -1;
+    let enemy: Vec<i32> = serde_json::from_value(fixture()["breakerEnemy"].clone()).unwrap();
+    let row = stage::Row([37, 1, 0, 1000, 1000, 100, 0, 0, 0, 100, 0, 100, 0, 0]);
+    let mut battle = Battle::new(&c, &[profile(&enemy, 1, 37)], &[row]).unwrap();
+    battle.allow_continue(true).unwrap();
+    let open = |battle: &mut Battle| {
+        edit(battle, 0, 0, |w| w[8] = 0);
+        for _ in 0..300 {
+            tick(battle, 1);
+            if battle.continue_view().unwrap().ready != 0 {
+                return;
+            }
+        }
+        panic!("continue offer did not open");
+    };
+    let choose = |battle: &mut Battle, button: usize| {
+        let [x, y, _, _] = battle.continue_view().unwrap().buttons[button];
+        for phase in [1, 2] {
+            battle
+                .advance(&battle_screen::Input {
+                    control: 11,
+                    phase,
+                    x: x + 10,
+                    y: y + 10,
+                    ..Default::default()
+                })
+                .unwrap();
+        }
+        tick(battle, 5);
+    };
+    tick(&mut battle, 1);
+    open(&mut battle);
+    assert_eq!(battle.continue_view().unwrap().panel, [135, 348, 690, 229]);
+    assert_eq!(battle.hint().unwrap().id, -1);
+    choose(&mut battle, 0);
+    assert_eq!(battle.continue_view().unwrap().pending, 1);
+    battle.continue_payment(false).unwrap();
+    assert_eq!(battle.outcome().unwrap().mode, 2);
+    choose(&mut battle, 0);
+    let (hp, raw, serial) = {
+        let w = &battle.actors().unwrap().0[1][1].words;
+        (w[8], w[0], w[240])
+    };
+    assert!(raw >= 2 && hp > 0);
+    let elapsed = battle.outcome().unwrap().elapsed;
+    let seed = battle.production().unwrap().1;
+    battle.continue_payment(true).unwrap();
+    assert!(battle.continue_payment(true).is_err());
+    let frame = battle
+        .advance(&battle_screen::Input {
+            ticks: 11,
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!((frame.state.battle_mode, frame.state.intro), (0, 12));
+    assert_eq!(frame.layout.fade_count, 1);
+    assert_eq!((frame.state.worker, frame.state.cannon), (7, 0));
+    assert_eq!(frame.state.money, frame.layout.wallet_max);
+    assert_eq!(battle.actors().unwrap().0[0][0].words[8], c.castle_hp[0]);
+    let w = &battle.actors().unwrap().0[1][1].words;
+    assert_eq!((w[8], w[0], w[240], w[3]), (hp, raw, serial, 2800));
+    assert_eq!(
+        (
+            battle.outcome().unwrap().elapsed,
+            battle.production().unwrap().1
+        ),
+        (elapsed, seed)
+    );
+    assert_eq!(battle.rewards().unwrap().ready, 0);
+    assert_eq!(battle.continue_view().unwrap().resumes, 1);
+    open(&mut battle);
+    choose(&mut battle, 1);
+    assert_eq!(battle.ending().unwrap().phase, 4);
+    assert_eq!(battle.continue_view().unwrap().pending, 0);
 }
 
 #[test]

@@ -331,6 +331,12 @@ impl Receipt {
             rules,
         ))
     }
+    pub fn cat_food_display(&self) -> Result<i64> {
+        self.store.cat_food_display()
+    }
+    pub fn spend_continue_cat_food(&self) -> Result<bool> {
+        self.store.spend_continue_cat_food()
+    }
     pub fn settle(&mut self, core: &battle::Battle) {
         if self.saved.is_some() || self.retry.is_some_and(|t| t.elapsed().as_secs() < 2) {
             return;
