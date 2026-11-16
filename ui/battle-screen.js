@@ -82,8 +82,8 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  const presentationWarning=resources.referencePresentation?'参照版の戦闘UI素材で表示しています。':'';
  precisionWarning.textContent=presentationWarning;precisionWarning.hidden=!presentationWarning;
  const keyBindings=readBattleKeys();
- let state={frame:0,intro:12,rows:2,page:0,page_frame:0,page_direction:1,paused:0,money:resources.money,worker:resources.worker,cannon:0,holding:-1,hold_frames:0,hold_wait:0,pointer_down:0,pointer_x:0,pointer_y:0,guard:0,pending_control:-1,items_on:resources.config.items,request_slot:-1,request_cannon:0,ui_frame:0,speed_mode:(resources.config.items&1)?(snapshot.speed===3?2:1):0,wallet_flash:0,description_item:-1,description_wait:0,start_x:0,start_y:0,gesture:0,page_step:1,request_action:0,bgm_level:3,se_level:3,vibration_on:0,info_mode:0,info_slot:0,saved_rows:2,hud_frame:0};
- let runtime={wait:Array(10).fill(0),maximum:Array(10).fill(0)},sessionCreated=false,skipCombos=false,returnPending=0,inspector,inspectionDirty=false;
+ let state={frame:0,intro:12,rows:2,page:0,page_frame:0,page_direction:1,paused:0,money:resources.money,worker:resources.worker,cannon:0,holding:-1,hold_frames:0,hold_wait:0,pointer_down:0,pointer_x:0,pointer_y:0,guard:0,pending_control:-1,items_on:resources.config.items,request_slot:-1,request_cannon:0,ui_frame:0,speed_mode:resources.config.items&1,wallet_flash:0,description_item:-1,description_wait:0,start_x:0,start_y:0,gesture:0,page_step:1,request_action:0,bgm_level:3,se_level:3,vibration_on:0,info_mode:0,info_slot:0,saved_rows:2,hud_frame:0};
+ let runtime={wait:Array(10).fill(0),maximum:Array(10).fill(0)},sessionCreated=false,skipCombos=false,returnPending=false,inspector,inspectionDirty=false;
  Object.assign(state,{rows:resources.options.rows,saved_rows:resources.options.rows,bgm_level:resources.options.bgmLevel,se_level:resources.options.seLevel});
  let savedOptions=JSON.stringify(resources.options),saveOptions=Promise.resolve();
  function persistOptions(){
@@ -151,8 +151,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   menu.hidden=!state.paused;
   music();
   if(state.request_action===301)window.open('https://kbc-rakv0.pages.dev/information/appli/battlecats/help/index.html','_blank','noopener');
-  if(state.request_action===309)returnPending=309;
-  if(state.request_action===302){if(runtime.result?.mode)returnPending=302;else{stop();onReturn();return;}}
+  if(state.request_action===302){if(runtime.result?.mode)returnPending=true;else{stop();onReturn();return;}}
   for(const button of controls.querySelectorAll('button'))button.disabled=false;
   controls.querySelector('[data-battle-clock]').textContent=state.frame+'F / '+(state.frame/30).toFixed(2)+'秒';
   controls.querySelector('[data-debug=toggle]').textContent=playbackPaused||state.paused?'再開':'一時停止';
@@ -271,11 +270,20 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  const cameraPointers=new Set();
  const cameraMotion=createSceneMotion();
  function comboArea(event){const intro=runtime.comboIntro;if(!intro?.combo||intro.layout.age<6||skipCombos)return false;const {x,y}=coordinates(event),[left,top]=intro.layout.skip,[,,w,h]=resources.atlas.atlases.img004_ja.rects[8];return x>=left&&x<=left+w&&y>=top&&y<=top+h;}
- function cameraArea(event){if(runtime.continuePrompt||comboArea(event))return false;const {x,y}=coordinates(event);return y>=134&&y<(state.rows===2?449:543)&&!view?.slots.some(([sx,sy,w,h])=>x>=sx&&x<=sx+w&&y>=sy-1&&y<=sy+h+2);}
- const cameraView=()=>state.intro>=24&&!state.paused&&(!runtime.endCamera?.width||!runtime.endCamera.moving&&runtime.endCamera.zoom>=(state.rows===2?8803:10000))?{...camera,viewport_width:screenWidth,maximum:1}:null;
+ function cameraArea(event){
+  if(comboArea(event))return false;
+  const {x,y}=coordinates(event);
+  const inside=rect=>rect?.[2]>0&&x>=rect[0]&&x<=rect[0]+rect[2]&&y>=rect[1]&&y<=rect[1]+rect[3];
+  if(runtime.result?.mode){
+   const ending=runtime.ending;
+   return ending.phase!==5&&ending.phase!==8&&!inside(runtime.continuePrompt?.layout.panel)&&!inside(runtime.defeatHint?.layout.panel)&&!inside(runtime.endingMap)&&!(ending.ready&&inside(ending.button));
+  }
+  return y>=134&&y<(state.rows===2?449:543)&&!view?.slots.some(([sx,sy,w,h])=>x>=sx&&x<=sx+w&&y>=sy-1&&y<=sy+h+2);
+ }
+ const cameraView=()=>state.intro>=24&&!state.paused&&!runtime.endCameraActive?{...camera,viewport_width:screenWidth,cameraWidth:960,maximum:runtime.cameraMaximum??1}:null;
  const gestures=initializeSceneGestures(canvas,cameraView,value=>{cameraMotion.clear();camera={...camera,...value};++cameraVersion;},{acceptPointer:event=>{if(!cameraArea(event))return false;pointer={...pointer,phase:3};cameraPointers.add(event.pointerId);return true;},acceptWheel:cameraArea,wheelTarget:(...args)=>cameraMotion.zoom(...args)});
  let resultPress;
- function input(event){if(!state.paused&&comboArea(event)){event.preventDefault();if(event.type==='pointerdown')pointer.phase=3;if(event.type==='pointerup'){pointer.phase=3;skipCombos=true;++settingsVersion;}return;}const ended=!!runtime.result?.mode;if(ended&&!runtime.receipt&&!runtime.continuePrompt)return;if(cameraPointers.has(event.pointerId)){if(event.type==='pointerup'||event.type==='pointercancel')cameraPointers.delete(event.pointerId);return;}if(state.intro<24||playbackPaused&&!state.paused&&!(cheats&4))return;event.preventDefault();const phase={pointerdown:1,pointerup:2,pointercancel:3,pointermove:4}[event.type];if(phase===4&&!state.pointer_down&&pointer.phase!==1)return;const point=coordinates(event);pointer={...point,phase:phase===4?4:0};if(phase===1)canvas.setPointerCapture(event.pointerId);if(phase===4)return;
+ function input(event){if(!state.paused&&comboArea(event)){event.preventDefault();if(event.type==='pointerdown')pointer.phase=3;if(event.type==='pointerup'){pointer.phase=3;skipCombos=true;++settingsVersion;}return;}const ended=!!runtime.result?.mode;if(cameraPointers.has(event.pointerId)){if(event.type==='pointerup'||event.type==='pointercancel')cameraPointers.delete(event.pointerId);return;}if(ended&&!runtime.receipt&&!runtime.continuePrompt&&runtime.ending.phase!==5)return;if(state.intro<24||playbackPaused&&!state.paused&&!(cheats&4))return;event.preventDefault();const phase={pointerdown:1,pointerup:2,pointercancel:3,pointermove:4}[event.type];if(phase===4&&!state.pointer_down&&pointer.phase!==1)return;const point=coordinates(event);pointer={...point,phase:phase===4?4:0};if(phase===1)canvas.setPointerCapture(event.pointerId);if(phase===4)return;
   const command={control:11,phase,...point};
   if(ended&&phase===1){resultPress=sendInput(command);return;}
   if(ended&&resultPress){const pressed=resultPress;resultPress=undefined;pressed.then(()=>{if(!stopped&&!error)sendInput(command);});return;}
@@ -346,7 +354,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
    try{await update(ticks,stepping);paint();}catch(e){fail(e);}finally{busy=false;}
   }
   // 全面暗転を一度画面へ提示した後、次の表示更新で準備画面へ戻る。
-  if(returnPending&&!stopped){raf=requestAnimationFrame(()=>{stop();onReturn(returnPending===309);});return;}
+  if(returnPending&&!stopped){raf=requestAnimationFrame(()=>{stop();onReturn();});return;}
   if(!error&&!stopped)raf=requestAnimationFrame(animate);
  }
  window.addEventListener('pagehide',stop);

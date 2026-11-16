@@ -853,6 +853,7 @@ extern "C" uint32_t kbcs_core_actor_load(const int32_t *raw,int32_t count,int32_
 #include "actor_computer.inc"
 #include "actor_points.inc"
 #include "actor_result.inc"
+#include "battle_camera.h"
 #include "actor_ending.inc"
 
 extern "C" uint32_t kbcs_core_battle_equipment(const KbcsBattleOrb *orbs,const int32_t *grades,int32_t count,KbcsActorDefinition *definition){

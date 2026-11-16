@@ -44,8 +44,33 @@ n.terminals=set()
 for rows,anchor,offset,expected in [(1,520,0,10000),(2,505,-51,8803)]:
  put(0x34a4,anchor);put(0x343c,10000);n.cpu.mem_write(g+0x1405,bytes([rows==2]));n.helpers={0x9019f4:20,0x5c8a6c:offset}
  assert n.call(0x5cb0e0,g)==expected
- state=Camera(0,10000,0,24000,rows);assert lib.kbcs_core_battle_end_camera_step(c.byref(state))==0 and state.zoom==expected
+ state=Camera(14400,10000,1,24000,rows);assert lib.kbcs_core_battle_end_camera_step(c.byref(state))==0 and (state.zoom,state.moving)==(expected+800,0)
 counts['zoom_cap']=2
+class SceneInput(c.Structure):
+ _fields_=[(k,c.c_double) for k in ['width','center','zoom']]+[('cut_height',c.c_int32),('castle',c.c_int32*3)]+[(k,c.c_int32) for k in ['focus','viewport','rows']]
+class SceneLayout(c.Structure):
+ _fields_=[(k,c.c_double) for k in ['width','center','zoom','minimum','top','bottom']]+[('enemy',c.c_double*4)]+[(k,c.c_double) for k in ['player_x','viewport','anchor','offset']]
+lib.kbcs_core_battle_scene_layout.argtypes=[c.POINTER(SceneInput),c.c_int32,c.POINTER(SceneLayout)]
+with sqlite3.connect((n.cache/'cache.sqlite').as_uri()+'?mode=ro',uri=True) as db:
+ n.ends[0x5c8a6c]=0x5c8a6c+db.execute("SELECT size FROM functions WHERE address='005c8a6c'").fetchone()[0]
+ allocators={int(address,16):n.memory+0x2000 if 'new' in name else 0
+             for address,name in db.execute("SELECT address,name FROM functions WHERE name LIKE 'operator.new%' OR name LIKE 'operator.delete%'")}
+def camera_parameter():
+ raw=n.cpu.mem_read(n.cpu.reg_read(n.reg.UC_ARM64_REG_X1),24)
+ name=(n.cpu.mem_read(struct.unpack('<Q',raw[16:24])[0],24).split(b'\0')[0] if raw[0]&1 else raw[1:1+(raw[0]>>1)]).decode('ascii')
+ return {'battle_zoom_slot_y':500,'battle_slot_2lines_y':-15,'battle_slot_2lines_line':95}[name]
+n.helpers={**allocators,0x9019f4:camera_parameter,0x417f20:0,0x4184d0:0}
+counts['camera_offset']=0
+for rows,anchor in [(1,520),(2,505)]:
+ put(0x34a4,anchor);n.cpu.mem_write(g+0x1405,bytes([rows==2]))
+ for slide in [0,10,20,30,40,1000]:
+  put(0x32f804,slide)
+  for zoom in [4900,8803,10000,26000,45200]:
+   put(0x343c,zoom);expected=n.call(0x5c8a6c,g)
+   scene=SceneInput(5000,1000,zoom/10000,510,(c.c_int32*3)(),4,1422,rows);layout=SceneLayout()
+   assert lib.kbcs_core_battle_scene_layout(c.byref(scene),slide,c.byref(layout))==0
+   assert layout.offset==expected,(rows,slide,zoom,layout.offset,expected)
+   counts['camera_offset']+=1
 class Material(c.Structure):
  _fields_=[('count',c.c_float),('multiplier',c.c_float),('miss',c.c_int32),('weights',c.c_int32*16)]
 class Ex(c.Structure):
@@ -125,5 +150,5 @@ for tick in range(18):
  expected=struct.unpack('<4i',n.cpu.mem_read(popup+0x60,16));assert (state.phase,state.scale_frame,state.flash,state.wait)==expected,(tick,expected,state.phase,state.scale_frame,state.flash,state.wait)
  if state.phase==3:break
 counts['popup_continuous']=tick+1
-report={'version':'15.7.2','nativeSha256':SHA,'librarySha256':digest(a.library.read_bytes()),'cases':counts,'result':'equal','controlled':['popup queue is empty','point-stage expiry popup absent','EX selection result and entropy are stubbed here; ex_transition.py verifies its kernel','input/window/network getters','camera Y getters resolved to normal 1/2-row values'],'actual':['005e1a5c/005edb40/005ef020 continuous controller writes','005cb0e0 scale cap arithmetic']}
+report={'version':'15.7.2','nativeSha256':SHA,'librarySha256':digest(a.library.read_bytes()),'cases':counts,'result':'equal','controlled':['popup queue is empty','point-stage expiry popup absent','EX selection result and entropy are stubbed here; ex_transition.py verifies its kernel','input/window/network getters','camera parameters use JP data with zero safe-area insets'],'actual':['005e1a5c/005edb40/005ef020 continuous controller writes','005cb0e0 scale cap arithmetic','005c8a6c Y offsets during ending slide']}
 (ROOT/'research/.local/battle-ending-1572.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8-sig');print(json.dumps(report,ensure_ascii=True))

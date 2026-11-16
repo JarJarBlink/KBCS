@@ -112,7 +112,8 @@ async function depart(){
     const latest=await readBattleJson('/api/formations?current='+entry.id,{signal:active.signal});
     if(latest.entry?.revision!==entry.revision){await chooseFormation(entry.id);throw Error('編成が更新されました。設定を確認してから出撃してください');}
     const formation=battleFormation(units,entry.document),currentHealth=await castleHealth(units,formation);
-    const snapshot={schemaVersion:1,version:database.gameVersion,buildId:database.buildId,stage:structuredClone(stage),map:structuredClone(map),crown,formationId:entry.id,formationRevision:entry.revision,formation,fixedMoney:sortieFixedMoney(map,saved.fixedMoney?.[map.key]),items:structuredClone(items),speed:items.speedup?speed:1,seed:0x12345678,limits:applicableLimits(map,stage,crown),castle:currentHealth,deployment:structuredClone(deployment),frame:0};
+    const seed=new Uint32Array(1);while(!seed[0])crypto.getRandomValues(seed);
+    const snapshot={schemaVersion:1,version:database.gameVersion,buildId:database.buildId,stage:structuredClone(stage),map:structuredClone(map),crown,formationId:entry.id,formationRevision:entry.revision,formation,fixedMoney:sortieFixedMoney(map,saved.fixedMoney?.[map.key]),items:structuredClone(items),speed:items.speedup?speed:1,seed:seed[0],limits:applicableLimits(map,stage,crown),castle:currentHealth,deployment:structuredClone(deployment),frame:0};
     snapshot.stage.musicTracks=(stage.musicTracks||[]).map(track=>({...track,loop:database.musicCatalog?.tracks?.[track.id]?.loop!==false}));
     const scene=await loadStageScene(stage,{frame:0,showEnemy:true,showPlayer:true,showEffects:true});
     if(scene.missing?.length)throw Error('ステージ素材が未収録です：'+scene.missing.join(', '));
@@ -125,7 +126,7 @@ async function depart(){
 }
 node('launch').addEventListener('click',depart);
 node('cancel').addEventListener('click',()=>{controller?.abort();node('blackout').hidden=true;});
-function returnToPreparation(toMap=false){battle?.stop();battle=null;prepared=null;loadedAssets=null;if(toMap){location.assign(node('stage-navigation').querySelector('a').href);return;}node('initial').hidden=true;node('setup').hidden=false;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:false}));stageMedia.refresh();}
+function returnToPreparation(){battle?.stop();battle=null;prepared=null;loadedAssets=null;node('initial').hidden=true;node('setup').hidden=false;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:false}));stageMedia.refresh();}
 node('formation').addEventListener('change',event=>chooseFormation(event.target.value));
 node('stages').addEventListener('click',event=>{const target=event.target.closest('[data-stage]');if(target){stage=stages.find(value=>value.index===Number(target.dataset.stage));renderStage();}});
 node('crowns').addEventListener('click',event=>{const target=event.target.closest('[data-crown]');if(target){crown=Number(target.dataset.crown);renderStage();}});

@@ -1,4 +1,4 @@
-﻿use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -162,8 +162,9 @@ unsafe extern "C" {
         key_count: i32,
         out: *mut i32,
     ) -> u32;
-    fn kbcs_core_scene_paint(
+    fn kbcs_core_battle_scene_paint(
         input: *const PaintInput,
+        slot_slide: i32,
         layout: *mut Layout,
         output: *mut Command,
         capacity: i32,
@@ -187,11 +188,19 @@ pub fn paint<'a>(
     input: &PaintInput,
     output: &'a mut [Command],
 ) -> Result<(Layout, &'a [Command]), u32> {
+    battle_paint(input, 0, output)
+}
+pub fn battle_paint<'a>(
+    input: &PaintInput,
+    slot_slide: i32,
+    output: &'a mut [Command],
+) -> Result<(Layout, &'a [Command]), u32> {
     let mut layout = Layout::default();
     let mut written = 0;
     let code = unsafe {
-        kbcs_core_scene_paint(
+        kbcs_core_battle_scene_paint(
             input,
+            slot_slide,
             &mut layout,
             output.as_mut_ptr(),
             output.len() as i32,
@@ -233,12 +242,43 @@ unsafe extern "C" {
         output: *mut Packet,
         written: *mut i32,
     ) -> u32;
-    fn kbcs_core_scene_layout(input: *const SceneInput, output: *mut Layout) -> u32;
+    fn kbcs_core_battle_scene_layout(
+        input: *const SceneInput,
+        slot_slide: i32,
+        output: *mut Layout,
+    ) -> u32;
 }
 pub fn layout(input: &SceneInput) -> Result<Layout, u32> {
+    battle_layout(input, 0)
+}
+pub fn battle_layout(input: &SceneInput, slot_slide: i32) -> Result<Layout, u32> {
     let mut output = Layout::default();
-    let code = unsafe { kbcs_core_scene_layout(input, &mut output) };
+    let code = unsafe { kbcs_core_battle_scene_layout(input, slot_slide, &mut output) };
     if code == 0 { Ok(output) } else { Err(code) }
+}
+
+#[test]
+fn battle_zoom_and_scroll_limits_use_the_native_camera_width() {
+    let mut input = SceneInput {
+        width: 5000.,
+        center: 0.,
+        zoom: 0.1,
+        cut_height: 510,
+        castle: [0; 3],
+        focus: 0,
+        viewport_width: 1422,
+        battle_rows: 2,
+    };
+    let wide = layout(&input).unwrap();
+    assert_eq!(wide.zoom, 0.49);
+    assert_eq!(wide.center, 480. / wide.zoom);
+    input.viewport_width = 960;
+    let standard = layout(&input).unwrap();
+    assert_eq!((standard.zoom, standard.center), (wide.zoom, wide.center));
+    input.zoom = 2.;
+    assert_eq!(layout(&input).unwrap().zoom, 0.8803);
+    let ending = battle_layout(&input, 1000).unwrap();
+    assert_eq!((ending.zoom, ending.y_offset), (2., -15.));
 }
 pub struct Model {
     parts: Vec<Part>,

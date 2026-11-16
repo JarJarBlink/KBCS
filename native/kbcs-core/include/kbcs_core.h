@@ -153,6 +153,7 @@ uint32_t kbcs_core_pose_contact(const KbcsPoseInput*,const KbcsRenderPart*,int32
 typedef struct { double width,center,zoom; int32_t cut_height,castle[3],focus,viewport_width,battle_rows; } KbcsSceneInput;
 typedef struct { double width,center,zoom,minimum,top,bottom,enemy[4],player_x,viewport_width,y_origin,y_offset; } KbcsSceneLayout;
 uint32_t kbcs_core_scene_layout(const KbcsSceneInput*,KbcsSceneLayout*);
+uint32_t kbcs_core_battle_scene_layout(const KbcsSceneInput*,int32_t slot_slide,KbcsSceneLayout*);
 
 
 /* 006ddfb8: ボス衝撃波の基点。X/Yは10倍座標、scale/offsetは城画像の原本値。 */
@@ -160,6 +161,7 @@ uint32_t kbcs_core_boss_effect_anchor(int32_t x,int32_t y,int32_t scale,int32_t 
 typedef struct { int32_t texture,layer,count,blend; double opacity,points[16]; int32_t cut[4],colors[6]; } KbcsDrawCommand;
 typedef struct { KbcsSceneInput scene; int32_t cut[4],top[4],colors[12],overlay[7],self_sizes[6],show_enemy,show_player; } KbcsPaintInput;
 uint32_t kbcs_core_scene_paint(const KbcsPaintInput*,KbcsSceneLayout*,KbcsDrawCommand*,int32_t,int32_t*);
+uint32_t kbcs_core_battle_scene_paint(const KbcsPaintInput*,int32_t slot_slide,KbcsSceneLayout*,KbcsDrawCommand*,int32_t,int32_t*);
 uint32_t kbcs_core_scene_transform(const KbcsSceneLayout*,const KbcsDrawCommand*,double,double,double,KbcsDrawCommand*);
 typedef struct { double rect[4],angle,opacity; int32_t texture,layer,blend,cut[4]; } KbcsSpriteInput;
 uint32_t kbcs_core_scene_sprite(const KbcsSceneLayout*,const KbcsSpriteInput*,KbcsDrawCommand*);

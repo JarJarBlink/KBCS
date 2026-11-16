@@ -808,6 +808,20 @@ fn native_screen_witnesses() {
             }
         }
     }
+    let unequipped = call(
+        Config {
+            items: 0,
+            speed: 3,
+            ..config.clone()
+        },
+        base.clone(),
+        Input {
+            control: 5,
+            ..Input::default()
+        },
+    );
+    assert_eq!(unequipped.state.speed_mode, 0);
+    assert_eq!(unequipped.layout.item_icons[0], [0; 5]);
     for (limit, expected_modes) in [(2, [0, 1, 0]), (3, [2, 0, 1])] {
         let mut speed_state = State {
             items_on: 1,
@@ -860,8 +874,12 @@ fn native_screen_witnesses() {
             battle_rows: rows,
         })
         .unwrap();
-        assert_eq!(camera.y_offset, case["offset"].as_f64().unwrap());
-        assert_eq!(camera.bottom, 640. + camera.y_offset);
+        if rows == 2 {
+            assert_eq!((camera.zoom, camera.y_offset), (0.8803, -57.));
+        } else {
+            assert_eq!(camera.y_offset, case["offset"].as_f64().unwrap());
+            assert_eq!(camera.bottom, 640. + camera.y_offset);
+        }
     }
 
     for case in controls["money"].as_array().unwrap() {

@@ -12,7 +12,7 @@ export function createBattleResults(controls){
  function render(){
   panel.replaceChildren();const receipt=runtime.receipt;
   const heading=document.createElement('h3');heading.textContent=runtime.result.mode===1?'クリア結果':runtime.result.mode===4||runtime.result.mode===7?'戦闘結果':'敗北';panel.append(heading);
-  if(runtime.result.mode===2&&runtime.noContinue){const note=document.createElement('p');note.textContent='このステージはコンティニューできません';panel.append(note);}
+  if(runtime.result.mode===2&&runtime.continueNotice){const note=document.createElement('p');note.textContent=runtime.continueNotice;panel.append(note);}
   if(runtime.continuePrompt){
    if(runtime.continuePrompt.error){const note=document.createElement('p');note.setAttribute('role','alert');note.textContent=runtime.continuePrompt.error;panel.append(note);}
    return;
@@ -34,15 +34,19 @@ export function createBattleResults(controls){
  }
  fetch('/api/inventory/catalog').then(r=>r.json()).then(value=>{for(const item of value.items||[])metadata.set(item.id,item);if(runtime?.receipt)render();}).catch(()=>{});
  return {
-  update(value,width,atlas){runtime=value;const visible=!!(runtime.result.mode&&(runtime.receipt||runtime.receiptError||runtime.continuePrompt?.error));button.hidden=!visible;panel.hidden=!visible;if(!visible){last=undefined;return;}
+  update(value,width,atlas){runtime=value;
    // phase0から準備し、勝利文字/経験値の演出中に通知の配置を取得する。
-   if(runtime.receipt)popup.prepare(runtime.receipt.notifications||[],width,atlas);
+   if(runtime.result.mode===2&&runtime.continueNotice)popup.prepare([runtime.continueNotice],width,atlas);
+   else if(runtime.receipt)popup.prepare(runtime.receipt.notifications||[],width,atlas);
+   const visible=!!(runtime.result.mode&&(runtime.receipt||runtime.receiptError||runtime.continuePrompt?.error));button.hidden=!visible;panel.hidden=!visible;if(!visible){last=undefined;return;}
    const key=runtime.receipt?'saved':runtime.receiptError||runtime.continuePrompt?.error;if(key!==last||lastEx!==runtime.ex?.source){last=key;lastEx=runtime.ex?.source;render();}
   },
   paint(context,width,sprite,number,atlas,images){
    if(!runtime?.result.mode)return;
    const e=runtime.ending,r=runtime.result,dojo=r.mode===4,name=dojo?'img004_DOJO_ja':'img004_ja';
    if(e.title[2]>=0)sprite(name,e.title[2],e.title[0],e.title[1]);
+   // 005eb040は00887594のYオフセットに画面高の1/4を渡す。
+   if(e.phase===5){popup.paint(context,e.popup,atlas,images,640/2+640/4);return;}
    const prompt=runtime.continuePrompt;
    if(prompt){
     const {layout,lines,cost,balance,error}=prompt,center=Math.trunc(width/2);
@@ -79,7 +83,7 @@ export function createBattleResults(controls){
    if(e.ready){
     const b=e.visualButton,buttons=runtime.rules.scoreType===1?'img101_nekoDojo':'img101';sprite(buttons,3,...b);sprite('img006_ja',1,...e.label);if(e.pressed||e.guard)sprite(buttons,e.guard&&Math.trunc(e.guard/2)%2?5:4,...b);
    }
-   if(runtime.receipt&&e.phase===8)popup.paint(context,e.popup,width,atlas,images);
+   if(runtime.receipt&&e.phase===8)popup.paint(context,e.popup,atlas,images);
   },
   stop(){popup.stop();panel.remove();button.remove();},
  };

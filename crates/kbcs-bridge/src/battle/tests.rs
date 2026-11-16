@@ -441,7 +441,8 @@ fn defeat_title_finishes_moving_before_the_hint_opens() {
                 ..Default::default()
             })
             .unwrap();
-        if frame.state.request_action == 309 {
+        assert_eq!(battle.ending().unwrap().guard, 0);
+        if frame.state.request_action == 302 {
             assert_eq!(frame.layout.fade_count, 1);
             assert_eq!(frame.layout.fade_sizes[0], 4);
             assert_eq!(frame.layout.fade[0][4], 960);
@@ -452,13 +453,44 @@ fn defeat_title_finishes_moving_before_the_hint_opens() {
 }
 
 #[test]
+fn forbidden_continue_shows_notice_before_the_hint() {
+    let mut battle = Battle::new(&config(), &[], &[]).unwrap();
+    battle.continue_policy(ContinuePolicy::Forbidden).unwrap();
+    battle.hints(&[7], &[3], 3).unwrap();
+    edit(&mut battle, 0, 0, |w| w[8] = 0);
+    for _ in 0..200 {
+        tick(&mut battle, 1);
+        if battle.ending().unwrap().phase == 5 {
+            break;
+        }
+    }
+    tick(&mut battle, 10);
+    let ending = battle.ending().unwrap();
+    assert_eq!(
+        (ending.phase, ending.popup.phase, ending.shade),
+        (5, 1, 255)
+    );
+    assert_eq!(battle.hint().unwrap().id, -1);
+    battle
+        .advance(&battle_screen::Input {
+            control: 11,
+            phase: 2,
+            ..Default::default()
+        })
+        .unwrap();
+    tick(&mut battle, 6);
+    assert_eq!(battle.ending().unwrap().phase, 4);
+    assert_eq!(battle.hint().unwrap().id, 7);
+}
+
+#[test]
 fn continue_resumes_the_same_battle_and_decline_opens_the_hint() {
     let mut c = config();
     c.screen.fixed_money = -1;
     let enemy: Vec<i32> = serde_json::from_value(fixture()["breakerEnemy"].clone()).unwrap();
     let row = stage::Row([37, 1, 0, 1000, 1000, 100, 0, 0, 0, 100, 0, 100, 0, 0]);
     let mut battle = Battle::new(&c, &[profile(&enemy, 1, 37)], &[row]).unwrap();
-    battle.allow_continue(true).unwrap();
+    battle.continue_policy(ContinuePolicy::Offer).unwrap();
     let open = |battle: &mut Battle| {
         edit(battle, 0, 0, |w| w[8] = 0);
         for _ in 0..300 {
@@ -487,6 +519,7 @@ fn continue_resumes_the_same_battle_and_decline_opens_the_hint() {
     tick(&mut battle, 1);
     open(&mut battle);
     assert_eq!(battle.continue_view().unwrap().panel, [135, 348, 690, 229]);
+    assert_eq!(battle.ending().unwrap().shade, 255);
     assert_eq!(battle.hint().unwrap().id, -1);
     choose(&mut battle, 0);
     assert_eq!(battle.continue_view().unwrap().pending, 1);

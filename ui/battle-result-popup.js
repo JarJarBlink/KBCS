@@ -36,19 +36,22 @@ export function createResultPopup(reportError){
     return entries.map((entry,index)=>({...entry,layouts:layouts.slice(index*5,index*5+5)}));
    })().then(value=>{if(!closed&&key===next)prepared=value;}).catch(error=>{if(!closed&&key===next)reportError(error.message);});
   },
-  paint(context,popup,width,atlas,images){
+  paint(context,popup,atlas,images,centerY){
    const entry=prepared?.[popup.index];if(!entry)return;
    const layout=entry.layouts[popup.scaleFrame],image=images.get(atlas.atlases.img005_1.image);
+   context.save();
+   if(centerY!==undefined){const [,top,,height]=entry.layouts[4].body;context.translate(0,centerY-Math.trunc(height/2)-top);}
    if(popup.scaleFrame)for(const part of layout.parts){
     const [x,y,w,h,sx,sy,sw,sh]=part;
     // 原本の幅0のUVは同じ画素を面へ伸ばす。Canvasの空描画とは区別する。
     if(w&&h)context.drawImage(image,sx,sy,Math.max(1,sw),Math.max(1,sh),x,y,w,h);
    }
-   if(popup.phase!==1&&popup.phase!==2)return;
-   context.save();context.font=nativeFont(30);context.textBaseline='top';
-   for(let index=0;index<entry.rows.length;++index){
-    const scale=layout.textScale[index],textures=entry.textures[popup.flash%4<2?0:1][index];let offset=0;
-    for(const texture of textures){context.drawImage(texture.canvas,Math.trunc(layout.textX[index]+offset*scale),layout.textY+index*36-Math.trunc(texture.h/2),Math.trunc(texture.w*scale),texture.h);offset+=texture.w;}
+   if(popup.phase===1||popup.phase===2){
+    context.font=nativeFont(30);context.textBaseline='top';
+    for(let index=0;index<entry.rows.length;++index){
+     const scale=layout.textScale[index],textures=entry.textures[popup.flash%4<2?0:1][index];let offset=0;
+     for(const texture of textures){context.drawImage(texture.canvas,Math.trunc(layout.textX[index]+offset*scale),layout.textY+index*36-Math.trunc(texture.h/2),Math.trunc(texture.w*scale),texture.h);offset+=texture.w;}
+    }
    }
    context.restore();
   },

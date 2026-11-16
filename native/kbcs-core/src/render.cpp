@@ -1,4 +1,5 @@
 ﻿#include "kbcs_core.h"
+#include "battle_camera.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -241,22 +242,29 @@ extern "C" uint32_t kbcs_core_warp_packets(const KbcsWarpPose *warp,const int32_
  }catch(int code){return uint32_t(code);}catch(...){return 3;}
 }
 
-extern "C" uint32_t kbcs_core_scene_layout(const KbcsSceneInput *in,KbcsSceneLayout *out) {
-  if(!in||!out||!std::isfinite(in->width)||!std::isfinite(in->center)||!std::isfinite(in->zoom)||in->width<=0||in->width>10000000||in->cut_height<=0||in->cut_height>100000||in->focus<0||in->focus>4||in->viewport_width<0||in->viewport_width>3840||in->battle_rows<0||in->battle_rows>2)return 1;
+extern "C" uint32_t kbcs_core_battle_scene_layout(const KbcsSceneInput *in,int32_t slot_slide,KbcsSceneLayout *out) {
+  if(!in||!out||!std::isfinite(in->width)||!std::isfinite(in->center)||!std::isfinite(in->zoom)||in->width<=0||in->width>10000000||in->cut_height<=0||in->cut_height>100000||in->focus<0||in->focus>4||in->viewport_width<0||in->viewport_width>3840||in->battle_rows<0||in->battle_rows>2||slot_slide<0||slot_slide>1000)return 1;
   const double viewport=in->viewport_width?std::max(960,in->viewport_width):960;
-  const double width=std::max(1.,in->width*.4),minimum=std::min(1.,viewport/width),zoom=in->focus==3?minimum:std::clamp(in->zoom,minimum,in->battle_rows?1.:2.);
+  const double width=std::max(1.,in->width*.4),maximum=in->battle_rows?battle_camera_limit(in->battle_rows,slot_slide)/10000.:2.;
+  // 009eadc8 / 006d6d04: 下限は戦闘座標の幅から整数%で求め、横長画面でも左右の境界は960を基準にする。
+  const double minimum=in->battle_rows?std::min(maximum,(960000/int(std::max(1.,in->width*4))+1)/100.):std::min(1.,viewport/width);
+  // 終了演出の倍率は、手動操作の上限で丸め直さない。
+  const bool automatic=in->battle_rows&&in->focus==4;
+  const double zoom=automatic?std::clamp(in->zoom,.01,10.):in->focus==3?minimum:std::clamp(in->zoom,minimum,in->battle_rows&&slot_slide?10.:maximum);
   const double desired=in->focus==1?320:in->focus==2?width-320:in->focus==3?width/2:in->center;
-  const double half=viewport*.5/zoom,center=in->focus==4?desired:width<=half*2?width/2:std::clamp(desired,half,width-half);
+  const double half=(in->battle_rows?960.:viewport)*.5/zoom,center=in->focus==4?desired:width<=half*2?width/2:std::clamp(desired,half,width-half);
   const auto x=[&](double value){return viewport*.5+(value-center)*zoom;};
   // 005c8a6cは二段スロットの上端を超えた分もカメラへ戻す。
   const double anchor=in->battle_rows==2?505:520;
-  double offset=in->battle_rows==2?-15:0;
-  if(in->battle_rows){const int projected=int((1-zoom)*anchor+(500+offset)*zoom),slot=in->battle_rows==2?449:544;if(projected>slot)offset-=std::trunc((projected-slot)/zoom);}
+  const double offset=battle_camera_offset(in->battle_rows,int(std::lround(zoom*10000)),slot_slide);
   const auto y=[&](double value){return anchor+(value-anchor+offset)*zoom;};
   const int size=in->castle[2];if(size<0||size>100000)return 1;
   const double cx=std::trunc((3200-std::trunc(size*1180./100))/10)+std::trunc(size*double(in->castle[0])/100);
   const double cy=440-std::trunc(size*255./100)+std::trunc(size*double(in->castle[1])/100);
   *out={width,center,zoom,minimum,y(640-std::trunc(in->cut_height*640./510)),y(640),{x(cx),y(cy),std::trunc(size*127./100)*zoom,std::trunc(size*255./100)*zoom},x(width-320),viewport,anchor,offset};return 0;
+}
+extern "C" uint32_t kbcs_core_scene_layout(const KbcsSceneInput *in,KbcsSceneLayout *out) {
+  return kbcs_core_battle_scene_layout(in,0,out);
 }
 
 extern "C" uint32_t kbcs_core_scene_transform(const KbcsSceneLayout *layout,const KbcsDrawCommand *in,
@@ -276,10 +284,10 @@ extern "C" uint32_t kbcs_core_scene_sprite(const KbcsSceneLayout *layout,const K
   std::copy_n(in->cut,4,command.cut);
   return kbcs_core_scene_transform(layout,&command,in->rect[0],in->rect[1],in->angle,out);
 }
-extern "C" uint32_t kbcs_core_scene_paint(const KbcsPaintInput *in,KbcsSceneLayout *layout,KbcsDrawCommand *out,int32_t capacity,int32_t *written) {
+extern "C" uint32_t kbcs_core_battle_scene_paint(const KbcsPaintInput *in,int32_t slot_slide,KbcsSceneLayout *layout,KbcsDrawCommand *out,int32_t capacity,int32_t *written) {
   if(!in||!layout||!out||!written||capacity<1||capacity>16384)return 1;
   try {
-  KbcsSceneLayout camera{};const auto code=kbcs_core_scene_layout(&in->scene,&camera);if(code)return code;
+  KbcsSceneLayout camera{};const auto code=kbcs_core_battle_scene_layout(&in->scene,slot_slide,&camera);if(code)return code;
   if(in->cut[2]<=0||in->cut[3]<=0)return 1;
   std::vector<KbcsDrawCommand> commands;
   const auto gradient=[&](const int32_t *start,const int32_t *end,double top,double bottom,double alpha,int layer){
@@ -314,6 +322,9 @@ extern "C" uint32_t kbcs_core_scene_paint(const KbcsPaintInput *in,KbcsSceneLayo
   if(commands.size()>size_t(capacity))return 2;
   std::copy(commands.begin(),commands.end(),out);*written=int32_t(commands.size());*layout=camera;return 0;
   } catch(...) { return 3; }
+}
+extern "C" uint32_t kbcs_core_scene_paint(const KbcsPaintInput *in,KbcsSceneLayout *layout,KbcsDrawCommand *out,int32_t capacity,int32_t *written) {
+  return kbcs_core_battle_scene_paint(in,0,layout,out,capacity,written);
 }
 
 extern "C" uint32_t kbcs_core_scene_instance(const KbcsSceneLayout *layout,const KbcsDrawCommand *input,double x,double y,double spacing,int32_t index,KbcsDrawCommand *output) {

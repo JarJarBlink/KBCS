@@ -579,7 +579,6 @@ impl Service {
             }
             request.scene.frame = battle.state.frame;
             session.combo_skipped |= request.skip_combos;
-            request.scene.battle_rows = battle.state.rows;
             session.ending_camera(&mut request.scene)?;
             // 描画がSceneを借用する前に、同じ配置でHUDを作る。
             let hud_layout = session.layout(&request.scene)?;

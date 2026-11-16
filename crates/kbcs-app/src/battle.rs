@@ -58,7 +58,7 @@ pub struct Session {
     pub combo_skipped: bool,
     receipt: crate::battle_rewards::Receipt,
     defeat_hints: Vec<Vec<String>>,
-    no_continue: bool,
+    continue_notice: Option<String>,
     continue_text: Option<(Vec<String>, String)>,
     continue_balance: Option<i64>,
     continue_error: Option<String>,
@@ -87,6 +87,7 @@ fn integer(value: &Value) -> Result<i32> {
 fn native<T>(value: std::result::Result<T, u32>) -> Result<T> {
     value.map_err(|code| anyhow::anyhow!("戦闘コア: {code}"))
 }
+
 fn text(db: &Database, path: &str) -> Result<String> {
     Ok(String::from_utf8(db.source(path)?.3)?
         .trim_start_matches('\u{feff}')
@@ -1070,10 +1071,23 @@ impl Session {
             });
             models.push(model);
         }
+        let mut screen = start.config;
+        let mut state = start.state;
+        if let Some(speedup) = snapshot["items"]["speedup"].as_bool() {
+            // 006d6d04: 持ち込んだスピードアップは2倍から始まり、3倍設定は切替上限となる。
+            screen.items = (screen.items & !1) | i32::from(speedup);
+            screen.speed = if speedup && snapshot["speed"] == 3 {
+                3
+            } else {
+                2
+            };
+            state.items_on = (state.items_on & !1) | i32::from(speedup);
+            state.speed_mode = i32::from(speedup);
+        }
         let config = battle::Config {
             environment,
-            screen: start.config,
-            state: start.state,
+            screen,
+            state,
             clock,
             hit,
             areas: actor::AreaRules {
@@ -1163,7 +1177,11 @@ impl Session {
             rules,
             castle,
             cannon: cannon_rules,
-            seed: u32::try_from(integer(&snapshot["seed"])?)?,
+            seed: snapshot["seed"]
+                .as_u64()
+                .and_then(|value| u32::try_from(value).ok())
+                .filter(|&value| value != 0)
+                .context("戦闘乱数のシードが不正です")?,
         };
         let mut effects = BTreeMap::new();
         let effect_catalog = kbcs_data::effects::catalog(&database)?;
@@ -1298,29 +1316,38 @@ impl Session {
             config.screen.items as u32,
         )?;
         native(core.reward_rules(&reward_rules))?;
-        let no_continue = stage["noContinue"] == true;
-        let continue_text = if persist_rewards && !no_continue && !matches!(rules.score_type, 1 | 3)
-        {
-            // 005eb040 / 005ecde0: Warning2の行2が通常の復活確認、行0が不足時の文面。
-            let bytes = kbcs_data::source::asset(&database, root, "res/Warning2_ja.csv")?;
-            let warnings = kbcs_data::model::csv_rows(&bytes)?;
-            let lines = warnings
-                .get(2)
-                .context("コンティニュー確認の原本文面がありません")?
-                .iter()
-                .take_while(|line| line.as_str() != "＠")
-                .cloned()
-                .collect();
-            let insufficient = warnings
-                .first()
-                .and_then(|row| row.first())
-                .context("ネコカン不足の原本文面がありません")?
-                .clone();
-            Some((lines, insufficient))
+        let continue_policy = if stage["noContinue"] == true {
+            battle::ContinuePolicy::Forbidden
+        } else if persist_rewards && !matches!(rules.score_type, 1 | 3) {
+            battle::ContinuePolicy::Offer
         } else {
-            None
+            battle::ContinuePolicy::Hint
         };
-        native(core.allow_continue(continue_text.is_some()))?;
+        let (continue_text, continue_notice) =
+            if matches!(continue_policy, battle::ContinuePolicy::Hint) {
+                (None, None)
+            } else {
+                // 005eb040 / 005ecde0: Warning2の行0が不足、行2が復活確認、行122が禁止の文面。
+                let bytes = kbcs_data::source::asset(&database, root, "res/Warning2_ja.csv")?;
+                let warnings = kbcs_data::model::csv_rows(&bytes)?;
+                let warning = |index: usize| {
+                    warnings
+                        .get(index)
+                        .filter(|row| !row.is_empty())
+                        .with_context(|| format!("Warning2の原本文面がありません。行番号 {index}"))
+                };
+                if matches!(continue_policy, battle::ContinuePolicy::Forbidden) {
+                    (None, Some(warning(122)?[0].clone()))
+                } else {
+                    let lines = warning(2)?
+                        .iter()
+                        .take_while(|line| line.as_str() != "＠")
+                        .cloned()
+                        .collect();
+                    (Some((lines, warning(0)?[0].clone())), None)
+                }
+            };
+        native(core.continue_policy(continue_policy))?;
         let title = kbcs_data::stage_media::battle_title(&database, map, stage)?;
         let title_draw = title["image"]
             .as_str()
@@ -1380,7 +1407,7 @@ impl Session {
             combo_skipped: false,
             receipt,
             defeat_hints,
-            no_continue,
+            continue_notice,
             continue_text,
             continue_balance: None,
             continue_error: None,
@@ -1770,11 +1797,13 @@ impl Session {
             self.continues_on_camera = continues;
             self.ending_camera_applied = false;
         }
-        let moving =
-            camera.moving != 0 || camera.zoom < if camera.rows == 2 { 8803 } else { 10000 };
+        let limits = native(self.core.camera_limits())?;
+        input.battle_slide = limits.slide;
+        input.battle_rows = limits.rows;
+        let moving = limits.automatic;
         if camera.width > 0 && (!self.ending_camera_applied || moving) {
             self.ending_camera_applied = !moving;
-            input.zoom = f64::from(camera.zoom / 100) / 100.;
+            input.zoom = f64::from(camera.zoom) / 10000.;
             input.center = Some(f64::from(camera.left) / 10. + 480. / input.zoom);
             input.focus = 4;
         }
@@ -1793,6 +1822,8 @@ impl Session {
         let hint = native(self.core.hint())?;
         let hint_lines = self.defeat_hints.get(hint.id as usize);
         let ending = native(self.core.ending())?;
+        let end_camera = native(self.core.end_camera())?;
+        let camera_limits = native(self.core.camera_limits())?;
         let continue_prompt = if ending.phase == 3
             && let Some((lines, _)) = &self.continue_text
             && native(self.core.outcome())?.mode == 2
@@ -1805,21 +1836,57 @@ impl Session {
             let a = &value.actor.words;
             json!({"side":value.side,"slot":value.slot,"profile":value.profile,"raw":a[0],"layer":a[5],"frame":a[2],"action":a[1],"hp":a[8],"maximum":a[7],"x":a[3],"y":a[4],"serial":a[240]})
         }).collect();
-        Ok(
-            json!({"defeatHint":{"layout":hint,"lines":hint_lines},"ex":native(self.core.ex())?,"endCamera":native(self.core.end_camera())?,"music":native(self.core.music())?,"ending":ending,"endingMap":native(self.core.ending_map())?,"continuePrompt":continue_prompt,"noContinue":self.no_continue,"receipt":self.receipt.saved,"receiptError":self.receipt.error,"rewardRolls":native(self.core.rewards())?,"units":count(0),"enemies":count(1),"castleHp":[actors[0][0].words[8],actors[1][0].words[8]],"precision":self.precision,"wait":production.wait,"maximum":production.maximum,"costs":native(self.core.prices())?,"produced":production.produced,"extras":native(self.core.extras())?,"points":native(self.core.points())?,"lastCosts":production.last_cost,"seed":seed,"actors":units,"cannon":[actors[0][0].words[9],actors[0][0].words[10],actors[0][0].words[13]],"sniper":native(self.core.sniper_status())?,"computer":native(self.core.computer())?,"sounds":native(self.core.sounds())?,"result":native(self.core.outcome())?,"deployment":native(self.core.deployment())?,"rules":self.rules}),
-        )
+        Ok(json!({
+            "defeatHint": {"layout":hint,"lines":hint_lines},
+            "ex": native(self.core.ex())?,
+            "endCamera": end_camera,
+            "endCameraActive": camera_limits.automatic,
+            "cameraMaximum": camera_limits.maximum,
+            "music": native(self.core.music())?,
+            "ending": ending,
+            "endingMap": native(self.core.ending_map())?,
+            "continuePrompt": continue_prompt,
+            "noContinue": self.continue_notice.is_some(),
+            "continueNotice": self.continue_notice,
+            "receipt": self.receipt.saved,
+            "receiptError": self.receipt.error,
+            "rewardRolls": native(self.core.rewards())?,
+            "units": count(0),
+            "enemies": count(1),
+            "castleHp": [actors[0][0].words[8], actors[1][0].words[8]],
+            "precision": self.precision,
+            "wait": production.wait,
+            "maximum": production.maximum,
+            "costs": native(self.core.prices())?,
+            "produced": production.produced,
+            "extras": native(self.core.extras())?,
+            "points": native(self.core.points())?,
+            "lastCosts": production.last_cost,
+            "seed": seed,
+            "actors": units,
+            "cannon": [actors[0][0].words[9], actors[0][0].words[10], actors[0][0].words[13]],
+            "sniper": native(self.core.sniper_status())?,
+            "computer": native(self.core.computer())?,
+            "sounds": native(self.core.sounds())?,
+            "result": native(self.core.outcome())?,
+            "deployment": native(self.core.deployment())?,
+            "rules": self.rules,
+        }))
     }
     pub fn layout(&self, input: &crate::scene::Input) -> Result<render::Layout> {
-        native(render::layout(&render::SceneInput {
-            width: input.width,
-            center: input.center.unwrap_or(input.width),
-            zoom: input.zoom,
-            cut_height: 510,
-            castle: self.scene.castle_geometry(),
-            focus: input.focus,
-            viewport_width: input.viewport_width,
-            battle_rows: input.battle_rows,
-        }))
+        native(render::battle_layout(
+            &render::SceneInput {
+                width: input.width,
+                center: input.center.unwrap_or(input.width),
+                zoom: input.zoom,
+                cut_height: 510,
+                castle: self.scene.castle_geometry(),
+                focus: input.focus,
+                viewport_width: input.viewport_width,
+                battle_rows: input.battle_rows,
+            },
+            input.battle_slide,
+        ))
     }
     pub fn combo_intro(&self, frame: i32, width: i32) -> Result<Value> {
         let layout = self.combo_layout(frame, width)?;

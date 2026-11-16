@@ -41,6 +41,8 @@ pub struct Input {
     pub viewport_width: i32,
     #[serde(default)]
     pub battle_rows: i32,
+    #[serde(skip)]
+    pub battle_slide: i32,
 }
 impl Input {
     pub fn key(&self) -> String {
@@ -413,7 +415,7 @@ impl Scene {
         } else {
             [0, 0, 0, 0, 0, 0, -1]
         };
-        let (layout, background_commands) = render::paint(
+        let (layout, background_commands) = render::battle_paint(
             &PaintInput {
                 scene: SceneInput {
                     width: input.width,
@@ -442,6 +444,7 @@ impl Scene {
                 show_enemy: i32::from(input.show_enemy && self.textures[1].is_some()),
                 show_player: i32::from(input.show_player),
             },
+            input.battle_slide,
             &mut self.paint_buffer,
         )
         .map_err(core)?;

@@ -121,7 +121,7 @@ uint32_t kbcs_core_battle_reward_rules(KbcsBattle*,const KbcsBattleRewardRules*)
 uint32_t kbcs_core_battle_rewards(const KbcsBattle*,KbcsBattleRewards*);
 uint32_t kbcs_core_battle_ending(const KbcsBattle*,KbcsBattleEnding*);
 uint32_t kbcs_core_battle_ending_map(const KbcsBattle*,int32_t out[4]);
-uint32_t kbcs_core_battle_allow_continue(KbcsBattle*,int32_t allowed);
+uint32_t kbcs_core_battle_allow_continue(KbcsBattle*,int32_t policy);
 uint32_t kbcs_core_battle_continue_view(const KbcsBattle*,KbcsBattleContinue*);
 uint32_t kbcs_core_battle_continue_payment(KbcsBattle*,int32_t paid);
 uint32_t kbcs_core_battle_ending_step(int32_t mode,int32_t point,KbcsBattleEnding*);
@@ -129,6 +129,7 @@ uint32_t kbcs_core_battle_music(const KbcsBattle*,KbcsBattleMusic*);
 uint32_t kbcs_core_battle_end_camera(const KbcsBattle*,KbcsBattleEndCamera*);
 uint32_t kbcs_core_battle_ex(const KbcsBattle*,KbcsExTransitionOutput*);
 uint32_t kbcs_core_battle_end_camera_step(KbcsBattleEndCamera*);
+uint32_t kbcs_core_battle_camera_limits(const KbcsBattle*,int32_t out[4]);
 uint32_t kbcs_core_battle_music_cross(const KbcsBattleRewardRules*,int32_t previous,int32_t current,int32_t maximum,KbcsBattleMusic*);
 uint32_t kbcs_core_battle_music_tick(const KbcsBattleRewardRules*,KbcsBattleMusic*);
 typedef struct {const KbcsRenderCut *cuts[2];int32_t counts[2],textures[2];} KbcsBattleAtlases;

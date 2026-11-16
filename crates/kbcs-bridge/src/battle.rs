@@ -1,5 +1,20 @@
-﻿use crate::{actor, battle_screen, production, render, stage};
+use crate::{actor, battle_screen, production, render, stage};
 use std::ptr::NonNull;
+
+#[repr(i32)]
+pub enum ContinuePolicy {
+    Hint,
+    Offer,
+    Forbidden,
+}
+
+pub struct CameraLimits {
+    pub automatic: bool,
+    pub slide: i32,
+    pub maximum: f64,
+    pub rows: i32,
+}
+
 #[cfg(test)]
 mod tests;
 #[repr(C)]
@@ -590,6 +605,19 @@ impl Battle {
         let code = unsafe { kbcs_core_battle_end_camera(self.0.as_ptr(), &mut out) };
         if code == 0 { Ok(out) } else { Err(code) }
     }
+    pub fn camera_limits(&self) -> Result<CameraLimits, u32> {
+        let mut limits = [0; 4];
+        let code = unsafe { kbcs_core_battle_camera_limits(self.0.as_ptr(), limits.as_mut_ptr()) };
+        if code != 0 {
+            return Err(code);
+        }
+        Ok(CameraLimits {
+            automatic: limits[0] != 0,
+            slide: limits[1],
+            maximum: f64::from(limits[2]) / 10000.,
+            rows: limits[3],
+        })
+    }
     pub fn ex(&self) -> Result<crate::transition::Output, u32> {
         let mut out = crate::transition::Output::default();
         let code = unsafe { kbcs_core_battle_ex(self.0.as_ptr(), &mut out) };
@@ -600,9 +628,16 @@ impl Battle {
         let code = unsafe { kbcs_core_battle_ending_map(self.0.as_ptr(), &mut bounds) };
         if code == 0 { Ok(bounds) } else { Err(code) }
     }
-    pub fn allow_continue(&mut self, allowed: bool) -> Result<(), u32> {
-        let code = unsafe { kbcs_core_battle_allow_continue(self.0.as_ptr(), i32::from(allowed)) };
+    pub fn continue_policy(&mut self, policy: ContinuePolicy) -> Result<(), u32> {
+        let code = unsafe { kbcs_core_battle_allow_continue(self.0.as_ptr(), policy as i32) };
         if code == 0 { Ok(()) } else { Err(code) }
+    }
+    pub fn allow_continue(&mut self, allowed: bool) -> Result<(), u32> {
+        self.continue_policy(if allowed {
+            ContinuePolicy::Offer
+        } else {
+            ContinuePolicy::Hint
+        })
     }
     pub fn continue_view(&self) -> Result<ContinueView, u32> {
         let mut out = ContinueView::default();
@@ -1022,7 +1057,8 @@ unsafe extern "C" {
     fn kbcs_core_battle_ex(battle: *const RawBattle, out: *mut crate::transition::Output) -> u32;
     fn kbcs_core_battle_ending(battle: *const RawBattle, out: *mut Ending) -> u32;
     fn kbcs_core_battle_ending_map(battle: *const RawBattle, out: *mut [i32; 4]) -> u32;
-    fn kbcs_core_battle_allow_continue(battle: *mut RawBattle, allowed: i32) -> u32;
+    fn kbcs_core_battle_allow_continue(battle: *mut RawBattle, policy: i32) -> u32;
+    fn kbcs_core_battle_camera_limits(battle: *const RawBattle, out: *mut i32) -> u32;
     fn kbcs_core_battle_continue_view(battle: *const RawBattle, out: *mut ContinueView) -> u32;
     fn kbcs_core_battle_continue_payment(battle: *mut RawBattle, paid: i32) -> u32;
     fn kbcs_core_battle_hint_candidates(

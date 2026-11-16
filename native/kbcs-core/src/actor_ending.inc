@@ -68,19 +68,29 @@ extern "C" uint32_t kbcs_core_battle_ending_step(int32_t mode,int32_t point,Kbcs
   else if(e.phase==6){const int previous=e.panel;e.panel+=20;if(previous>61){e.panel=82;e.phase=7;}}
  return 0;
 }
-extern "C" uint32_t kbcs_core_battle_end_camera_step(KbcsBattleEndCamera *state){
- if(!state||state->width<2800||state->rows<1||state->rows>2||state->zoom<100||state->zoom>10000||state->moving<0||state->moving>2)return 1;
+static uint32_t end_camera_step(KbcsBattleEndCamera *state,int slide,bool zooming,bool &castle_reached){
+ if(!state||state->width<2800||state->rows<1||state->rows>2||state->zoom<100||state->zoom>100000||state->moving<0||state->moving>2)return 1;
  auto &s=*state;
  // 005cb0e0: battle_zoom_castle_y=20、段別アンカー520/505、二段補正-51。
- const int cap=s.rows==2?8803:10000;
- if(!s.moving){s.zoom=std::min(cap,s.zoom+800);return 0;}
+ const int cap=battle_camera_limit(s.rows,slide);
  if(s.moving==2){if(s.left<82&&s.zoom>=cap){s.left=0;s.moving=0;}else s.left-=s.left/2;}
- else{
+ else if(s.moving==1){
   const float scale=float(s.zoom/100)/100.f;const int target=int((scale*float(s.width)-9600.f)/scale),delta=target-s.left;
-  if(delta<82&&s.zoom>=cap){s.left=s.width-9600;s.moving=0;}
-  else s.left+=delta/2;
+  if(delta<82&&s.zoom>=cap){s.zoom=cap;s.left=s.width-9600;s.moving=0;}
+  else{
+   s.left+=delta/2;
+   // 006d6d04: 城側の目標に達した後は、拡大が終わるまで右端への固定を保持する。
+   castle_reached|=s.left>=target;
+   if(castle_reached)s.left=s.width-9600;
+  }
  }
- s.zoom=std::min(cap,s.zoom+800);return 0;
+ // 005e1a5c / 005eb040 / 005edb40 / 005ef020: カメラ座標を更新したあと、phase0で+800する。
+ if(zooming)s.zoom+=800;
+ return 0;
+}
+extern "C" uint32_t kbcs_core_battle_end_camera_step(KbcsBattleEndCamera *state){
+ bool castle_reached=false;
+ return end_camera_step(state,0,true,castle_reached);
 }
 extern "C" uint32_t kbcs_core_battle_music_cross(const KbcsBattleRewardRules *rules,int32_t previous,int32_t current,int32_t maximum,KbcsBattleMusic *state){
  if(!rules||!state||previous<0||current<0||maximum<0)return 1;

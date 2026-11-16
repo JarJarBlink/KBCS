@@ -1,6 +1,8 @@
 ﻿// 画面上の操作点の世界座標を保ち、パンと拡大を同時に扱う。
 export function sceneGestureView(view,previous,current,rectangle){
-  const zoom=Math.max(view.minimum,Math.min(view.maximum??2,view.zoom*(previous.distance&&current.distance?current.distance/previous.distance:1)));
+  const zoom=previous.distance&&current.distance&&previous.distance!==current.distance
+    ?Math.max(view.minimum,Math.min(view.maximum??2,view.zoom*current.distance/previous.distance))
+    :view.zoom;
   const offset=point=>(point-rectangle.left-rectangle.width/2)*(view.viewport_width||960)/rectangle.width;
   return {zoom,center:view.center+offset(previous.x)/view.zoom-offset(current.x)/zoom};
 }
@@ -28,7 +30,7 @@ export function createSceneMotion(){
    if(direction)next.center+=direction*width*.6*dt/view.zoom;
    if(zooming){next.zoom=clamp(view.zoom+zooming*.6*dt,view.minimum,view.maximum??2);wheel=null;}
    else if(wheel){const used=Math.min(dt,wheel.remaining),zoom=view.zoom+(wheel.zoom-view.zoom)*used/wheel.remaining;next=sceneGestureView({...view,...next},{x:wheel.x,distance:view.zoom},{x:wheel.x,distance:zoom},wheel.rectangle);wheel.remaining-=used;if(wheel.remaining<=1e-6)wheel=null;}
-   if(view.width){const half=width*.5/next.zoom;next.center=view.width<=half*2?view.width/2:clamp(next.center,half,view.width-half);}
+   if(view.width){const half=(view.cameraWidth??width)*.5/next.zoom;next.center=view.width<=half*2?view.width/2:clamp(next.center,half,view.width-half);}
    return next.zoom===view.zoom&&next.center===view.center?null:next;
   },
  };

@@ -34,9 +34,9 @@ extern "C" uint32_t kbcs_core_actor_summon(const KbcsSummonInput *input,KbcsSumm
 }
 struct KbcsBattle {
  BattleInspector inspector;
- KbcsBattleRewardRules reward_rules=[]{KbcsBattleRewardRules r{};r.music[0]=-1;r.music[1]=-1;r.start_sound=-1;return r;}();KbcsBattleRewards rewards{};KbcsBattleEnding ending{};bool popup_release=false,ending_clicked=false,map_pressed=false,return_to_map=false;
+ KbcsBattleRewardRules reward_rules=[]{KbcsBattleRewardRules r{};r.music[0]=-1;r.music[1]=-1;r.start_sound=-1;return r;}();KbcsBattleRewards rewards{};KbcsBattleEnding ending{};bool popup_release=false,ending_clicked=false,map_pressed=false,map_clicked=false;
  bool end_sound=false;int return_frame=-1,hint_id=-1,hint_fallback_lines=0;std::vector<int32_t> hint_ids,hint_lines;KbcsScoreDisplay score_display{0,0,0,0,100};
- bool continue_allowed=false,continue_pending=false;
+ bool continue_allowed=false,continue_forbidden=false,continue_pending=false,end_camera_castle_reached=false;
  int continue_pressed=0,continue_choice=0,continue_frame=-1,continues=0;
  KbcsBattleMusic music{-1,0,0,0,0,0};
  KbcsBattleEndCamera end_camera{};KbcsExTransitionOutput ex{};
@@ -130,7 +130,10 @@ struct KbcsBattle {
   // 006d7208。倍速の論理ループでは消さず、表示更新の先頭だけで初期化する。
   preserve_castle=0;
   if(continue_frame>=0){if(++continue_frame==11)resumeBattle(screen);return;}
-  if(result.mode){if(end_camera.width)check(kbcs_core_battle_end_camera_step(&end_camera));advanceEnding();}
+  if(result.mode){
+   if(end_camera.width&&(!ending.phase||end_camera.moving))check(end_camera_step(&end_camera,battleSlide(),!ending.phase,end_camera_castle_reached));
+   advanceEnding();
+  }
   if(config.rules.score_type==3)check(kbcs_core_battle_point_display(&config.rules.point,&points));
   if(result.mode)return;
   // 006db884: 射程矢印の時計は論理速度でなく、停止していない表示更新ごとに進む。
@@ -168,7 +171,8 @@ struct KbcsBattle {
  }
  void endSound(bool win,bool timed=false){
   if(end_sound)return;end_sound=true;music.id=-1;++music.serial;
-  end_camera={camera,std::clamp(int(camera_zoom*10000),100,10000),timed&&config.rules.score_type==1?0:win?2:1,config.environment.stage_width,config.state.rows};
+  end_camera={camera,std::clamp(int(std::lround(camera_zoom*10000)),100,10000),timed&&config.rules.score_type==1?0:win?2:1,config.environment.stage_width,config.state.rows};
+  end_camera_castle_reached=false;
   if(!win&&config.rules.score_type==1){sound(current_frame,config.hit.effects.notifications?189:57);return;}
   const auto &r=reward_rules;const int count=win?r.win_count:r.lose_count,type=win?r.win_type:r.lose_type;const auto *ids=win?r.win_sounds:r.lose_sounds;
   if(!count){sound(current_frame,win?8:9);return;}
@@ -178,6 +182,11 @@ struct KbcsBattle {
  void beginDefeatHint(){
   ending.phase=4;ending.frame=0;
   int32_t pick=0;if(!hint_ids.empty())check(kbcs_core_random_bounded(&seed,int32_t(hint_ids.size()),&pick));hint_id=hint_ids.empty()?0:hint_ids[pick];
+ }
+ int battleSlide() const {
+  if(!result.mode)return 0;
+  // 終了phase0で毎表示更新+10、結果表示に移ると1000。
+  return ending.phase?1000:std::min(1000,ending.frame*10);
  }
  // 00695904の復帰分岐。城と敵の位置を戻し、出現行・HP・戦闘RNGを引き継ぐ。
  void resumeBattle(KbcsBattleScreenState &screen){
@@ -202,7 +211,7 @@ struct KbcsBattle {
   result.mode=result.reason=result.finished_frame=0;
   rewards={};ending={};hint_id=-1;end_sound=false;continue_frame=-1;++continues;
   screen.battle_mode=0;screen.intro=12;screen.wallet_flash=0;screen.description_item=-1;screen.description_wait=0;
-  end_camera={config.environment.stage_width-9600,end_camera.zoom,0,config.environment.stage_width,screen.rows};
+  end_camera={config.environment.stage_width-9600,std::min(end_camera.zoom,battle_camera_limit(screen.rows,0)),0,config.environment.stage_width,screen.rows};
   // 005c20ec(0,1)で戦闘曲に戻る。HP閾値の切替済み情報はそのまま使う。
   music.id=reward_rules.music[music.changed?1:0];music.started=1;music.delay=music.wait=0;++music.serial;
  }
@@ -223,7 +232,7 @@ struct KbcsBattle {
  }
  void advanceEnding(){
   // 結果のrelease待ちを終えたら、006994e8の前半で覆い切ってから画面を戻す。
-  if(return_frame>=0){return_frame=std::min(11,return_frame+1);if(return_frame==11)ending.action=return_to_map?309:302;return;}
+  if(return_frame>=0){return_frame=std::min(11,return_frame+1);if(return_frame==11)ending.action=302;return;}
   if(result.mode==2&&ending.phase==3){
    if(continue_pending)return;
    ending.frame=std::min(ending.frame+1,5);
@@ -233,17 +242,24 @@ struct KbcsBattle {
    }
    return;
   }
-  if(ending.phase==8){
+  if(ending.phase==5||ending.phase==8){
    auto &p=ending.popup;const bool release=popup_release&&p.phase==1;popup_release=false;
    check(kbcs_core_battle_popup_step(release,&p));++ending.frame;if(release)sound(current_frame,11);
-   if(p.phase==3){++p.index;p.phase=p.scale_frame=p.flash=p.wait=0;ending.phase=3;ending.frame=30;}
+   if(p.phase==3){
+    if(ending.phase==5){p={};beginDefeatHint();}
+    else{++p.index;p.phase=p.scale_frame=p.flash=p.wait=0;ending.phase=3;ending.frame=30;}
+   }
    return;
   }
   if(ending.phase==3&&ending.frame+1>=30&&ending.popup.index<ending.popup.count){ending.phase=8;ending.frame=0;sound(current_frame,29);return;}
   // 005bc00cが終了カメラの完了を返すまで、phase0を進めない。
   if(!ending.phase&&ending.frame>=19&&end_camera.moving){++ending.frame;return;}
    const int previous=ending.phase;check(kbcs_core_battle_ending_step(result.mode,config.rules.score_type==3,&ending));if(result.mode==2&&previous==4&&ending.frame==1)sound(current_frame,42);if(ending_clicked){ending.guard=1;ending_clicked=false;}if(ending.action==302){return_frame=0;ending.action=0;}if(previous==6&&ending.phase==7&&result.mode==1)check(kbcs_core_stage_ex(&reward_rules.ex,reward_rules.ex_choices,reward_rules.ex_count,&seed,&ex));
-   if(result.mode==2&&previous!=4&&ending.phase==4){if(continue_allowed)ending.phase=3;else beginDefeatHint();}
+   if(result.mode==2&&previous!=4&&ending.phase==4){
+    if(continue_allowed)ending.phase=3;
+    else if(continue_forbidden)ending.phase=5;
+    else beginDefeatHint();
+   }
  }
  // 005e144cの部品120。005ecde0は敗北ヒント、005ee758/005efbacは結果phase7で描く。
  std::array<int32_t,4> endingMapButton() const {
@@ -261,8 +277,8 @@ struct KbcsBattle {
    else if(input.phase==3)continue_pressed=0;
    return;
   }
-  if(ending.phase==8){if(input.phase==2&&ending.popup.phase==1)popup_release=true;return;}
-  if(ending.guard||ending.action||return_frame>=0)return;KbcsBattleEnding view{};check(kbcs_core_battle_ending(this,&view));
+  if(ending.phase==5||ending.phase==8){if(input.phase==2&&ending.popup.phase==1)popup_release=true;return;}
+  if(ending_clicked||ending.guard||ending.action||return_frame>=0)return;KbcsBattleEnding view{};check(kbcs_core_battle_ending(this,&view));
   const auto *b=view.button;const bool inside=input.x>=b[0]&&input.x<=b[0]+b[2]&&input.y>=b[1]&&input.y<=b[1]+b[3];
   const auto map=endingMapButton();
   const bool inside_map=view.ready&&map[2]>0&&input.x>=map[0]&&input.x<=map[0]+map[2]&&input.y>=map[1]&&input.y<=map[1]+map[3];
@@ -270,7 +286,7 @@ struct KbcsBattle {
    map_pressed=inside_map;ending.pressed=view.ready&&inside;
    if(map_pressed||ending.pressed)sound(current_frame,10);
   }else if(input.phase==2){
-   if(map_pressed&&inside_map){return_to_map=true;ending_clicked=true;sound(current_frame,11);}
+   if(map_pressed&&inside_map){map_clicked=true;ending_clicked=true;sound(current_frame,11);}
    else if(ending.pressed&&inside&&view.ready){ending_clicked=true;sound(current_frame,11);}
    map_pressed=false;ending.pressed=0;
   }else if(input.phase==3){map_pressed=false;ending.pressed=0;}
@@ -715,6 +731,13 @@ extern "C" uint32_t kbcs_core_battle_ex(const KbcsBattle *battle,KbcsExTransitio
  ActorPoolScope pool_scope(battle?&battle->pool:nullptr);if(!battle||!out)return 1;*out=battle->ex;return 0;}
 extern "C" uint32_t kbcs_core_battle_end_camera(const KbcsBattle *battle,KbcsBattleEndCamera *out){
  ActorPoolScope pool_scope(battle?&battle->pool:nullptr);if(!battle||!out)return 1;*out=battle->end_camera;return 0;}
+extern "C" uint32_t kbcs_core_battle_camera_limits(const KbcsBattle *battle,int32_t out[4]){
+ if(!battle||!out)return 1;
+ const auto &end=battle->end_camera;
+ out[0]=battle->result.mode&&end.width&&(!battle->ending.phase||end.moving);
+ out[1]=battle->battleSlide();out[3]=battle->config.state.rows;out[2]=battle_camera_limit(out[3],out[1]);
+ return 0;
+}
 extern "C" uint32_t kbcs_core_battle_hints(KbcsBattle *battle,const int32_t *ids,const int32_t *lines,int32_t count,int32_t fallback_lines){
  if(!battle||battle->config.state.frame||battle->result.mode||count<0||count>4096||fallback_lines<0||fallback_lines>5||(!ids&&count)||(!lines&&count))return 1;
  for(int i=0;i<count;++i)if(ids[i]<0||ids[i]>=4096||lines[i]<0||lines[i]>5)return 1;
@@ -736,9 +759,10 @@ extern "C" uint32_t kbcs_core_battle_ending(const KbcsBattle *battle,KbcsBattleE
  static constexpr int slide[]={960,960,512,256,128,64,32,16,8,4,2,1,0};
  static constexpr int fall[]={-132,-94,-57,-20,17,54,92,129,167,204,242,235,227,224,220,219,217,216,215,216,217,218,220,223,227,234,242,241,240,239,237,238,240,241,242,242,242,242,242,242,242,242,242,242};
  e.title[2]=-1;
+ if(battle->map_clicked)e.guard=0;
  if(r.mode&&e.phase){
   const int x=slide[e.phase==1?std::clamp(e.frame,0,12):12];
-  if(r.mode==2){e.title[0]=width/2-152;e.title[1]=e.panel+fall[e.phase==1?std::clamp(e.frame,0,43):43];e.title[2]=3;e.shade=e.phase==2?std::clamp(e.frame,0,80)*255/80:0;if(e.phase>=4)e.shade=255;}
+  if(r.mode==2){e.title[0]=width/2-152;e.title[1]=e.panel+fall[e.phase==1?std::clamp(e.frame,0,43):43];e.title[2]=3;e.shade=e.phase>=3?255:e.phase==2?std::clamp(e.frame,0,80)*255/80:0;}
   else {e.title[0]=width/2-x-239;e.title[1]=190;e.title[2]=(r.mode==7||battle->config.rules.score_type==3)?12:0;e.bar_x=e.phase>1?-slide[e.phase==2?std::clamp(e.frame,0,12):12]:-width;}
  }
  e.number_x=e.bar_x;
@@ -756,9 +780,9 @@ extern "C" uint32_t kbcs_core_battle_ending_map(const KbcsBattle *battle,int32_t
  std::copy(button.begin(),button.end(),out);
  return 0;
 }
-extern "C" uint32_t kbcs_core_battle_allow_continue(KbcsBattle *battle,int32_t allowed){
- if(!battle||battle->config.state.frame||battle->result.mode||allowed<0||allowed>1)return 1;
- battle->continue_allowed=allowed!=0;return 0;
+extern "C" uint32_t kbcs_core_battle_allow_continue(KbcsBattle *battle,int32_t policy){
+ if(!battle||battle->config.state.frame||battle->result.mode||policy<0||policy>2)return 1;
+ battle->continue_allowed=policy==1;battle->continue_forbidden=policy==2;return 0;
 }
 extern "C" uint32_t kbcs_core_battle_continue_view(const KbcsBattle *battle,KbcsBattleContinue *out){
  if(!battle||!out)return 1;
