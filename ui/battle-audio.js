@@ -2,6 +2,14 @@
 export function createBattleSounds(errors,settings=[]){
  const context=new AudioContext(),gain=context.createGain(),buffers=new Map(),voices=new Map(),controller=new AbortController();
  const sequences=new Map(),pendingVoices=new Map(),stops=new WeakMap();
+ let music,mediaSource,capture;
+ function connectMusic(){
+  if(!music||mediaSource||context.state!=='running')return;
+  try{
+   mediaSource=context.createMediaElementSource(music);mediaSource.connect(context.destination);
+   if(capture)mediaSource.connect(capture);
+  }catch{}
+ }
  function stopVoice(source,when){if(when<(stops.get(source)??Infinity)){source.stop(when);stops.set(source,when);}}
  gain.connect(context.destination);let closed=false,generation=0,finished=false,muted=false,paused=false;
  async function buffer(id){
@@ -13,6 +21,21 @@ export function createBattleSounds(errors,settings=[]){
   return buffers.get(id);
  }
  return {
+  setMusic(audio){mediaSource?.disconnect();mediaSource=null;music=audio;if(capture)connectMusic();},
+  recordAudio(){
+   if(closed||capture)return null;
+   const destination=context.createMediaStreamDestination();capture=destination;
+   gain.connect(destination);
+   const release=()=>{
+    if(capture!==destination)return;
+    if(!closed){gain.disconnect(destination);if(mediaSource)try{mediaSource.disconnect(destination);}catch{}}
+    capture=null;
+    for(const track of destination.stream.getTracks())track.stop();
+   };
+   try{if(mediaSource)mediaSource.connect(destination);else{connectMusic();context.resume().then(()=>{if(capture===destination)connectMusic();}).catch(()=>{});}}
+   catch{gain.disconnect(destination);capture=null;for(const track of destination.stream.getTracks())track.stop();return null;}
+   return {track:destination.stream.getAudioTracks()[0],release};
+  },
   preload(ids){let next=0;return Promise.all(Array.from({length:Math.min(4,ids.length)},async()=>{while(!closed&&next<ids.length)await buffer(ids[next++]);}));},
   update(events,level,speed=1,hostPaused=false,ended=false){
    if(closed)return;

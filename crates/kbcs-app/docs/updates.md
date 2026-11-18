@@ -6,6 +6,8 @@ UIは全ページのmain.js→updates.jsが初回通知を管理する。startup
 
 API: GET /api/updates（確認/進捗/導入済み版）、POST /check、/startup、/download {kind:data|app}、/apply。先頭はすべて/api/updates。旧/api/importの標準GitHub URLも統合リリースへ接続し、明示したローカルGit原本の手動取り込みを維持する。処理はバックグラウンド。DB snapshotを切り替え、snapshot名を含む既存キャッシュキーを利用する。
 
+本体の展開と検証が完了すると、Managerが`app.restartPending`を立てる。`updates.js`が現在のページで「今すぐ再起動して更新しますか？」と尋ねる。起動時の通知が消化済みでも、ダウンロード中のページ遷移や設定からの取得に対応する。「後で」は`POST /api/updates/dismiss-restart`で確認を閉じ、展開済みの本体は設定から適用できる。ブラウザプレビューでは再起動の確認を出さない。
+
 本体はKBCSリポジトリの`kbcs-v<SemVer>`だけを比較し、公開済み開発版を含む。`native-v15.7.2`等をアプリ最新版として扱わない。対象はOS/CPUに応じた`KBCS-<version>-windows-x64.zip`・`-macos-arm64.zip`・`-macos-x64.zip`。当該CPU向けZIPのある公開版を比較する。Source ZIPを実行ファイルとして使わない。GitHubのsize/SHA-256と、展開したkbcs.exeのPEヘッダーを確認する。
 
 ダウンロードは`<data-dir>/updates/<tag>/`へ展開し、適用用ファイル一覧と各SHAを保存する。「再起動して更新」はGUI内だけで利用可能。Manager::apply→展開済み新kbcs.exeのapply-update CLI→親PID終了待機→ファイルSHA再検証→旧exe/DLLの退避→置換→元の起動先を再起動、の順。IPCは更新応答後の終了通知のみ。ブラウザpreviewではダウンロードまでとする。

@@ -18,11 +18,18 @@ export function battlePlaybackRate(speed,speedMode){
  return speed>0?Math.min(20,Math.max(.1,speed))/nativeRate:1;
 }
 
-export const battleFpsLimits=[10,15,20,24,30,45,60,90,120];
+export const battleFpsLimits=[10,15,20,24,30];
+const fpsLimit=value=>value>30?30:battleFpsLimits.includes(Number(value))?Number(value):30;
+// 描画が止まった時間を次の描画にまとめて持ち込まない。
+export function accumulateBattleTicks(pending,elapsed,rate,limit){
+ const capacity=Math.min(30,Math.max(1,Math.ceil(30*rate/fpsLimit(limit))));
+ const total=pending+Math.max(0,elapsed)*.03*rate;
+ return Math.floor(total)>capacity?capacity+pending%1:total;
+}
 export function battlePresentationClock(){
  let limit=30,last=-Infinity;
  return {
-  set(value){limit=battleFpsLimits.includes(Number(value))?Number(value):30;return limit;},
+  set(value){limit=fpsLimit(value);return limit;},
   delay(now){return Math.max(0,1000/limit-(now-last));},
   presented(now){last=now;},
  };

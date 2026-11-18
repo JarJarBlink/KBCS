@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {battlePresentationClock} from '../battle-view.js';
-import {createActorOcclusion} from '../src/features/stages/occlusion.js';
+import {accumulateBattleTicks,battlePresentationClock} from '../battle-view.js';
+import {captureRectangle} from '../battle-recording.js';
 import {observedActorChanges} from '../battle-details.js';
 
 test('連続入力や上限変更で描画間隔を飛び越えない',()=>{
@@ -11,23 +11,21 @@ test('連続入力や上限変更で描画間隔を飛び越えない',()=>{
  for(let i=0;i<10;++i)assert.equal(clock.delay(110),1000/30-10);
  assert.equal(clock.delay(134),0);clock.presented(134);
  clock.set(20);assert.ok(clock.delay(183.9)>0);assert.equal(clock.delay(184),0);
+ assert.equal(clock.set(120),30);
 });
 
-test('透明・斜め・加算の前景では省略せず、不透明な内側だけを省略する',()=>{
- const image={width:40,height:40},cut=[0,0,40,40],pixels=new Uint8ClampedArray(40*40*4);
- for(let y=8;y<32;++y)for(let x=8;x<32;++x)pixels[(y*40+x)*4+3]=255;
- const previous=globalThis.document;
- globalThis.document={createElement:()=>({getContext:()=>({drawImage(){},getImageData:()=>({data:pixels})})})};
- try{
-  const cull=createActorOcclusion(),quad=(x,y,w,h)=>({texture:0,count:4,blend:0,opacity:1,cut,points:[x,y,x,y+h,x+w,y+h,x+w,y]});
-  const back=quad(15,15,10,10),front=quad(0,0,40,40),border=quad(2,2,9,9);
-  const omitted=commands=>[...cull(commands,[0,commands.length],()=>image)];
-  assert.deepEqual(omitted([border,back,front]),[1]);
-  assert.deepEqual(omitted([front,back]),[]);
-  assert.deepEqual(omitted([back,{...front,blend:1}]),[]);
-  assert.deepEqual(omitted([back,{...front,opacity:.99}]),[]);
-  assert.deepEqual(omitted([back,{...front,points:[0,0,-1,40,40,41,41,1]}]),[]);
- }finally{globalThis.document=previous;}
+test('停止時間を取り戻さず、低い描画上限と指定速度は保つ',()=>{
+ assert.equal(Math.floor(accumulateBattleTicks(.4,1100,1,30)),1);
+ assert.equal(Math.floor(accumulateBattleTicks(.4,1100,1,20)),2);
+ assert.equal(Math.floor(accumulateBattleTicks(.4,1100,4,30)),4);
+ let fraction=0,ticks=0;
+ for(let i=0;i<20;i++){fraction=accumulateBattleTicks(fraction,50,1,20);ticks+=Math.floor(fraction);fraction%=1;}
+ assert.equal(ticks,30);
+});
+
+test('録画の選択範囲は逆方向のドラッグと画面外の座標を扱う',()=>{
+ assert.deepEqual(captureRectangle([1921,1000],[125.2,-18],[1920,1080]),[125,0,1795,1000]);
+ assert.deepEqual(captureRectangle([-10,5],[-9,27],[1280,720]),[0,5,0,22]);
 });
 
 test('観測ログはカウントダウンを毎F追加せず、適用・終了とHP差分を残す',()=>{

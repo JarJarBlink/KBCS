@@ -98,7 +98,7 @@ export function initializeWorkspace(){
     right.content.classList.add('formation-options');
   }else if(page==='stage-sortie'){
     move('#sortie-stage-navigation',left.content);move('#sortie-details',right.content);move('#battle-controls',viewbar);
-    move('#battle-actor-list',left.content);move('#battle-actor-detail',right.content);move('#battle-details',information);
+    move('#battle-actor-list',left.content);move('#battle-actor-detail',right.content);move('#sortie-load-info',information);move('#battle-details',information);
     right.panel.querySelector('h2').textContent='ステージ詳細';
     let previousBottom,aspectRatio=1422/640;
     function fitBattleView(){

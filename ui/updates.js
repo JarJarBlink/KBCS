@@ -1,12 +1,16 @@
 ﻿import {showStartupProgress} from './startup.js';
-let state=null,timer,started=false,pendingStartup=false,presenting=false;
+let state=null,timer,started=false,pendingStartup=false,presenting=false,restarting=false;
 const listeners=new Set();
 async function request(path,body){
   const response=await fetch('/api/updates'+path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const value=await response.json();if(!response.ok)throw Error(value.error||'更新処理に失敗しました');return value;
 }
 export function observeUpdates(listener){listeners.add(listener);if(state)listener(state);return()=>listeners.delete(listener);}
-export async function downloadUpdate(kind){await request('/download',{kind});await refresh();}
+export async function downloadUpdate(kind){
+  await request('/download',{kind});
+  state={...state,busy:true,job:kind,error:null};
+  await refresh();
+}
 export async function checkUpdates(){await request('/check',{});await refresh();}
 export async function applyUpdate(){
   if(!window.ipc?.postMessage)throw Error('再起動して更新はKBCSアプリで実行してください');
@@ -44,21 +48,32 @@ async function offerAppUpdate(){
   await downloadUpdate('app');
   while(state.busy)await new Promise(resolve=>setTimeout(resolve,1000));
   if(state.job==='app'&&state.error)throw Error(state.error);
-  if(!state.app?.ready||!state.desktop||!await ask('KBCSの更新を適用できます','再起動して更新しますか？','再起動して更新','後で'))return false;
+  return offerRestart();
+}
+function restartPending(){return state?.desktop&&state.app?.ready&&state.app.restartPending&&!state.busy;}
+async function offerRestart(){
+  if(!restartPending())return false;
+  if(!await ask('KBCSのダウンロードが完了しました','今すぐ再起動して更新しますか？','再起動して更新','後で')){
+    await request('/dismiss-restart',{});
+    if(state.app)state.app.restartPending=false;
+    notice('ホームの「設定 → データ管理」から再起動して更新できます。');
+    return false;
+  }
   await applyUpdate();
+  restarting=true;
   return true;
 }
-async function startup(){
-  if(presenting||!pendingStartup||!state?.checked)return;
-  presenting=true;pendingStartup=false;
+async function presentUpdates(){
+  if(presenting||restarting||(!pendingStartup&&!restartPending()))return;
+  const startup=pendingStartup;presenting=true;pendingStartup=false;
   try{
-    const initialDataDownload=state.data?.missing&&state.busy&&state.job==='data';
+    const initialDataDownload=startup&&state.data?.missing&&state.busy&&state.job==='data';
     if(initialDataDownload)progressDialog();
-    if(state.app?.available){
-      try{if(await offerAppUpdate())return;}
-      catch(error){notice(error.message+'。ホームの「設定 → データ管理」から再試行できます。');}
-    }
-    if(initialDataDownload)return;
+    try{
+      if(restartPending()){if(await offerRestart())return;}
+      else if(startup&&state.app?.available&&await offerAppUpdate())return;
+    }catch(error){notice(error.message+'。ホームの「設定 → データ管理」から再試行できます。');}
+    if(!startup||initialDataDownload)return;
     if(state.data?.available&&!state.busy){
       const size=(state.data.size/1048576).toFixed(0);
       const rebuild=state.data.rebuildRequired&&state.data.localTag===state.data.tag;
@@ -72,8 +87,8 @@ async function refresh(){
   clearTimeout(timer);
   try{
     state=await request('');for(const listener of listeners)listener(state);
-    if(state.checked&&state.startupPending){const claim=await request('/startup',{});pendingStartup=claim.claimed;}
-    void startup();
+    if(state.checked&&state.startupPending){const claim=await request('/startup',{});pendingStartup||=claim.claimed;}
+    void presentUpdates();
   }catch(error){notice('更新状態を取得できませんでした: '+error.message);}
   if(!state||state.checking||state.busy)timer=setTimeout(refresh,1000);
 }

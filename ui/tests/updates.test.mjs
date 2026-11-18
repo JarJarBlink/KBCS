@@ -53,10 +53,11 @@ try{
         actions.push(kind);
         value.job=kind;
         if(kind==='app'&&choice==='failed')value.error='本体の取得に失敗しました';
-        else if(kind==='app')value.app.ready=true;
+        else if(kind==='app'){value.app.ready=true;value.app.restartPending=true;}
         return {ok:true,json:async()=>({accepted:true})};
       }
       if(url.endsWith('/apply')){actions.push('apply');return {ok:true,json:async()=>({accepted:true})};}
+      if(url.endsWith('/dismiss-restart')){value.app.restartPending=false;return {ok:true,json:async()=>({accepted:true})};}
       return {ok:true,json:async()=>structuredClone(value)};
     };
     const updates=await import('../updates.js?both='+choice);updates.initializeUpdates();
@@ -66,7 +67,7 @@ try{
     assert.match(title(),/^KBCS v0\.1\.46/);
     answer(choice==='decline'?0:1);
     if(choice==='later'||choice==='restart'){
-      await settle(()=>title()==='KBCSの更新を適用できます');
+      await settle(()=>title()==='KBCSのダウンロードが完了しました');
       assert.deepEqual(actions,['app']);
       answer(choice==='restart'?1:0);
     }
@@ -81,6 +82,25 @@ try{
       await settle(()=>actions.includes('data'));
       assert.deepEqual(actions,choice==='decline'?['data']:['app','data']);
     }
+  }
+  {
+    const document={dialogs:[],createElement(tag){return new Element(tag,this);},createTextNode(text){return {textContent:text};},getElementById(){return null;}};
+    document.body=new Element('body',document);globalThis.document=document;globalThis.window={};
+    const value={checking:false,checked:true,startupPending:false,busy:true,job:'app',desktop:true,app:{available:true,ready:false,restartPending:false}};
+    globalThis.fetch=async url=>{
+      if(url.endsWith('/dismiss-restart')){value.app.restartPending=false;return {ok:true,json:async()=>({accepted:true})};}
+      return {ok:true,json:async()=>structuredClone(value)};
+    };
+    const updates=await import('../updates.js?navigated');updates.initializeUpdates();
+    await tick();assert.equal(document.dialogs.length,0);
+    value.busy=false;value.app.ready=value.app.restartPending=true;
+    await updates.checkUpdates();
+    assert.equal(document.dialogs[0]?.children[0].textContent,'KBCSのダウンロードが完了しました');
+    document.dialogs[0].children.at(-1).children[0].onclick();
+    await settle(()=>!value.app.restartPending);
+    await updates.checkUpdates();
+    assert.equal(document.dialogs.length,0);
+    assert.equal(value.app.ready,true);
   }
   const document={dialogs:[],createElement(tag){return new Element(tag,this);},createTextNode(text){return {textContent:text};},getElementById(){return null;}};
   document.body=new Element('body',document);globalThis.document=document;globalThis.window={};

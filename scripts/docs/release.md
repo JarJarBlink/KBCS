@@ -32,6 +32,8 @@ publish-release.pyはKBCS_RELEASE_PLATFORMの一環境を必須とし、ZIP・JS
 
 ## 原因と検証範囲
 
+0.1.50の[Apple Siliconジョブ](https://github.com/sinsuirakv0/KBCS/actions/runs/44301918627/job/134793954449)では、コンパイルと署名検証の後、非表示のWKWebViewが起動検査の結果を返さず40秒で終了した。配布前の検査ではWKWebViewのバックグラウンド制限を無効にし、各確認項目が完了するたびにCIログへ出す。結果なしのタイムアウトは新規プロファイルで一度だけ再試行する。検査項目が失敗を返した場合や、再試行でも結果がない場合は公開を止める。
+
 [run 41013298009](https://github.com/sinsuirakv0/KBCS/actions/runs/41013298009)はWindows成功・Mac両CPU失敗。Darwin libc 0.2.191のstatvfsはfsblkcnt_tがu32、f_frsizeがu64であり、storage::spaceのsaturating_mulが型不一致だった。ブロック数をu64へ広げてから乗算する。フレーム計算・ゲーム仕様の変更ではない。
 
 最小回帰試験はローカルbare Gitで採番/同じrun再利用/古いmainの拒否、GitHub模擬応答で一環境だけの公開・後続OS追加・同一成果物再実行・別ソース/CPU/不足物拒否・配布済み成果物の不変性・付属情報破損・中断・失敗時の他OS保持を確認する。外部GitHubへ書き込んで試験しない。Rustは部分公開時のOS別選択・Mac ZIP追加・ドラフト/不正SHA除外を確認する。

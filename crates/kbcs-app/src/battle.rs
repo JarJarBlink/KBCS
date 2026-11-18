@@ -43,7 +43,6 @@ pub struct Request {
 pub struct ActorDrawRanges {
     pub focus: Option<(usize, usize)>,
     pub preview: Option<[usize; 2]>,
-    pub actors: [usize; 2],
 }
 pub struct Clip {
     pub model: render::Model,
@@ -1475,7 +1474,6 @@ impl Session {
             &self.range_cuts,
             self.range_texture,
         ))?);
-        let actor_start = commands.len();
         for value in order {
             let (side, slot) = (value.side, value.slot);
             let start = commands.len();
@@ -1646,7 +1644,6 @@ impl Session {
                 )?;
             }
         }
-        let actor_end = commands.len();
         commands.extend(native(self.core.sniper_draw(
             &frame.layout,
             [&self.sniper_cuts[0], &self.sniper_cuts[1]],
@@ -1714,7 +1711,6 @@ impl Session {
             .iter()
             .position(|c| c.layer > 2)
             .unwrap_or(frame.commands.len());
-        ranges.actors = [at + actor_start, at + actor_end];
         if let Some(preview) = &mut ranges.preview {
             *preview = preview.map(|index| index + at);
         }

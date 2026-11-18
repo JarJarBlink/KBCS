@@ -6,6 +6,7 @@ import {escapeHtml as esc,formatNumber,formatTime} from './src/shared/game/datab
 import {resolveStageRoute,applicableLimits} from './src/features/stages/model.js';
 import {loadStageScene,stageMediaHtml,initializeStageMedia} from './src/features/stages/native-media.js';
 import {prepareBattleScreen,startBattleScreen} from './battle-screen.js';
+import {createBattleRecording} from './battle-recording.js';
 import {createFormationView,fitFormationName} from './formation-view.js';
 import {createFormationReorder} from './formation-reorder.js';
 import {readSortiePreferences,sortieItemsHtml,toggleSortieItem,sortieLaunchHtml,sortieFixedMoney} from './sortie-view.js';
@@ -104,9 +105,10 @@ function renderStage(){
   history.replaceState(null,'','/pages/stage-sortie/?'+new URLSearchParams({map:map.key,stage:stage.index,crown}));drawFormation();refreshDeployment();ready();
 }
 function report(label,current,total){node('loading-status').textContent=label+' '+current+' / '+total;node('progress').max=Math.max(1,total);node('progress').value=current;}
+const recording=createBattleRecording();
 async function depart(){
   if(node('launch').disabled||!moneyInput.reportValidity())return;
-  const active=new AbortController();controller=active;ready();node('initial').hidden=false;node('setup').hidden=true;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:true}));node('blackout').hidden=false;node('loading-status').textContent='ステージを準備中';
+  const active=new AbortController();controller=active;ready();node('initial').hidden=false;node('setup').hidden=true;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:true}));node('blackout').hidden=false;node('load-info').hidden=false;report('ステージを準備中',0,1);
   try{
     // 出撃時点の保存版を固定し、編集タブで変更された設定を黙って使わない。
     const latest=await readBattleJson('/api/formations?current='+entry.id,{signal:active.signal});
@@ -115,17 +117,17 @@ async function depart(){
     const seed=new Uint32Array(1);while(!seed[0])crypto.getRandomValues(seed);
     const snapshot={schemaVersion:1,version:database.gameVersion,buildId:database.buildId,stage:structuredClone(stage),map:structuredClone(map),crown,formationId:entry.id,formationRevision:entry.revision,formation,fixedMoney:sortieFixedMoney(map,saved.fixedMoney?.[map.key]),items:structuredClone(items),speed:items.speedup?speed:1,seed:seed[0],limits:applicableLimits(map,stage,crown),castle:currentHealth,deployment:structuredClone(deployment),frame:0};
     snapshot.stage.musicTracks=(stage.musicTracks||[]).map(track=>({...track,loop:database.musicCatalog?.tracks?.[track.id]?.loop!==false}));
-    const scene=await loadStageScene(stage,{frame:0,showEnemy:true,showPlayer:true,showEffects:true});
+    const scene=await loadStageScene(stage,{frame:0,showEnemy:true,showPlayer:true,showEffects:true},active.signal);
     if(scene.missing?.length)throw Error('ステージ素材が未収録です：'+scene.missing.join(', '));
     loadedAssets=await prepareBattleAssets(stage,formation,scene,report,active.signal);
     const screen=await prepareBattleScreen(units,snapshot,loadedAssets,active.signal,report,enemies);active.signal.throwIfAborted();
     prepared=snapshot;node('initial').hidden=false;node('setup').hidden=true;stageMedia.clear();
-    battle=await startBattleScreen(node('initial'),node('canvas'),scene,snapshot,screen,returnToPreparation);active.signal.throwIfAborted();status('');
+    battle=await startBattleScreen(node('initial'),node('canvas'),scene,snapshot,screen,returnToPreparation,recording,active.signal);active.signal.throwIfAborted();status('');
   }catch(error){returnToPreparation();if(error.name!=='AbortError')status(error.message,true);}
-  finally{if(controller===active){controller=null;node('blackout').hidden=true;ready();}}
+  finally{if(controller===active){controller=null;node('blackout').hidden=true;node('load-info').hidden=true;ready();}}
 }
 node('launch').addEventListener('click',depart);
-node('cancel').addEventListener('click',()=>{controller?.abort();node('blackout').hidden=true;});
+node('cancel').addEventListener('click',()=>controller?.abort());
 function returnToPreparation(){battle?.stop();battle=null;prepared=null;loadedAssets=null;node('initial').hidden=true;node('setup').hidden=false;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:false}));stageMedia.refresh();}
 node('formation').addEventListener('change',event=>chooseFormation(event.target.value));
 node('stages').addEventListener('click',event=>{const target=event.target.closest('[data-stage]');if(target){stage=stages.find(value=>value.index===Number(target.dataset.stage));renderStage();}});

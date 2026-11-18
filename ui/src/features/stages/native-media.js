@@ -3,7 +3,6 @@ import {NativeWebGLRenderer} from '../motion/native-webgl-renderer.js';
 import {escapeHtml as esc} from '../../shared/game/database-view.js';
 import {saveCanvasImage} from '../../shared/browser/capture.js';
 import {initializeSceneGestures} from './scene-controls.js';
-import {createActorOcclusion} from './occlusion.js';
 
 const imagePromises=new Map(),decoded=new Map(),gradients=new Map(),renderers=new Set();let renderer,pending=0,imageHits=0,imageMisses=0;
 const castlePath=stage=>stage.enemyCastle==null&&stage.castle!=null?'Image/'+['ec','wc','sc','rc'][stage.castleSet??3]+String(stage.castle).padStart(3,'0')+'.png':null;
@@ -44,11 +43,9 @@ async function raster(canvas,result,direct,supplied,options={}){
   if(active.gl.isContextLost())return false;
   if(active.canvas.width!==canvas.width)active.canvas.width=canvas.width;if(active.canvas.height!==canvas.height)active.canvas.height=canvas.height;
   active.beginFrame(result.layout.viewport_width||960,options.transparent?canvas.height:640,[0,0,0,options.transparent?0:1]);
-  const hidden=options.occlusion?.(result.commands,result.actorRange,command=>textureFor(command.texture));
   let batchTexture=null,batch=[];
   const flush=()=>{if(batch.length)active.drawPackets(batchTexture,batch);batch=[];};
-  for(let i=0;i<result.commands.length;++i){
-    if(hidden?.has(i))continue;const command=result.commands[i];
+  for(const command of result.commands){
     const positions=command.points.subarray?command.points.subarray(0,command.count*2):command.points.slice(0,command.count*2);
     if(command.texture===-2){flush();batchTexture=null;active.drawColorGeometry(positions,[...Array.from(command.colors.slice(0,3),v=>v/255),command.opacity],active.gl.TRIANGLE_FAN,command.blend);continue;}
     const texture=command.texture===-1?gradient(command.colors):textureFor(command.texture);if(!texture)continue;
@@ -73,8 +70,8 @@ export {frame as loadStageScene,raster as paintStageScene};
 export function stageMediaStats(supplied){return {pending,hits:imageHits,misses:imageMisses,bytes:[...new Set([...decoded.values(),...(supplied?.values()||[])])].reduce((sum,v)=>sum+v.naturalWidth*v.naturalHeight*4,0)};}
 // 戦闘は専用WebGL面へ直接描き、2D面にはHUDだけを重ねる。
 export function createStagePainter(canvas,onRestore,supplied,{transparent=false}={}){
-  const settings={preserveDrawingBuffer:false,trackTextures:true,alpha:transparent},occlusion=createActorOcclusion();
-  let active=new NativeWebGLRenderer(canvas,settings),disposed=false,omitted=0;
+  const settings={preserveDrawingBuffer:false,trackTextures:true,alpha:transparent};
+  let active=new NativeWebGLRenderer(canvas,settings),disposed=false;
   renderers.add(active);
   const lost=event=>event.preventDefault();
   const restored=()=>{if(disposed)return;renderers.delete(active);active=new NativeWebGLRenderer(canvas,settings);renderers.add(active);onRestore();};
@@ -91,8 +88,8 @@ export function createStagePainter(canvas,onRestore,supplied,{transparent=false}
       }
       return bytes;
     },
-    paint:async (result,simplify=false)=>{if(disposed||active.gl.isContextLost())return false;omitted=0;return raster(canvas,result,active,supplied,{transparent,occlusion:simplify?(...args)=>{const hidden=occlusion(...args);omitted=hidden?.size??0;return hidden;}:null});},
-    omitted:()=>omitted,dispose:()=>{disposed=true;renderers.delete(active);active.dispose();canvas.removeEventListener('webglcontextlost',lost);canvas.removeEventListener('webglcontextrestored',restored);},
+    paint:async result=>{if(disposed||active.gl.isContextLost())return false;return raster(canvas,result,active,supplied,{transparent});},
+    dispose:()=>{disposed=true;renderers.delete(active);active.dispose();canvas.removeEventListener('webglcontextlost',lost);canvas.removeEventListener('webglcontextrestored',restored);},
   };
 }
 export function stageMediaHtml(database,stage,enemies){

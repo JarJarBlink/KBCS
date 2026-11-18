@@ -1,4 +1,4 @@
-﻿use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result, ensure};
 use kbcs_data::{
     import,
     releases::{self, DataRelease, Release},
@@ -32,6 +32,7 @@ struct State {
     message: String,
     error: Option<String>,
     app_directory: Option<PathBuf>,
+    app_restart_pending: bool,
 }
 
 pub struct Manager {
@@ -115,10 +116,15 @@ impl Manager {
                 "size":data.manifest.archives.values().map(|a|a.size).sum::<u64>(),
                 "localTag":local_tag,"localVersion":metadata.as_ref().and_then(|m|m.get("version")),"url":data.release.html_url})
         });
+        let ready = state
+            .app_directory
+            .as_ref()
+            .is_some_and(|path| path.is_dir());
         let app = state.app.as_ref().map(|release| json!({
             "version":releases::app_version(&release.tag_name).map(|v|v.to_string()),
             "available":releases::app_version(&release.tag_name).is_some_and(|v| v > semver_current()),
-            "url":release.html_url,"ready":state.app_directory.as_ref().is_some_and(|path|path.is_dir()),
+            "url":release.html_url,"ready":ready,
+            "restartPending":desktop&&ready&&state.app_restart_pending,
         }));
         json!({"localDataPresent":!missing,"checking":state.checking,"checked":state.checked,"busy":self.busy.load(Ordering::SeqCst),
             "startupPending":!self.startup_claimed.load(Ordering::SeqCst),
@@ -129,6 +135,10 @@ impl Manager {
 
     pub fn claim_startup(&self) -> bool {
         !self.startup_claimed.swap(true, Ordering::SeqCst)
+    }
+
+    pub fn dismiss_restart(&self) {
+        self.state.lock().unwrap().app_restart_pending = false;
     }
 
     pub fn start(self: &Arc<Self>, kind: &str) -> Result<()> {
@@ -203,6 +213,7 @@ impl Manager {
             let mut state = self.state.lock().unwrap();
             state.app = Some(app);
             state.app_directory = Some(directory);
+            state.app_restart_pending = true;
             state.message =
                 "本体のダウンロードが完了しました。「再起動して更新」で適用できます".into();
         }

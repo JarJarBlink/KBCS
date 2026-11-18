@@ -142,4 +142,5 @@ workspaceの左右を閉じても各24pxの縦ボタンを残す。ヘッダー�
 
 戦闘画面の `battleCameraView` は、C++由来の `endCameraActive` と `cameraMaximum` から手動操作用の状態を作る。`battle-input.test.mjs` は、終了カメラから操作を引き継ぐ条件と、報酬・コンティニュー不可通知が共用する描画入口を検査する。
 
-操作盤・個体詳細・FPS制限・遮蔽判定は[戦闘の操作盤と詳細](battle-workbench.md)を参照。
+操作盤・個体詳細・FPS制限は[戦闘の操作盤と詳細](battle-workbench.md)を参照。
+録画の予約・範囲選択・出力は[戦闘の録画](battle-recording.md)を参照。

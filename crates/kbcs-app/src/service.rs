@@ -320,6 +320,14 @@ impl Service {
             ensure!(method == "POST", "POSTが必要です");
             return Ok(Reply::json(json!({"claimed":self.updates.claim_startup()})));
         }
+        if path == "/api/updates/dismiss-restart" {
+            ensure!(
+                method == "POST" && self.desktop,
+                "本体の更新確認はKBCSアプリで実行してください"
+            );
+            self.updates.dismiss_restart();
+            return Ok(Reply::json(json!({"accepted":true})));
+        }
         if path == "/api/updates/check" {
             ensure!(method == "POST", "POSTが必要です");
             self.updates.check(false);
@@ -597,7 +605,6 @@ impl Service {
                 runtime["focusedActor"] = value;
             }
             let frame = session.draw(&request.scene, combo_frame, &mut ranges)?;
-            runtime["actorDrawRange"] = json!(ranges.actors);
             if let Some(range) = ranges.preview {
                 runtime["focusedDrawRange"] = json!(range);
             }

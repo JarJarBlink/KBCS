@@ -1,4 +1,4 @@
-﻿use crate::service::Service;
+use crate::service::Service;
 use anyhow::Result;
 use std::path::PathBuf;
 use tao::{
@@ -75,7 +75,12 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
         for (index, byte) in identifier.iter_mut().enumerate() {
             *byte = u8::from_str_radix(&hash[index * 2..index * 2 + 2], 16).unwrap();
         }
-        builder.with_data_store_identifier(identifier)
+        let builder = builder.with_data_store_identifier(identifier);
+        if check {
+            builder.with_background_throttling(wry::BackgroundThrottlingPolicy::Disabled)
+        } else {
+            builder
+        }
     };
     let webview = builder
         .with_initialization_script(if check { DESKTOP_CHECK } else { "" })
@@ -111,6 +116,11 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
                     let ok = serde_json::from_str::<serde_json::Value>(result)
                         .is_ok_and(|value| value["ok"] == true);
                     let _ = update_exit.send_event(if ok { 0 } else { 1 });
+                } else if check
+                    && let Some(progress) =
+                        request.body().strip_prefix("kbcs:desktop-check-progress:")
+                {
+                    eprintln!("KBCS desktop check progress: {progress}");
                 }
             }
         })
@@ -149,11 +159,14 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
 
 // 画面操作をせず、実際のWebViewで同梱module・PNG・POST本文・C++入口を確認する。
 const DESKTOP_CHECK: &str = r#"
-window.addEventListener('DOMContentLoaded', async () => {
+const runDesktopCheck = async () => {
+  const report = (message) => window.ipc.postMessage('kbcs:desktop-check-progress:'+message);
+  report('JavaScript started');
   const checks = {};
   const probe = async (name, operation) => {
     try { await operation(); checks[name] = true; }
     catch (error) { checks[name] = String(error); }
+    report(name+': '+checks[name]);
   };
   await Promise.all([
     probe('module', async () => {
@@ -173,5 +186,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }),
   ]);
   window.ipc.postMessage('kbcs:desktop-check:'+JSON.stringify({ok:Object.values(checks).every(value => value === true),checks}));
-}, {once:true});
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', runDesktopCheck, {once:true});
+else void runDesktopCheck();
 "#;

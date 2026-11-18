@@ -13,7 +13,6 @@ export function createBattleMonitor(root,read){
   show('average-fps','平均 '+number(latest.averageFps)+' FPS','連続した戦闘描画の間隔の平均。非表示と一時停止の時間を除きます');
   show('core','更新計算 '+number(value.coreMs)+'ms');show('scene','戦闘API '+number(value.apiMs)+'ms / p95 '+number(value.apiP95Ms)+'ms','直近'+value.apiSamples+'要求 / 最大 '+number(value.apiMaxMs)+'ms\nサーバー '+number(value.serverMs)+'ms（背景 '+number(value.computeMs)+' / 変換 '+number(value.encodeMs)+'）\n受渡・待機 '+number(value.transferMs)+'ms / 復元 '+number(value.decodeMs)+'ms / '+number(value.payloadBytes/1024,0)+'KB');
   show('draw','WebGL '+number(value.drawMs)+'ms / HUD '+number(value.hudMs)+'ms','CPUからの描画提出時間。GPU実行時間は含めません');
-  show('omitted',value.simplify?'省略 '+value.omitted+'パーツ / 直近の描画':'パーツ省略 OFF');
   show('transfer','転送 '+number(value.payloadBytes/1024,0)+'KB / 復元 '+number(value.decodeMs)+'ms');
   show('lag','未処理 '+Math.ceil(value.lag)+'F / 描画待ち '+number(value.displayWaitMs)+'ms','フレーム受信後の待ち。FPS上限による待ち時間も含みます');
   const images=value.images;

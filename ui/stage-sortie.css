@@ -110,3 +110,19 @@
 .battle-cheats[hidden]{display:none}.battle-cheats label{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap}.battle-cheats input{width:auto}
 
 .sortie-fixed-money{display:flex;align-items:center;gap:8px;margin-block:12px}.sortie-fixed-money[hidden]{display:none}.sortie-fixed-money input{max-width:160px}
+
+.sortie-load-info{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;padding:6px 0}
+.sortie-load-info[hidden],.workspace-information:has(.sortie-load-info:not([hidden])) #battle-details{display:none}
+.sortie-load-info progress{flex:1;min-width:100px;max-width:260px}
+.battle-record-dialog{box-sizing:border-box;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);padding:14px}
+.battle-record-dialog::backdrop{background:#0009}
+.battle-record-dialog h2{margin:0 0 12px;font-size:16px}
+.battle-record-dialog label,.battle-record-actions{display:flex;align-items:center;gap:8px;margin:8px 0}
+.battle-record-dialog select{width:auto;max-width:100%}
+.battle-record-dialog input{width:auto}
+.battle-record-dialog output{margin-inline-start:8px}
+.battle-record-preview{position:relative;width:fit-content;margin:8px 0;cursor:crosshair;touch-action:none;user-select:none}
+.battle-record-preview video{display:block;max-width:100%;max-height:40vh;pointer-events:none}
+.battle-record-preview [data-outline]{position:absolute;pointer-events:none;border:2px solid #eac759;box-sizing:border-box;background:#eac75930}
+.battle-record-bar{position:fixed;inset:auto 12px 12px auto;z-index:11000;display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 8px;max-width:calc(100vw - 24px);border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);font-size:12px;box-shadow:0 3px 14px #0007}
+.battle-record-bar[hidden]{display:none}
