@@ -7,6 +7,8 @@ mainがGUI・CLI・previewを選ぶ。desktop::runはtaoでWindowを作り、wry
 - GET /api/source?id=: 選択キャラの原本CSV・SHA・出典。
 - GET /api/status / POST /api/import: 更新workerの状態と開始。
 
+録画の保存は `POST /api/battle-recording` → `recording::Recordings` が担当する。`begin`で容量とファイル名を登録し、I/Oワーカーで`append`の位置、形式、容量を検証しながらダウンロードフォルダー内の一時ファイルへ書く。最終チャンクで内容を同期し、同名を上書きせず保存する。`cancel`は未完了分を破棄する。UIに返す容量は書き込み済みの値で、保存先はファイルの確定後に返す。
+
 通常起動は専用プロトコルでポートを使わない。previewコマンドはループバックだけで待ち受け、同じ画面をサイドパネルで確認できる。画面の責務と再利用元は[uiの資料](../../../ui/docs/README.md)。戦闘ロジックをここへ追加しない。
 
 POST /api/calculateにenemyStats（最大4000件）とlegendRewards（最大64件）を追加。Service→kbcs-bridge::enemy::stat/reward::legend_pick→C++。未知キーと件数超過・POD入力範囲を拒否し、ABI/rulesetを既存の計算と同じ応答へ含める。表示側のキャッシュや所持数を書き換えるAPIではない。

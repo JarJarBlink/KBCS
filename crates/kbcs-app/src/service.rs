@@ -86,6 +86,7 @@ pub struct Service {
     audio: Arc<Mutex<BTreeMap<i64, Weak<Mutex<()>>>>>,
     poses: Arc<Mutex<Cache<ModelSlot>>>,
     battles: Arc<Mutex<BTreeMap<String, BattleSlot>>>,
+    recordings: Arc<crate::recording::Recordings>,
     pub persist_rewards: bool,
     pub workers: Arc<crate::workers::Workers>,
     runtime: Arc<Mutex<crate::runtime::Monitor>>,
@@ -160,6 +161,7 @@ impl Service {
             audio: Arc::new(Mutex::new(BTreeMap::new())),
             poses: Arc::new(Mutex::new(Cache::new(64, usize::MAX))),
             battles: Arc::new(Mutex::new(BTreeMap::new())),
+            recordings: Arc::new(crate::recording::Recordings::default()),
             persist_rewards: true,
             workers: Arc::new(crate::workers::Workers::new()),
             runtime: Arc::new(Mutex::new(crate::runtime::Monitor::default())),
@@ -224,6 +226,9 @@ impl Service {
     fn route(&self, method: &str, path: &str, body: &[u8]) -> Result<Reply> {
         let url = url::Url::parse(&format!("http://kbcs.localhost{path}"))?;
         let path = url.path();
+        if path == "/api/battle-recording" {
+            return Ok(Reply::json(self.recordings.handle(method, &url, body)?));
+        }
         if path == "/api/storage" {
             let query = url.query_pairs().collect::<BTreeMap<_, _>>();
             let relative = query.get("path").map_or("", |v| v.as_ref());

@@ -73,7 +73,10 @@ impl Workers {
         }
     }
     pub fn submit(&self, path: &str, job: impl FnOnce(bool) + Send + 'static) {
-        let pool = if path.starts_with("/api/stage-audio/") || path.starts_with("/api/import") {
+        let pool = if path.starts_with("/api/stage-audio/")
+            || path.starts_with("/api/import")
+            || path.starts_with("/api/battle-recording")
+        {
             &self.io
         } else if [
             "/api/stage-scene",
