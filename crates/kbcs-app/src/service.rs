@@ -146,6 +146,11 @@ pub fn dispatch(service: &Service, path: &str, job: impl FnOnce(Service, bool) +
 }
 
 impl Service {
+    #[cfg(any(windows, target_os = "macos"))]
+    pub fn discard_recording_uploads(&self) {
+        self.recordings.clear();
+    }
+
     pub fn new(root: PathBuf, region: String, source: String) -> Self {
         Self {
             started: std::time::Instant::now(),

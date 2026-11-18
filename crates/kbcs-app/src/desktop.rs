@@ -1,12 +1,66 @@
 use crate::service::Service;
 use anyhow::Result;
-use std::path::PathBuf;
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
 use tao::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
-    window::WindowBuilder,
+    monitor::MonitorHandle,
+    window::{Fullscreen, Window, WindowBuilder},
 };
-use wry::{NewWindowResponse, WebContext, WebViewBuilder};
+use wry::{NewWindowResponse, WebContext, WebView, WebViewBuilder};
+
+#[derive(serde::Deserialize)]
+#[serde(tag = "action", rename_all = "snake_case")]
+enum BattleDisplay {
+    List,
+    Enter {
+        battle: Option<usize>,
+        tools: Option<usize>,
+    },
+    Leave,
+    Focus,
+    ShowTools,
+}
+
+enum DesktopEvent {
+    Exit(i32),
+    Display(BattleDisplay),
+}
+
+struct ToolsWindow {
+    webview: Option<WebView>,
+    window: Window,
+}
+
+fn send_display(webview: &WebView, detail: serde_json::Value) {
+    let _ = webview.evaluate_script(&format!(
+        "window.dispatchEvent(new CustomEvent('kbcs:display',{{detail:{detail}}}));"
+    ));
+}
+
+fn desktop_protocol(builder: WebViewBuilder<'_>, service: Service) -> WebViewBuilder<'_> {
+    builder.with_asynchronous_custom_protocol("kbcs".into(), move |_, request, responder| {
+        let path = request.uri().path().to_owned();
+        crate::service::dispatch(&service, &path, move |service, accepted| {
+            let path = request
+                .uri()
+                .path_and_query()
+                .map_or("/", |value| value.as_str());
+            let reply = if accepted {
+                service.handle(request.method().as_str(), path, request.body())
+            } else {
+                crate::service::Reply::overloaded()
+            };
+            let response = wry::http::Response::builder()
+                .status(reply.status)
+                .header("Content-Type", reply.mime)
+                .header("X-Content-Type-Options", "nosniff")
+                .body(reply.bytes)
+                .unwrap();
+            responder.respond(response);
+        });
+    })
+}
 
 const BATTLE_HELP: &str =
     "https://kbc-rakv0.pages.dev/information/appli/battlecats/help/index.html";
@@ -37,13 +91,13 @@ pub fn check(root: PathBuf, region: String, source: String) -> Result<()> {
 }
 
 fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<()> {
-    let event_loop = EventLoopBuilder::<i32>::with_user_event().build();
+    let event_loop = EventLoopBuilder::<DesktopEvent>::with_user_event().build();
     let update_exit = event_loop.create_proxy();
     if check {
         let timeout = update_exit.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_secs(40));
-            let _ = timeout.send_event(2);
+            let _ = timeout.send_event(DesktopEvent::Exit(2));
         });
     }
     let window = WindowBuilder::new()
@@ -75,47 +129,41 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
         for (index, byte) in identifier.iter_mut().enumerate() {
             *byte = u8::from_str_radix(&hash[index * 2..index * 2 + 2], 16).unwrap();
         }
-        let builder = builder.with_data_store_identifier(identifier);
-        if check {
-            builder.with_background_throttling(wry::BackgroundThrottlingPolicy::Disabled)
-        } else {
-            builder
-        }
+        builder
+            .with_data_store_identifier(identifier)
+            .with_background_throttling(wry::BackgroundThrottlingPolicy::Disabled)
     };
-    let webview = builder
+    let tools = Rc::new(RefCell::new(None::<ToolsWindow>));
+    if check {
+        *tools.borrow_mut() = Some(ToolsWindow {
+            webview: None,
+            window: WindowBuilder::new()
+                .with_visible(false)
+                .build(&event_loop)?,
+        });
+    }
+    let webview = desktop_protocol(builder, service.clone())
         .with_initialization_script(if check { DESKTOP_CHECK } else { "" })
-        .with_asynchronous_custom_protocol("kbcs".into(), move |_, request, responder| {
-            let path = request.uri().path().to_owned();
-            crate::service::dispatch(&service, &path, move |service, accepted| {
-                let path = request
-                    .uri()
-                    .path_and_query()
-                    .map_or("/", |value| value.as_str());
-                let reply = if accepted {
-                    service.handle(request.method().as_str(), path, request.body())
-                } else {
-                    crate::service::Reply::overloaded()
-                };
-                let response = wry::http::Response::builder()
-                    .status(reply.status)
-                    .header("Content-Type", reply.mime)
-                    .header("X-Content-Type-Options", "nosniff")
-                    .body(reply.bytes)
-                    .unwrap();
-                responder.respond(response);
-            });
-        })
         .with_ipc_handler({
             move |request| {
                 if request.body() == "kbcs:restart-for-update" {
-                    let _ = update_exit.send_event(0);
+                    let _ = update_exit.send_event(DesktopEvent::Exit(0));
+                } else if let Some(json) = request.body().strip_prefix("kbcs:battle-display:") {
+                    let origin = (request.uri().scheme_str(), request.uri().host());
+                    if matches!(
+                        origin,
+                        (Some("http"), Some("kbcs.localhost")) | (Some("kbcs"), Some("localhost"))
+                    ) && let Ok(command) = serde_json::from_str(json)
+                    {
+                        let _ = update_exit.send_event(DesktopEvent::Display(command));
+                    }
                 } else if check
                     && let Some(result) = request.body().strip_prefix("kbcs:desktop-check:")
                 {
                     eprintln!("KBCS desktop check: {result}");
                     let ok = serde_json::from_str::<serde_json::Value>(result)
                         .is_ok_and(|value| value["ok"] == true);
-                    let _ = update_exit.send_event(if ok { 0 } else { 1 });
+                    let _ = update_exit.send_event(DesktopEvent::Exit(if ok { 0 } else { 1 }));
                 } else if check
                     && let Some(progress) =
                         request.body().strip_prefix("kbcs:desktop-check-progress:")
@@ -124,9 +172,53 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
                 }
             }
         })
-        .with_new_window_req_handler(|url, _| {
-            open_battle_help(&url);
-            NewWindowResponse::Deny
+        .with_new_window_req_handler({
+            let tools = tools.clone();
+            #[cfg(windows)]
+            let service = service.clone();
+            move |url, features| {
+                open_battle_help(&url);
+                if url != "about:blank" {
+                    return NewWindowResponse::Deny;
+                }
+                let Ok(mut tools) = tools.try_borrow_mut() else {
+                    return NewWindowResponse::Deny;
+                };
+                let Some(tools) = tools.as_mut().filter(|tools| tools.webview.is_none()) else {
+                    return NewWindowResponse::Deny;
+                };
+                let builder = WebViewBuilder::new();
+                #[cfg(windows)]
+                let builder = {
+                    use wry::WebViewBuilderExtWindows;
+                    desktop_protocol(
+                        builder.with_environment(features.opener.environment),
+                        service.clone(),
+                    )
+                };
+                #[cfg(target_os = "macos")]
+                let builder = {
+                    use wry::WebViewBuilderExtMacos;
+                    builder.with_webview_configuration(features.opener.target_configuration)
+                };
+                let Ok(popup) = builder
+                    .with_navigation_handler(|url| url == "about:blank")
+                    .build(&tools.window)
+                else {
+                    return NewWindowResponse::Deny;
+                };
+                #[cfg(target_os = "macos")]
+                use wry::WebViewExtMacOS;
+                #[cfg(windows)]
+                use wry::WebViewExtWindows;
+                #[cfg(windows)]
+                let child = popup.webview();
+                #[cfg(target_os = "macos")]
+                let child = popup.webview().into_super();
+                let response = NewWindowResponse::Create { webview: child };
+                tools.webview = Some(popup);
+                response
+            }
         })
         .with_navigation_handler(|url| {
             open_battle_help(&url);
@@ -141,23 +233,79 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
         })
         .with_url("kbcs://localhost/")
         .build(&window)?;
-    event_loop.run(move |event, _, control_flow| {
-        let _ = &webview;
+    let mut monitors = Vec::<MonitorHandle>::new();
+    event_loop.run(move |event, target, control_flow| {
         *control_flow = ControlFlow::Wait;
-        if let Event::UserEvent(code) = event {
-            *control_flow = ControlFlow::ExitWithCode(code);
-        }
-        if let Event::WindowEvent {
-            event: WindowEvent::CloseRequested,
-            ..
-        } = event
-        {
-            *control_flow = ControlFlow::Exit;
+        use serde_json::json;
+        match event {
+            Event::LoopDestroyed => service.discard_recording_uploads(),
+            Event::UserEvent(DesktopEvent::Exit(code)) => *control_flow = ControlFlow::ExitWithCode(code),
+            Event::UserEvent(DesktopEvent::Display(BattleDisplay::List)) => {
+                monitors = window.available_monitors().collect();
+                let current = window.current_monitor();
+                let list: Vec<_> = monitors.iter().enumerate().map(|(index, monitor)| {
+                    let size = monitor.size();
+                    json!({"id":index,"name":monitor.name(),"width":size.width,"height":size.height,"current":current.as_ref()==Some(monitor)})
+                }).collect();
+                send_display(&webview, json!({"action":"list","monitors":list}));
+            }
+            Event::UserEvent(DesktopEvent::Display(BattleDisplay::Enter { battle, tools: display })) => {
+                let current: Vec<_> = window.available_monitors().collect();
+                let battle = if let Some(id) = battle {
+                    let Some(monitor) = monitors.get(id).filter(|monitor| current.contains(monitor)) else {
+                        send_display(&webview, json!({"action":"error","message":"戦闘用のモニターが見つかりません。全画面表示を開き直してください"}));
+                        return;
+                    };
+                    Some(monitor.clone())
+                } else {
+                    window.current_monitor()
+                };
+                if let Some(id) = display {
+                    let Some(monitor) = monitors.get(id).filter(|monitor| Some(*monitor)!=battle.as_ref() && current.contains(monitor)) else {
+                        send_display(&webview, json!({"action":"error","message":"操作盤を表示する別のモニターを選択してください"}));
+                        return;
+                    };
+                    let origin = monitor.position();
+                    let scale = monitor.scale_factor();
+                    let size = monitor.size().to_logical::<f64>(scale);
+                    let tool_window = WindowBuilder::new().with_visible(false).with_title("KBCS 戦闘操作盤")
+                        .with_inner_size(tao::dpi::LogicalSize::new((size.width - 80.0).clamp(400.0, 1050.0), (size.height - 100.0).clamp(360.0, 820.0)))
+                        .build(target);
+                    let Ok(tool_window) = tool_window else {
+                        send_display(&webview, json!({"action":"error","message":"操作盤ウィンドウを作成できません"}));
+                        return;
+                    };
+                    tool_window.set_outer_position(tao::dpi::PhysicalPosition::new(origin.x + (24.0 * scale) as i32, origin.y + (48.0 * scale) as i32));
+                    *tools.borrow_mut() = Some(ToolsWindow { webview: None, window: tool_window });
+                }
+                window.set_fullscreen(Some(Fullscreen::Borderless(battle)));
+                send_display(&webview, json!({"action":"entered","tools":display.is_some()}));
+            }
+            Event::UserEvent(DesktopEvent::Display(BattleDisplay::Leave)) => {
+                tools.borrow_mut().take();
+                window.set_fullscreen(None);
+                window.set_focus();
+            }
+            Event::UserEvent(DesktopEvent::Display(BattleDisplay::Focus)) => window.set_focus(),
+            Event::UserEvent(DesktopEvent::Display(BattleDisplay::ShowTools)) => {
+                if let Some(tools) = tools.borrow().as_ref().filter(|tools| tools.webview.is_some()) {
+                    tools.window.set_visible(true);
+                }
+            }
+            Event::WindowEvent { event: WindowEvent::CloseRequested, window_id, .. } => {
+                if window_id == window.id() {
+                    *control_flow = ControlFlow::Exit;
+                } else if let Some(tools) = tools.borrow().as_ref().filter(|tools| tools.window.id()==window_id) {
+                    tools.window.set_visible(false);
+                    send_display(&webview, json!({"action":"closed"}));
+                }
+            }
+            _ => ()
         }
     });
 }
 
-// 画面操作をせず、実際のWebViewで同梱module・PNG・POST本文・C++入口を確認する。
+// 画面操作をせず、実際のWebViewで同梱素材・C++入口・別窓と可逆録画を確認する。
 const DESKTOP_CHECK: &str = r#"
 const runDesktopCheck = async () => {
   const report = (message) => window.ipc.postMessage('kbcs:desktop-check-progress:'+message);
@@ -183,6 +331,30 @@ const runDesktopCheck = async () => {
     }),
     probe('webgl', () => {
       if (!document.createElement('canvas').getContext('webgl')) throw Error('WebGL');
+    }),
+    probe('tools-window', async () => {
+      const popup = window.open('about:blank', 'kbcs-battle-tools', 'popup');
+      if (!popup) throw Error('tools window unavailable');
+      for (let attempt=0; attempt<40 && !popup.document.body; ++attempt) await new Promise(resolve=>setTimeout(resolve,50));
+      const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+      ctx.fillStyle='#ffa000'; ctx.fillRect(0,0,1,1);
+      const button = document.createElement('button'); let clicked = false; button.onclick=()=>{clicked=true;};
+      popup.document.body.append(canvas,button); button.click();
+      if (!clicked || ctx.getImageData(0,0,1,1).data[1]!==160) throw Error('tool DOM adoption');
+      const css = new popup.XMLHttpRequest(); css.open('GET', new URL('/stage-sortie.css',location.href).href);
+      await new Promise((resolve,reject)=>{css.onload=()=>css.status===200?resolve():reject(Error('child CSS '+css.status));css.onerror=()=>reject(Error('child protocol'));css.send();});
+    }),
+    probe('frame-archive', async () => {
+      const {recordFrameArchive,discardFrameArchive}=await import(new URL('/battle-recording-frames.js',location.href).href);
+      const canvas=document.createElement('canvas'); canvas.width=961; canvas.height=640;
+      canvas.getContext('2d').fillRect(0,0,961,640);
+      await new Promise((resolve,reject)=>{
+        const recording=recordFrameArchive(canvas,'KBCS-desktop-check.zip',(archive,error)=>{
+          if(!archive) reject(Error(error));
+          else {discardFrameArchive(archive.id).then(()=>archive.frames===2?resolve():reject(Error('frame count')),reject);}
+        },()=>recording.stop());
+        recording.capture(); recording.capture(); recording.stop();
+      });
     }),
   ]);
   window.ipc.postMessage('kbcs:desktop-check:'+JSON.stringify({ok:Object.values(checks).every(value => value === true),checks}));

@@ -73,6 +73,8 @@ test('高画質録画は戦闘描画の幅を保ち、4K以内で画素数に応
  assert.ok(recordingVideoBitrate(1422,640)>2_500_000);
  assert.ok(recordingVideoBitrate(1920,1080)>recordingVideoBitrate(1422,640));
  assert.equal(recordingVideoBitrate(3840,2160),40_000_000);
+ assert.ok(recordingVideoBitrate(1422,640,true)>2*recordingVideoBitrate(1422,640));
+ assert.equal(recordingVideoBitrate(3840,2160,true),100_000_000);
 });
 
 test('観測ログはカウントダウンを毎F追加せず、適用・終了とHP差分を残す',()=>{

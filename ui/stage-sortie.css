@@ -27,9 +27,20 @@
 .battle-screen[hidden],.battle-menu[hidden]{display:none}
 .sortie-panel .sortie-large-start{justify-content:flex-end;margin-inline-end:16px}
 .sortie-large-start input{width:auto}
-.battle-large .site-header,.battle-large .workspace-viewbar,.battle-large .workspace-bottom,.battle-large .workspace-panel,.battle-large .workspace-separator,.battle-large .workspace-edge,.battle-large .battle-record-bar{display:none}
+.battle-large .site-header,.battle-large .workspace-viewbar,.battle-large .workspace-bottom,.battle-large .workspace-panel,.battle-large .workspace-separator,.battle-large .workspace-edge{display:none}
 .battle-large #sortie-initial{position:fixed;inset:0;z-index:10001}
 .battle-large-hint{position:absolute;inset:16px 0 auto;margin:0 auto;width:max-content;max-width:calc(100% - 32px);padding:8px 14px;border-radius:6px;background:#061025e8;color:#fff;pointer-events:none;text-align:center}
+.battle-display-dialog{width:min(420px,calc(100% - 24px));color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-border);padding:18px}
+.battle-display-dialog::backdrop{background:#0009}
+.battle-display-dialog form,.battle-display-dialog label{display:grid;gap:8px}
+.battle-display-dialog label{gap:4px}
+.battle-display-dialog form>div,.battle-tools-window>header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.battle-tools-window{padding:12px}
+.battle-tools-window main{display:grid;gap:12px}
+.battle-tools-window .battle-controls{max-height:none;padding-inline:0}
+.battle-tools-actors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.battle-tools-actors>section{border:1px solid var(--color-border);padding:6px;min-width:0}
+.battle-tools-actors .battle-inspector-rows{max-height:36vh;overflow:auto}
 .battle-stage{position:relative;display:flex;flex:1;min-height:0;align-items:center;justify-content:center;overflow:hidden;container-type:size}
 .battle-stage canvas{display:block;width:min(100cqw,150cqh);height:auto;object-fit:fill;touch-action:none;user-select:none}
 .battle-menu{position:absolute;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}

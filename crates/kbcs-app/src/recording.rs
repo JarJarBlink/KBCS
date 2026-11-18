@@ -10,7 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-const CHUNK_LIMIT: usize = 512 * 1024;
+pub(crate) const CHUNK_LIMIT: usize = 512 * 1024;
 const VIDEO_LIMIT: usize = 272 * 1024 * 1024;
 
 #[derive(Deserialize)]
@@ -35,9 +35,18 @@ impl Drop for Upload {
 }
 
 #[derive(Default)]
-pub struct Recordings(Mutex<BTreeMap<String, Upload>>);
+pub struct Recordings(
+    Mutex<BTreeMap<String, Upload>>,
+    crate::recording_frames::FrameRecordings,
+);
 
 impl Recordings {
+    #[cfg(any(windows, target_os = "macos"))]
+    pub fn clear(&self) {
+        self.0.lock().unwrap().clear();
+        self.1.clear();
+    }
+
     pub fn handle(&self, method: &str, url: &url::Url, body: &[u8]) -> Result<Value> {
         ensure!(method == "POST", "POSTが必要です");
         let query: BTreeMap<_, _> = url.query_pairs().collect();
@@ -46,20 +55,27 @@ impl Recordings {
             id.len() == 36 && id.bytes().all(|v| v.is_ascii_hexdigit() || v == b'-'),
             "録画IDが不正です"
         );
-        match query.get("action").map(|value| value.as_ref()) {
-            Some("begin") => {
+        let action = query
+            .get("action")
+            .map(|value| value.as_ref())
+            .unwrap_or_default();
+        if let Some(action) = action.strip_prefix("png-") {
+            return self.1.handle(id, action, &query, body);
+        }
+        match action {
+            "begin" => {
                 ensure!(body.len() <= 1024, "録画の保存要求が不正です");
                 self.begin(id, serde_json::from_slice(body)?, &downloads_directory()?)?;
                 Ok(json!({"written":0}))
             }
-            Some("append") => {
+            "append" => {
                 let offset = query
                     .get("offset")
                     .context("保存位置がありません")?
                     .parse()?;
                 self.append(id, offset, body)
             }
-            Some("cancel") => {
+            "cancel" => {
                 self.0.lock().unwrap().remove(id.as_ref());
                 Ok(json!({"cancelled":true}))
             }
@@ -151,7 +167,7 @@ impl Recordings {
 }
 
 // 同名ファイルがあれば連番を試し、既存の動画を上書きしない。
-fn publish(temporary: &Path, name: &str) -> Result<PathBuf> {
+pub(crate) fn publish(temporary: &Path, name: &str) -> Result<PathBuf> {
     let directory = temporary.parent().unwrap();
     let (stem, extension) = name.rsplit_once('.').unwrap();
     for index in 0..100 {
@@ -188,7 +204,7 @@ fn publish(temporary: &Path, name: &str) -> Result<PathBuf> {
 }
 
 #[cfg(windows)]
-fn downloads_directory() -> Result<PathBuf> {
+pub(crate) fn downloads_directory() -> Result<PathBuf> {
     use windows::Win32::{
         System::Com::CoTaskMemFree,
         UI::Shell::{FOLDERID_Downloads, KF_FLAG_DEFAULT, SHGetKnownFolderPath},
@@ -201,7 +217,7 @@ fn downloads_directory() -> Result<PathBuf> {
 }
 
 #[cfg(not(windows))]
-fn downloads_directory() -> Result<PathBuf> {
+pub(crate) fn downloads_directory() -> Result<PathBuf> {
     Ok(
         PathBuf::from(std::env::var_os("HOME").context("ホームフォルダーを取得できません")?)
             .join("Downloads"),

@@ -8,6 +8,7 @@ mod cache;
 mod desktop;
 mod motion_pose;
 mod recording;
+mod recording_frames;
 mod runtime;
 mod scene;
 mod service;

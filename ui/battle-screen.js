@@ -15,6 +15,7 @@ import {initializeSceneGestures,createSceneMotion} from './src/features/stages/s
 import {sortieFixedMoney} from './sortie-view.js';
 import {prepareBattleInfo,drawBattleInfo} from './battle-info.js';
 import {prepareInspectorAssets,createBattleInspector} from './battle-inspector.js';
+import {createBattleDisplay} from './battle-display.js';
 import {createBattleDetails} from './battle-details.js';
 
 export function battleScreenConfiguration(database,snapshot){
@@ -157,14 +158,15 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(stopped)return;scene=next;drawnVersion=version;drawnRows=state.rows;
   // 操作中の新しい要求は古い描画応答で上書きしない。
   if(version===cameraVersion)camera=next.layout;
+  return true;
  }
  async function present(){
   const scheduledAt=performance.now();
   const next=pendingScene;pendingScene=null;
   timing.displayWaitMs=next?scheduledAt-next.received:0;
-  if(next)await drawScene(next.scene,next.version);
+  const drawn=next&&await drawScene(next.scene,next.version);
   if(stopped)return;
-  const hudStart=performance.now();paint();recording?.frame(backgroundCanvas,canvas);
+  const hudStart=performance.now();paint();if(drawn)recording?.frame(backgroundCanvas,canvas);
   lastPaint=performance.now();timing.hudMs=lastPaint-hudStart;firstPaint??=lastPaint;presentation.presented(scheduledAt);
   if(!playbackPaused&&!state.paused&&!document.hidden&&state.intro>=24&&!state.battle_mode){
    if(lastActivePaint!=null){activeMs+=lastPaint-lastActivePaint;++activePaints;}
@@ -363,6 +365,8 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  function changeAspect(){try{localStorage.setItem('kbcs:battle-aspect',aspect.value);}catch{}resize();}
  aspect.addEventListener('change',changeAspect);
  const observer=new ResizeObserver(resize);
+ const enemyPanel=document.getElementById('battle-actor-list'),allyPanel=document.getElementById('battle-actor-detail');
+ const display=createBattleDisplay({controls,details:detailsRoot,enemies:enemyPanel,allies:allyPanel,setLarge:setLargeBattle,key,keyup,blur:()=>cameraMotion.clear(),recording});
  const monitor=createBattleMonitor(detailsRoot,()=>({...timing,...frames.stats(),frame:state.frame,paints,firstPaint,lastPaint,activeMs,activePaints,cheats,speed:Number(speed.value),fpsLimit:Number(fps.value),lag:accumulator*(state.speed_mode?state.speed_mode+1:1)+stepQueue,images:stageMediaStats(resources.sceneImages)}));
  function command(event){
   const button=event.target.closest('[data-debug],[data-battle-control]');if(!button)return;
@@ -375,6 +379,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   else if(action==='page')control=4;
   else if(action==='camera'){camera={...camera,center:snapshot.stage.width,zoom:1};++cameraVersion;}
   else if(action==='large')setLargeBattle(true);
+  else if(action==='fullscreen')display.request();
   else if(action==='report'){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   else if(action==='return'||button.dataset.battleControl==='return'){stop();onReturn();return;}
   else if(!action)control=Number(button.dataset.battleControl);
@@ -401,7 +406,7 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
  document.addEventListener('change',restoreBattleFocus);
  function key(event){
   if(event.isComposing||event.ctrlKey||event.altKey||event.metaKey||editableKeyTarget(event.target)||document.querySelector('dialog:modal'))return;
-  if(large&&event.code==='Escape'){event.preventDefault();event.stopPropagation();if(!event.repeat)setLargeBattle(false);return;}
+  if(large&&event.code==='Escape'){event.preventDefault();event.stopPropagation();if(!event.repeat)display.leave();return;}
   // 2段で切替操作が無効でも、Spaceでフォーカス中の段数ボタンを押さない。
   if(event.code===keyBindings.page){event.preventDefault();event.stopPropagation();}
   const action=battleKeyAction(event.code,keyBindings,state);
@@ -454,6 +459,7 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
  window.addEventListener('pagehide',stop);
  function stop(){
   if(stopped)return;stopped=true;
+  display.stop();
   inspector?.stop();inspector=null;details?.stop();pendingScene=null;
   document.body.classList.remove('battle-large');largeHint.hidden=true;clearTimeout(largeHintTimer);
   detailsRoot.removeEventListener('click',command);results.stop();window.removeEventListener('pagehide',stop);
@@ -477,8 +483,8 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
   timing.warmTextureBytes=painter.warmTextures(textures,32*1024*1024);
   const requestInspection=()=>{inspectionDirty=true;};
   details=createBattleDetails(detailsRoot,prepared,resources.sceneImages,requestInspection);
-  inspector=createBattleInspector(document.getElementById('battle-actor-list'),document.getElementById('battle-actor-detail'),prepared,resources.database,resources.enemies,requestInspection,id=>details.select(id));
-  recording?.attach({name:snapshot.map.key+'-'+(snapshot.stage.index+1),size:()=>[screenWidth,640],audio:()=>sounds.recordAudio(),redraw:requestInspection});
+  inspector=createBattleInspector(enemyPanel,allyPanel,prepared,resources.database,resources.enemies,requestInspection,id=>details.select(id));
+  recording?.attach({name:snapshot.map.key+'-'+(snapshot.stage.index+1),size:()=>[screenWidth,640],audio:()=>sounds.recordAudio(),redraw:requestInspection,button:controls.querySelector('[data-recording]')});
   await update(0);await present();if(large)showLargeHint();raf=requestAnimationFrame(animate);}catch(error){stop();throw error;}
  return {stop};
 }

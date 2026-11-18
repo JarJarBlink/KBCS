@@ -1,4 +1,5 @@
 import {createSessionId} from './src/shared/browser/session-id.js';
+import {recordFrameArchive,saveFrameArchive,discardFrameArchive} from './battle-recording-frames.js';
 
 const frameMs=1000/30,byteLimit=256*1024*1024,chunkSize=512*1024,minCapture=16;
 const formats={
@@ -54,8 +55,14 @@ export function recordingVideoSize(width,height){
  return [width,height].map(n=>Math.max(2,Math.floor(n*scale/2)*2));
 }
 
-export function recordingVideoBitrate(width,height){
- return clamp(width*height*30*.32,10_000_000,40_000_000);
+export function recordingVideoBitrate(width,height,high=false){
+ return high?clamp(width*height*30*.78,18_000_000,100_000_000):clamp(width*height*30*.32,10_000_000,40_000_000);
+}
+
+function recordingName(name,extension){
+ const stage=name.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,80);
+ const time=new Date().toISOString().slice(0,19).replace(/:/g,'-');
+ return 'KBCS-'+stage+'-'+time+'.'+extension;
 }
 
 export function createBattleRecording(){
@@ -63,7 +70,8 @@ export function createBattleRecording(){
  dialog.className='battle-record-dialog';dialog.setAttribute('aria-label','戦闘の録画設定');
  dialog.innerHTML=`<h2>戦闘の録画</h2>
   <label>録画範囲 <select data-source><option value="battle">中央の戦闘画面だけ</option><option value="display">画面共有で範囲を選ぶ</option></select></label>
-  <label>ファイル形式 <select data-format><option value="webm">WebM (.webm)</option><option value="mp4">MP4 (.mp4)</option></select></label>
+  <label>ファイル形式 <select data-format><option value="mp4">MP4 (.mp4)</option><option value="webm">WebM (.webm)</option><option value="zip">可逆 PNG連番 (.zip)</option></select></label>
+  <label data-quality-row>画質 <select data-quality><option value="high">高画質</option><option value="standard">標準</option></select></label>
   <label><input type="checkbox" data-sound checked>戦闘のBGM・効果音を含める</label>
   <p data-help></p><button type="button" data-share>共有する画面を選ぶ</button>
   <div data-preview hidden>
@@ -86,28 +94,37 @@ export function createBattleRecording(){
  const heading=result.querySelector('h2'),progress=resultNode('progress'),save=resultNode('save'),later=resultNode('later'),discard=resultNode('discard'),saveStatus=resultNode('status'),pathField=resultNode('path');
  let binding,armed=false,share,shareWait,picking=false,selection,drag,dimension,canvas,ctx,session,clip,saving,raf=0,lastSample=-Infinity,leaving=false;
  const encoding=new Map();
- for(const option of format.options){
+ for(const option of [...format.options].filter(option=>option.value!=='zip')){
   const supported=typeof globalThis.MediaRecorder?.isTypeSupported==='function'&&formats[option.value].find(type=>MediaRecorder.isTypeSupported(type));
   option.disabled=!supported;
   if(supported)encoding.set(option.value,supported);
  }
- format.value=encoding.keys().next().value??'';
- const canRecord=encoding.size>0&&typeof HTMLCanvasElement.prototype.captureStream==='function';
+ const canVideo=encoding.size>0&&typeof HTMLCanvasElement.prototype.captureStream==='function';
+ const canPng=typeof HTMLCanvasElement.prototype.toBlob==='function';
+ for(const option of format.options)option.disabled=option.value==='zip'?!canPng:!canVideo||!encoding.has(option.value);
+ format.value=canVideo?encoding.keys().next().value:canPng?'zip':'';
  const canShare=typeof navigator.mediaDevices?.getDisplayMedia==='function';
  source.options[1].disabled=!canShare;
 
  function updateControls(){
   const shown=source.value==='display',configured=shown&&!!dimension&&!!share;
+  format.querySelector('[value=zip]').disabled=shown||!canPng;
+  if(shown&&format.value==='zip')format.value=canVideo?encoding.keys().next().value:'';
+  if(!shown&&!format.value&&canPng)format.value='zip';
+  const lossless=format.value==='zip';
+  sound.disabled=lossless;node('quality-row').hidden=lossless;
   dialog.classList.toggle('battle-record-share',shown);
-  node('help').textContent=configured?'ドラッグで範囲を指定します。枠を移動したり、縁のハンドルで大きさを変えたりできます。':shown?'録画するウィンドウまたはタブを選びます。':'戦闘盤面とHUDを録画します。';
+  node('help').textContent=configured?'ドラッグで範囲を指定します。枠を移動したり、縁のハンドルで大きさを変えたりできます。':shown?'録画するウィンドウまたはタブを選びます。':lossless?'戦闘画面の各描画フレームを元の寸法で保存します。音声は含まれません。':'戦闘盤面とHUDを録画します。';
   node('share').hidden=!shown;node('share').disabled=picking;
   node('preview').hidden=!configured;
-  node('start').disabled=!canRecord||!encoding.has(format.value)||picking||shown&&!configured;
+  node('start').disabled=!(lossless?canPng:canVideo&&encoding.has(format.value))||picking||shown&&!configured;
   node('start').textContent=binding?'録画開始':'次の出撃を録画';
  }
  function refreshBar(message){
   if(message!==undefined)indicator.textContent=message;
-  document.querySelectorAll('[data-recording]').forEach(btn=>{btn.textContent=armed?'録画予約済み':session?'録画中':clip&&!clip.path?'録画を保存':'録画';});
+  const label=armed?'録画予約済み':session?'録画中':clip&&!clip.path?'録画を保存':'録画';
+  document.querySelectorAll('[data-recording]').forEach(btn=>{btn.textContent=label;});
+  if(binding?.button)binding.button.textContent=label;
   button('pause').hidden=button('end').hidden=!session||session.recorder.state==='inactive';
   button('pause').textContent=session?.recorder.state==='paused'?'再開':'一時停止';
   button('unarm').hidden=!armed;
@@ -116,11 +133,11 @@ export function createBattleRecording(){
  function openResult(){if(!leaving&&!result.open)result.showModal();}
  function renderResult(message=''){
   const pending=Boolean(clip&&!clip.path),preparing=Boolean(session);
-  heading.textContent=preparing?'録画を仕上げています…':saving?'動画を保存しています':clip?.path?'動画を保存しました':'録画を終了しました';
-  resultNode('summary').textContent=pending?clip.name+'（'+megabytes(clip.blob.size)+'）':clip?.path?'ダウンロードフォルダーに保存しました。':'';
+  heading.textContent=preparing?'録画を仕上げています…':saving?'録画を保存しています':clip?.path?'録画を保存しました':'録画を終了しました';
+  resultNode('summary').textContent=pending?clip.name+'（'+megabytes(clip.bytes??clip.blob.size)+(clip.frames?' / '+clip.frames+'枚':'')+'）':clip?.path?'ダウンロードフォルダーに保存しました。':'';
   progress.hidden=!preparing&&!saving&&!clip?.path;
   if(preparing)progress.removeAttribute('value');
-  save.hidden=!pending;save.disabled=Boolean(saving);save.textContent=saving?'保存中…':'動画を保存';
+  save.hidden=!pending;save.disabled=Boolean(saving);save.textContent=saving?'保存中…':clip?.id?'ZIPを保存':'動画を保存';
   discard.hidden=!pending;discard.disabled=Boolean(saving);
   later.disabled=preparing||Boolean(saving);later.textContent=pending?'後で':'閉じる';
   saveStatus.textContent=message||(!saving&&pending?'ダウンロードフォルダーに保存できます。':'');
@@ -128,27 +145,28 @@ export function createBattleRecording(){
  }
  save.onclick=async()=>{
   if(!clip||clip.path||saving)return;
-  const current=clip,total=current.blob.size;
+  const current=clip,total=current.bytes??current.blob.size;
   const controller=new AbortController();saving=controller;
   let timeout;
   function waitForWrite(){
    clearTimeout(timeout);timeout=setTimeout(()=>controller.abort(Error('保存先の応答がタイムアウトしました')),30000);
   }
   progress.max=total;progress.value=0;
-  renderResult('保存中 0%（0.0 / '+megabytes(total)+'）');
+  renderResult(current.id?'ZIPを確定しています…':'保存中 0%（0.0 / '+megabytes(total)+'）');
+  if(current.id)progress.removeAttribute('value');
   waitForWrite();
   try{
-   current.path=await saveBattleRecording(current,written=>{
+   current.path=current.id?await saveFrameArchive(current.id):await saveBattleRecording(current,written=>{
     progress.value=written;
     saveStatus.textContent='保存中 '+Math.floor(written*100/total)+'%（'+megabytes(written)+' / '+megabytes(total)+'）';
     waitForWrite();
    },controller.signal);
-   current.blob=null;saving=null;renderResult();refreshBar();later.focus();
+   progress.value=total;current.blob=null;saving=null;renderResult();refreshBar();later.focus();
   }catch(error){saving=null;renderResult('保存できませんでした。'+(controller.signal.reason||error).message);save.focus();}
   finally{clearTimeout(timeout);}
  };
  later.onclick=()=>result.close();
- discard.onclick=()=>{clip=null;result.close();refreshBar();};
+ discard.onclick=()=>{if(clip.id)void discardFrameArchive(clip.id).catch(()=>{});clip=null;result.close();refreshBar();};
  result.addEventListener('cancel',event=>{if(later.disabled)event.preventDefault();});
  function releaseShare(){
   const feed=share;share=null;shareWait?.();shareWait=null;dimension=selection=drag=null;video.srcObject=null;stopTracks(feed);
@@ -225,6 +243,11 @@ export function createBattleRecording(){
 
  function draw(sourceCanvas,overlay,rect=[0,0,sourceCanvas.width,sourceCanvas.height]){
   const [x,y,width,height]=rect;
+  if(session?.lossless){
+   if(width!==canvas.width||height!==canvas.height||overlay.width!==width||overlay.height!==height){finish('戦闘画面の寸法が変更されたため、変更前までのPNGを保存できます。');return;}
+   ctx.fillRect(0,0,width,height);ctx.drawImage(sourceCanvas,0,0);if(overlay)ctx.drawImage(overlay,0,0);
+   session.recorder.capture();return;
+  }
   const scale=Math.min(canvas.width/width,canvas.height/height),w=width*scale,h=height*scale,left=(canvas.width-w)*.5,top=(canvas.height-h)*.5;
   ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.drawImage(sourceCanvas,x,y,width,height,left,top,w,h);
@@ -245,38 +268,44 @@ export function createBattleRecording(){
   raf=requestAnimationFrame(copyShared);
  }
  function begin(){
-  if(session||!binding||!canRecord)return;
+  if(session||!binding)return;
   const shared=source.value==='display',area=shared?(selection?.slice(2)||dimension):binding.size(),extension=format.value,mimeType=encoding.get(extension);
+  const lossless=extension==='zip';
+  if(lossless?(shared||!canPng):(!canVideo||!mimeType))return;
   const fromOpening=armed;
   armed=false;
   if(!area){releaseShare();show('録画範囲を選び直してください');return;}
   let stream,audio;
   try{
-   canvas=document.createElement('canvas');[canvas.width,canvas.height]=recordingVideoSize(...area);
+   canvas=document.createElement('canvas');[canvas.width,canvas.height]=lossless?area:recordingVideoSize(...area);
    ctx=canvas.getContext('2d',{alpha:false});ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
+   function completed(value,error){
+    const message=session.message;session=null;canvas=ctx=null;releaseShare();clip=value;
+    bar.hidden=true;refreshBar();renderResult(error||message||(!clip?'保存できる映像がありません。':''));openResult();
+   }
+   const name=recordingName(binding.name,extension);
+   if(lossless){
+    const recorder=recordFrameArchive(canvas,name,completed,finish);
+    session={recorder,lossless:true,message:''};
+    if(fromOpening)recorder.capture();
+    binding.redraw();show('可逆PNG録画中');return;
+   }
    ctx.imageSmoothingQuality='high';
    const manual=typeof globalThis.CanvasCaptureMediaStreamTrack?.prototype.requestFrame==='function';
    stream=canvas.captureStream(manual?0:30);
    const track=stream.getVideoTracks()[0];
    if(sound.checked){audio=binding.audio();if(audio)stream.addTrack(audio.track);}
-   const recorder=new MediaRecorder(stream,{mimeType,videoBitsPerSecond:recordingVideoBitrate(canvas.width,canvas.height),...(audio?{audioBitsPerSecond:192_000}:{})});
-   const active={recorder,stream,audio,shared,requestFrame:manual?()=>track.requestFrame():null,chunks:[],bytes:0,name:binding.name,message:''};session=active;
+   const recorder=new MediaRecorder(stream,{mimeType,videoBitsPerSecond:recordingVideoBitrate(canvas.width,canvas.height,node('quality').value==='high'),...(audio?{audioBitsPerSecond:192_000}:{})});
+   const active={recorder,stream,audio,shared,requestFrame:manual?()=>track.requestFrame():null,chunks:[],bytes:0,message:''};session=active;
    recorder.ondataavailable=event=>{
     if(event.data.size){active.chunks.push(event.data);active.bytes+=event.data.size;}
     if(active.bytes>=byteLimit&&recorder.state!=='inactive')finish('保存用メモリの上限に達しました');
    };
    recorder.onerror=()=>{active.message='録画を続けられませんでした';if(recorder.state!=='inactive')finish(active.message);};
    recorder.onstop=()=>{
-    stopTracks(active.stream);active.audio?.release();session=null;canvas=ctx=null;releaseShare();
-    clip=null;
-    if(active.chunks.length){
-     const type=recorder.mimeType||mimeType;
-     const stage=active.name.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,80);
-     const time=new Date().toISOString().slice(0,19).replace(/:/g,'-');
-     clip={blob:new Blob(active.chunks,{type}),name:'KBCS-'+stage+'-'+time+'.'+extension};
-    }
-    active.chunks.length=0;bar.hidden=true;refreshBar();
-    renderResult(active.message||(!clip?'保存できる映像がありません。':''));openResult();
+    stopTracks(active.stream);active.audio?.release();
+    const blob=active.chunks.length?new Blob(active.chunks,{type:recorder.mimeType||mimeType}):null;
+    active.chunks.length=0;completed(blob?{blob,name}:null);
    };
    recorder.start(1000);lastSample=-Infinity;
    if(fromOpening&&!shared){ctx.fillRect(0,0,canvas.width,canvas.height);active.requestFrame?.();}
@@ -296,23 +325,29 @@ export function createBattleRecording(){
  button('end').onclick=()=>finish();
  button('unarm').onclick=unarm;
  button('hide').onclick=()=>{bar.hidden=true;};
- document.addEventListener('click',event=>{
-  if(!event.target.closest('[data-recording]'))return;
+ function open(){
   if(session||armed){if(session?.recorder.state==='inactive')openResult();else show();return;}
   if(clip&&!clip.path){openResult();return;}
-  status.textContent=canRecord?(canShare?'':'この環境では画面共有を利用できません。中央だけの録画は利用できます。'):'この環境では録画を利用できません。';
+  status.textContent=canVideo||canPng?(canShare&&canVideo?'':'この環境では中央の戦闘画面を録画できます。'):'この環境では録画を利用できません。';
   updateControls();dialog.showModal();
- });
+ }
+ document.addEventListener('click',event=>{if(event.target.closest('[data-recording]'))open();});
  document.addEventListener('keydown',event=>{
   if(dialog.open||result.open||!event.altKey||!event.shiftKey||event.code!=='KeyR')return;
   if(armed||session){event.preventDefault();bar.hidden=!bar.hidden;}
   else if(clip&&!clip.path){event.preventDefault();openResult();}
  });
- window.addEventListener('pagehide',()=>{leaving=true;saving?.abort();finish();releaseShare();});
+ window.addEventListener('pagehide',()=>{
+  leaving=true;saving?.abort();
+  if(session?.lossless){session.recorder.cancel();session=null;canvas=ctx=null;bar.hidden=true;refreshBar();}else finish();
+  if(clip?.id&&!clip.path){void discardFrameArchive(clip.id).catch(()=>{});clip=null;result.close();refreshBar();}
+  releaseShare();
+ });
  window.addEventListener('pageshow',()=>{leaving=false;});
  return {
   attach(value){binding=value;if(armed)begin();},
-  frame(background,overlay){if(!session?.shared&&sample())try{draw(background,overlay);}catch{finish('戦闘の映像を読み取れませんでした');}},
+  frame(background,overlay){if(!session?.shared&&session?.recorder.state==='recording')try{draw(background,overlay);}catch{finish('戦闘の映像を読み取れませんでした');}},
   detach(){finish();binding=null;},
+  open,
  };
 }
