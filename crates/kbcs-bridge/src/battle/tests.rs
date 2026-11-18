@@ -347,6 +347,104 @@ fn empty_slot_sounds_after_five_display_updates() {
 }
 
 #[test]
+fn restricted_slot_reports_the_deployment_warning() {
+    let mut c = config();
+    c.screen.present[0] = 1;
+    c.screen.blocked[0] = 1;
+    let mut battle = Battle::new(&c, &[profile(&[0; 119], 0, 2)], &[]).unwrap();
+    battle
+        .advance(&battle_screen::Input {
+            control: 1000,
+            ..Default::default()
+        })
+        .unwrap();
+    tick(&mut battle, 5);
+    assert_eq!(battle.production().unwrap().0.produced[0], 0);
+    assert!(battle.sounds().unwrap().iter().any(|v| v.id == 15));
+    assert_eq!(battle.warning().unwrap()[0], 0);
+    tick(&mut battle, 1);
+    assert_eq!(battle.warning().unwrap(), [2, 480, 220]);
+    tick(&mut battle, 28);
+    assert_eq!(battle.warning().unwrap()[0], 0);
+}
+
+#[test]
+fn deployment_checks_the_cooldown_before_the_ready_frame() {
+    let mut c = config();
+    c.screen.present[0] = 1;
+    let mut p = profile(&[0; 119], 0, 2);
+    p.definition.cells[110] = -1;
+    p.recharge = 10;
+    p.recharge_plain = 10;
+    let mut battle = Battle::new(&c, &[p], &[]).unwrap();
+    let press = battle_screen::Input {
+        control: 1000,
+        ..Default::default()
+    };
+
+    battle.advance(&press).unwrap();
+    tick(&mut battle, 5);
+    let state = battle.production().unwrap().0;
+    assert_eq!(state.wait[0], 9);
+    assert_eq!(state.produced[0], 1);
+    tick(&mut battle, 4);
+    battle.advance(&press).unwrap();
+    tick(&mut battle, 5);
+    let state = battle.production().unwrap().0;
+    assert_eq!(state.wait[0], 0);
+    assert_eq!(state.produced[0], 1);
+    assert!(battle.sounds().unwrap().iter().any(|v| v.id == 27));
+    assert_eq!(battle.warning().unwrap()[0], 0);
+
+    battle.advance(&press).unwrap();
+    tick(&mut battle, 5);
+    assert_eq!(battle.production().unwrap().0.produced[0], 2);
+}
+
+#[test]
+fn manual_deployment_clears_a_disabled_computers_pending_choice() {
+    let mut c = config();
+    c.screen.present[0] = 1;
+    c.screen.fixed_money = -1;
+    c.screen.items = 8;
+    c.state.items_on = 8;
+    c.state.worker = 7;
+    let mut parent = profile(&[0; 119], 0, 2);
+    parent.definition.cells[110] = 1;
+    parent.cost = 15000;
+    let mut child = profile(&[0; 119], 0, 3);
+    child.deployment_slot = -1;
+    let mut battle = Battle::new(&c, &[parent, child], &[]).unwrap();
+    let toggle = battle_screen::Input {
+        control: 6,
+        ..Default::default()
+    };
+
+    tick(&mut battle, 1);
+    assert_eq!(battle.computer().unwrap().action, 3);
+    battle.advance(&toggle).unwrap();
+    battle.cheats(1).unwrap();
+    battle
+        .advance(&battle_screen::Input {
+            control: 1000,
+            ..Default::default()
+        })
+        .unwrap();
+    tick(&mut battle, 5);
+    assert_eq!(battle.production().unwrap().0.produced[0], 1);
+    assert_eq!(battle.computer().unwrap().action, 0);
+
+    tick(&mut battle, 15);
+    battle.advance(&toggle).unwrap();
+    tick(&mut battle, 8);
+    assert!(
+        !battle.actors().unwrap().0[0]
+            .iter()
+            .any(|actor| actor.words[0] == 3)
+    );
+}
+
+#[test]
 fn cannon_cheat_recharges_without_interrupting_the_shot() {
     let mut c = config();
     c.state.cannon = 500;

@@ -191,17 +191,24 @@ extern "C" uint32_t kbcs_core_battle_screen_advance_custom(const KbcsBattleScree
   if(s.wallet_flash&&!s.paused)--s.wallet_flash;
   if(s.intro<24){++s.intro;continue;}
   if(s.battle_mode){s.pointer_down=0;s.holding=-1;s.hold_frames=0;s.hold_wait=0;s.guard=0;s.pending_control=-1;}
-  if(hook&&!s.paused){const auto code=hook(user,4,&s);if(code)return code;}
-  if(s.intro<24)break; // コンティニューの復帰Fはまとめて更新していても全面暗転のまま返す。
   if(s.page_frame&&!s.paused&&!(tick==0&&(in.control==4||in.control==8||in.control==9))){s.page_frame+=s.page_step?s.page_step:1;if(s.page_frame>5){s.page=1-s.page;s.page_frame=0;}else if(s.page_frame<1)s.page_frame=0;}
   if(tick==0&&in.phase){s.pointer_x=in.x;s.pointer_y=in.y;if(in.phase==1){s.pointer_down=1;s.start_x=in.x;s.start_y=in.y;s.gesture=0;}}
+  // 006d6d04: 009f4a74と006ee6c8は論理更新の入口006d74dcより前。再生産残り1Fではまだ出撃できない。
+  const int pending_slot=s.pending_control;
+  if(s.guard==5&&pending_slot>=0&&pending_slot<10){
+   // 009f4a74で出撃不可の案内とSEを設定する。キャラがいる枠は戦闘側へ渡す。
+   if(c.present[pending_slot]&&(hook||(!c.blocked[pending_slot]&&I(c.costs[pending_slot])*100<=s.money))){
+    s.request_slot=pending_slot;if(hook){const auto code=hook(user,1,&s);if(code)return code;}
+   }else{const auto code=sound(15);if(code)return code;}
+  }
+  if(!s.guard&&!s.paused&&hook){const auto code=hook(user,3,&s);if(code)return code;}
+  if(hook&&!s.paused){const auto code=hook(user,4,&s);if(code)return code;}
+  if(s.intro<24)break; // コンティニューの復帰Fはまとめて更新していても全面暗転のまま返す。
   if(!s.paused){++s.hud_frame;const int steps=stepping||s.battle_mode?1:s.speed_mode+1;
    for(int i=0;i<steps;++i){++s.frame;if(hook){const auto code=hook(user,0,&s);if(code)return code;}else kbcs_core_battle_screen_economy(&c,&s);}}
   // 006d6d04: 経済は論理更新、ボタンの待機は表示更新で一度だけ進める。
   if(s.guard){if(++s.guard>5){s.guard=0;const int target=s.pending_control;s.pending_control=-1;
-    if(target>=0&&target<10&&c.present[target]&&!c.blocked[target]&&(hook||I(c.costs[target])*100<=s.money)){s.request_slot=target;if(hook){const auto code=hook(user,1,&s);if(code)return code;}}
-    else if(target>=0&&target<10){const auto code=sound(15);if(code)return code;}
-    else if(target==200)toggle_speed(c,s);
+    if(target==200)toggle_speed(c,s);
     else if(target==203||target==205)s.items_on^=1<<(target-200);
     else if(target==100)s.paused=1;
     else if(target==300)s.paused=0;
@@ -212,7 +219,6 @@ extern "C" uint32_t kbcs_core_battle_screen_advance_custom(const KbcsBattleScree
 
 
    }if(tick==0&&(in.phase==2||in.phase==3))s.pointer_down=0;if(s.description_wait)--s.description_wait;if(hook){const auto code=hook(user,5,&s);if(code)return code;}continue;}
-  if(!s.paused&&hook){const auto code=hook(user,3,&s);if(code)return code;}
   int target=inputTarget(s.pointer_x,s.pointer_y);
   // 006dca34..006dcf80 / オプションのcallback event0。押し直し・領域への再進入だけ。
   const bool press_sound=(target>=0&&target<10)||(target>=100&&target<=102)||(target>=300&&target<=308&&target!=306);

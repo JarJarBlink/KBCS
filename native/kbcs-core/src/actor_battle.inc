@@ -486,7 +486,7 @@ struct KbcsBattle {
   if(!result.mode){KbcsEnemyProductionOutput birth{};check(kbcs_core_production_enemy(rows.data(),states.data(),int32_t(rows.size()),&stage,&seed,seen.data(),int32_t(seen.size()),construct,this,&birth));}
   diagnostic[1]=3;check(kbcs_core_actor_clock(actors,&config.clock));
   for(int side=0;side<2;++side){
-   if(side){const KbcsSniperInput input{(screen.items_on>>5)&1,camera,640,sniper_phase};int32_t fired= -1;check(kbcs_core_actor_sniper_step(&sniper,&input,actors,&config.environment,&fired));}
+   if(side){const KbcsSniperInput input{(screen.items_on>>5)&1,camera,640,sniper_phase,result.mode};int32_t fired= -1;check(kbcs_core_actor_sniper_step(&sniper,&input,actors,&config.environment,&fired));}
    for(int slot=0;slot<actorEnd();++slot){diagnostic[1]=4;diagnostic[2]=side;diagnostic[3]=slot;action(side,slot,screen);}
   }
   for(int slot=1;slot<actorEnd();++slot)if(bonusSlot(slot)){actorAt(actors,0,slot).words[243]=0;bonusSlot(slot)=false;}
@@ -587,13 +587,17 @@ struct KbcsBattle {
    const auto child=std::find_if(definitions.begin(),definitions.end(),[&](const auto &p){return p.spawn.side==0&&p.spawn.raw==raw&&p.spawn.form==0;});
    if(child==definitions.end())throw std::out_of_range("summon profile");
    KbcsSummonInput input{child->spawn,slot,found->spawn.raw,config.summon_position};KbcsSummonOutput result{};
-   check(kbcs_core_actor_summon(&input,&summons,actors,&config.environment,&seed,construct,this,&result));sound(screen.frame,result.sound);sound(screen.frame,result.failure_sound);sound(screen.frame,result.completion_sound);return;
+   check(kbcs_core_actor_summon(&input,&summons,actors,&config.environment,&seed,construct,this,&result));
+   if(result.last_slot>0)computer.action=0;
+   sound(screen.frame,result.sound);sound(screen.frame,result.failure_sound);sound(screen.frame,result.completion_sound);return;
   }
   production.money=(cheats&KBCS_BATTLE_MONEY)?std::max(screen.money,cost(*found)):screen.money;
   if(cheats&KBCS_BATTLE_INSTANT)production.wait[slot]=0;
   KbcsProductionInput input{};input.spawn=found->spawn;input.slot=slot;input.present=1;input.allowed=1;input.blocked=limits.blocked[slot]!=0;input.cost=cost(*found);input.recharge=recharge(*found);input.reduction= -1;input.recharge_enabled=1;input.notify_failure=notify;input.summon_mode=found->summon_mode;
   KbcsProductionOutput result{};check(kbcs_core_production_deploy(&input,&production,&seed,construct,this,&result));screen.money=production.money;sound(screen.frame,result.sound);
   if(result.slot>0){
+   // 009f53b0: 手動生産の成功でも自動操作の保留を解除し、精霊召喚枠を候補から除外し直す。
+   computer.action=0;
    if(productionCondition(slot)&&!config.rules.recharge_fixed){int rate=actorAt(actors,0,result.slot).words[250];if(rate<1)rate=found->spawn.form>=2?found->definition.orbs[19][0]:0;
     int32_t wait=0;check(kbcs_core_production_wait(recharge(*found),rate,&wait));production.wait[slot]=production.maximum[slot]=wait;
    }

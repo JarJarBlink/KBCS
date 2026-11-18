@@ -15,7 +15,8 @@ extern "C" uint32_t kbcs_core_actor_sniper_step(KbcsActorSniper *state,const Kbc
   KbcsActorDefinition definition{};auto env=*environment;KbcsSpawnRequest request{};uint32_t random=1;
   Context context{definition,env,const_cast<KbcsActor (*)[51]>(actors),request,random};
   int maximum=0;
-  for(int i=1;i<actorEnd();++i)if(actorAt(actors,1,i).words[0]&&n_00a94484(context,1,i,-1)&&i!=env.castle_slot&&maximum<=actorAt(actors,1,i).words[3]){maximum=actorAt(actors,1,i).words[3];s.target=i;}
+  // 005ce564→005bc058。勝敗確定後は新たに敵を狙わず、砲身を水平へ戻す。
+  if(!input->battle_mode)for(int i=1;i<actorEnd();++i)if(actorAt(actors,1,i).words[0]&&n_00a94484(context,1,i,-1)&&i!=env.castle_slot&&maximum<=actorAt(actors,1,i).words[3]){maximum=actorAt(actors,1,i).words[3];s.target=i;}
   const auto &castle=actorAt(actors,0,0).words;const float wave=nativeSin(input->phase);
   s.desired=0;
   if(s.target){const auto &target=actorAt(actors,1,s.target).words;

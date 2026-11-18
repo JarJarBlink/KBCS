@@ -38,7 +38,7 @@ typedef struct {
  KbcsSniperBullet bullets[50];int32_t impacts[50][6];
  int32_t smoke_active,smoke[4][5];
 } KbcsActorSniper;
-typedef struct { int32_t enabled,camera,height;float phase; } KbcsSniperInput;
+typedef struct { int32_t enabled,camera,height;float phase;int32_t battle_mode; } KbcsSniperInput;
 /* 005ce564。位相は006d6d04側で1論理Fにつき6を加算する。 */
 uint32_t kbcs_core_actor_sniper_step(KbcsActorSniper*,const KbcsSniperInput*,const KbcsActor actors[2][51],const KbcsActorEnvironment*,int32_t *fired);
 /* 005ced48。敵の行動更新前に呼び、HPへの適用は後段の保護/healthへ残す。 */

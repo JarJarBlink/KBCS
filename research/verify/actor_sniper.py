@@ -22,7 +22,7 @@ for name,kind,count in [('sin',c.c_double,1),('cos',c.c_double,1),('atan2f',c.c_
  fn=getattr(math,name);fn.argtypes=[kind]*count;fn.restype=kind
 class Bullet(c.Structure):_fields_=[(k,c.c_int32) for k in ['active','x','y','target','angle','speed']]
 class State(c.Structure):_fields_=[('angle',c.c_float),('desired',c.c_float)]+[(k,c.c_int32) for k in ['target','wait','firing','frame','gun_recoil','body_bump']]+[('bullets',Bullet*50),('impacts',(c.c_int32*6)*50),('smoke_active',c.c_int32),('smoke',(c.c_int32*5)*4)]
-class Input(c.Structure):_fields_=[(k,c.c_int32) for k in ['enabled','camera','height']]+[('phase',c.c_float)]
+class Input(c.Structure):_fields_=[(k,c.c_int32) for k in ['enabled','camera','height']]+[('phase',c.c_float),('battle_mode',c.c_int32)]
 Actors=((c.c_int32*251)*51)*2
 lib.kbcs_core_actor_sniper_step.argtypes=[c.POINTER(State),c.POINTER(Input),c.POINTER(Actors),c.c_void_p,c.POINTER(c.c_int32)]
 lib.kbcs_core_actor_sniper_hit.argtypes=[c.POINTER(State),c.POINTER(Actors),c.c_void_p,c.c_int32,c.POINTER(c.c_uint32),c.POINTER(c.c_int32)]
@@ -57,7 +57,7 @@ def mismatch(a,b):
  return 'arrays'
 environment=(c.c_int32*128)();environment[0]=1;environment[2]=20000;environment[3]=-1
 steps=0;shots=0
-for scenario in range(0 if args.hit_only else 6):
+for scenario in range(0 if args.hit_only else 8):
  n.cpu.mem_write(g,bytes(0x500000));s=State();write_state(s);actors=Actors();actors[0][0][0]=1;actors[0][0][3]=16800;actors[0][0][4]=4400;actors[0][0][7]=236000
  if scenario==5:
   for b in s.bullets:b.active=1;b.x=10000000;b.speed=1500;b.target=1
@@ -65,15 +65,21 @@ for scenario in range(0 if args.hit_only else 6):
  phase=c.c_float(0)
  for tick in range(620):
   phase.value+=6;enabled=not(scenario==4 and 310<=tick<350);camera=[0,4890,11001][scenario%3]
+  battle_mode=1 if scenario==7 and tick>=310 else 0
   for i in range(1,4):
    actors[1][i][0]=2+i;actors[1][i][1]=[0,2,0][i-1];actors[1][i][3]=3200+i*800+(tick%30 if scenario==2 else 0);actors[1][i][4]=4400;actors[1][i][5]=i%2
+   if scenario>=6:
+    # 砲身の直下・後方と、異なる高さ・レイヤーを通す。
+    actors[1][i][3]=16600+i*650+(tick//60%3)*500
+    actors[1][i][4]=[4480,2700,4700][(tick//90+i)%3]
+    actors[1][i][5]=i*3
   if scenario==1:actors[1][3][3]=actors[1][2][3]
   if scenario==3 and 305<=tick<320:
    for i in range(1,4):actors[1][i][0]=0
   n.cpu.mem_write(g+0x84080,bytes(actors));put(0x83e10,camera);n.cpu.mem_write(g+0x32e0a4,struct.pack('<f',phase.value))
-  n.helpers={**helpers,0x5c022c:int(enabled),0x5bbc10:-1,0xa92ea0:actors[0][0][3],0xa92eb4:4400}
+  n.helpers={**helpers,0x5c022c:int(enabled),0x5bc058:battle_mode,0x5bbc10:-1,0xa92ea0:actors[0][0][3],0xa92eb4:4400}
   n.call(0x5ce564,g)
-  fired=c.c_int32();value=Input(enabled,camera,640,phase.value)
+  fired=c.c_int32();value=Input(enabled,camera,640,phase.value,battle_mode)
   assert lib.kbcs_core_actor_sniper_step(c.byref(s),c.byref(value),c.byref(actors),environment,c.byref(fired))==0
   expected=read_state();assert bytes(s)==bytes(expected),(scenario,tick,mismatch(s,expected))
   steps+=1;shots+=fired.value>=0
