@@ -3,7 +3,7 @@ use kbcs_bridge::{actor, battle, battle_screen, production, render, stage};
 use kbcs_data::{equipment, formations::Document, store::Database};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 #[path = "battle_inspector.rs"]
 mod inspector;
 
@@ -35,6 +35,15 @@ pub struct Request {
     pub skip_combos: bool,
     #[serde(default)]
     pub inspection: Option<Vec<inspector::Query>>,
+    pub focus_actor: Option<i32>,
+    #[serde(default)]
+    pub compact: bool,
+}
+#[derive(Default)]
+pub struct ActorDrawRanges {
+    pub focus: Option<(usize, usize)>,
+    pub preview: Option<[usize; 2]>,
+    pub actors: [usize; 2],
 }
 pub struct Clip {
     pub model: render::Model,
@@ -77,6 +86,7 @@ pub struct Session {
     title_draw: Option<(render::Cut, i32)>,
     rules: battle::Rules,
     precision: kbcs_data::support::Precision,
+    poses: PoseCache,
 }
 fn integer(value: &Value) -> Result<i32> {
     value
@@ -1424,12 +1434,14 @@ impl Session {
             top_cuts,
             top_textures,
             title_draw,
+            poses: PoseCache::default(),
         })
     }
     pub fn draw(
         &mut self,
         input: &crate::scene::Input,
         combo_frame: i32,
+        ranges: &mut ActorDrawRanges,
     ) -> Result<crate::scene::Frame<'_>> {
         let intro = self.combo_layout(combo_frame, input.viewport_width)?;
         let visuals = native(self.core.visuals())?.to_vec();
@@ -1463,8 +1475,10 @@ impl Session {
             &self.range_cuts,
             self.range_texture,
         ))?);
+        let actor_start = commands.len();
         for value in order {
             let (side, slot) = (value.side, value.slot);
+            let start = commands.len();
             let words = &value.actor.words;
             let model = self
                 .models
@@ -1513,6 +1527,7 @@ impl Session {
                     )?;
                 } else {
                     paint_clip(
+                        &mut self.poses,
                         &mut commands,
                         asset,
                         &frame.layout,
@@ -1548,6 +1563,7 @@ impl Session {
                     .transpose()?
                     .unwrap_or([0; 2]);
                 paint_clip(
+                    &mut self.poses,
                     &mut commands,
                     entry,
                     &frame.layout,
@@ -1561,6 +1577,7 @@ impl Session {
                 && let Some(soul) = model.clips.get(&9)
             {
                 paint_clip(
+                    &mut self.poses,
                     &mut commands,
                     soul,
                     &frame.layout,
@@ -1571,6 +1588,9 @@ impl Session {
                 )?;
             }
             let belonging = |v: &&battle::Visual| v.side == side as i32 && v.slot == slot as i32;
+            if ranges.focus == Some((side, slot)) && commands.len() > start {
+                ranges.preview = Some([start, commands.len()]);
+            }
             for value in visuals
                 .iter()
                 .filter(belonging)
@@ -1615,6 +1635,7 @@ impl Session {
                     0
                 };
                 paint_clip(
+                    &mut self.poses,
                     &mut commands,
                     asset,
                     &frame.layout,
@@ -1625,6 +1646,7 @@ impl Session {
                 )?;
             }
         }
+        let actor_end = commands.len();
         commands.extend(native(self.core.sniper_draw(
             &frame.layout,
             [&self.sniper_cuts[0], &self.sniper_cuts[1]],
@@ -1641,6 +1663,7 @@ impl Session {
                 .get(&(6, 0, value.phase))
                 .context("共通演出モデルなし")?;
             paint_clip(
+                &mut self.poses,
                 &mut commands,
                 asset,
                 &frame.layout,
@@ -1676,6 +1699,7 @@ impl Session {
                 .get(&(6, 0, value.phase))
                 .context("ボス演出モデルなし")?;
             paint_clip(
+                &mut self.poses,
                 &mut commands,
                 asset,
                 &frame.layout,
@@ -1690,6 +1714,10 @@ impl Session {
             .iter()
             .position(|c| c.layer > 2)
             .unwrap_or(frame.commands.len());
+        ranges.actors = [at + actor_start, at + actor_end];
+        if let Some(preview) = &mut ranges.preview {
+            *preview = preview.map(|index| index + at);
+        }
         frame.commands.splice(at..at, commands);
         if intro.index >= 0 {
             // 005d63f8の帯は乗算。同じ描画先の背景・個体へ適用する。
@@ -1813,8 +1841,7 @@ impl Session {
         }
         Ok(())
     }
-    pub fn stats(&self) -> Result<Value> {
-        let (actors, _) = native(self.core.actors())?;
+    pub fn stats(&self, compact: bool) -> Result<Value> {
         let references = native(self.core.active_actors())?;
         let (production, seed) = native(self.core.production())?;
         let count = |side: usize| {
@@ -1826,7 +1853,6 @@ impl Session {
         let hint = native(self.core.hint())?;
         let hint_lines = self.defeat_hints.get(hint.id as usize);
         let ending = native(self.core.ending())?;
-        let end_camera = native(self.core.end_camera())?;
         let camera_limits = native(self.core.camera_limits())?;
         let boss_line = native(self.core.defeat_boss_hp())?
             .map(|hp| {
@@ -1847,14 +1873,9 @@ impl Session {
         } else {
             Value::Null
         };
-        let units: Vec<_> = references.iter().filter(|value|value.slot > 0).map(|value| {
-            let a = &value.actor.words;
-            json!({"side":value.side,"slot":value.slot,"profile":value.profile,"raw":a[0],"layer":a[5],"frame":a[2],"action":a[1],"hp":a[8],"maximum":a[7],"x":a[3],"y":a[4],"serial":a[240]})
-        }).collect();
-        Ok(json!({
+        let mut view = json!({
             "defeatHint": {"layout":hint,"lines":hint_lines},
             "ex": native(self.core.ex())?,
-            "endCamera": end_camera,
             "endingHudSlide": camera_limits.slide,
             "endCameraActive": camera_limits.automatic,
             "cameraMaximum": camera_limits.maximum,
@@ -1862,33 +1883,42 @@ impl Session {
             "ending": ending,
             "endingMap": native(self.core.ending_map())?,
             "continuePrompt": continue_prompt,
-            "noContinue": self.continue_notice.is_some(),
             "continueNotice": self.continue_notice,
             "defeatBossHp": boss_line,
             "receipt": self.receipt.saved,
             "receiptError": self.receipt.error,
-            "rewardRolls": native(self.core.rewards())?,
             "units": count(0),
             "enemies": count(1),
-            "castleHp": [actors[0][0].words[8], actors[1][0].words[8]],
             "precision": self.precision,
             "wait": production.wait,
-            "maximum": production.maximum,
             "costs": native(self.core.prices())?,
-            "produced": production.produced,
             "extras": native(self.core.extras())?,
             "points": native(self.core.points())?,
-            "lastCosts": production.last_cost,
-            "seed": seed,
-            "actors": units,
-            "cannon": [actors[0][0].words[9], actors[0][0].words[10], actors[0][0].words[13]],
-            "sniper": native(self.core.sniper_status())?,
-            "computer": native(self.core.computer())?,
             "sounds": native(self.core.sounds())?,
             "result": native(self.core.outcome())?,
             "deployment": native(self.core.deployment())?,
             "rules": self.rules,
-        }))
+        });
+        if !compact {
+            let (actors, _) = native(self.core.actors())?;
+            let units: Vec<_> = references.iter().filter(|value|value.slot > 0).map(|value| {
+                let a = &value.actor.words;
+                json!({"side":value.side,"slot":value.slot,"profile":value.profile,"raw":a[0],"layer":a[5],"frame":a[2],"action":a[1],"hp":a[8],"maximum":a[7],"x":a[3],"y":a[4],"serial":a[240]})
+            }).collect();
+            let diagnostic = json!({
+                "endCamera":native(self.core.end_camera())?, "noContinue":self.continue_notice.is_some(),
+                "rewardRolls":native(self.core.rewards())?, "castleHp":[actors[0][0].words[8], actors[1][0].words[8]],
+                "maximum":production.maximum, "produced":production.produced, "lastCosts":production.last_cost,
+                "seed":seed, "actors":units, "cannon":[actors[0][0].words[9], actors[0][0].words[10], actors[0][0].words[13]],
+                "sniper":native(self.core.sniper_status())?, "computer":native(self.core.computer())?,
+            });
+            if let Value::Object(fields) = diagnostic {
+                view.as_object_mut()
+                    .expect("戦闘表示オブジェクト")
+                    .extend(fields);
+            }
+        }
+        Ok(view)
     }
     pub fn layout(&self, input: &crate::scene::Input) -> Result<render::Layout> {
         native(render::battle_layout(
@@ -1955,8 +1985,18 @@ impl Session {
     }
 }
 
+type PoseKey = (usize, i32, bool);
+
+#[derive(Default)]
+struct PoseCache {
+    packets: HashMap<PoseKey, Vec<render::Packet>>,
+    order: VecDeque<PoseKey>,
+    bytes: usize,
+}
+
 #[allow(clippy::too_many_arguments)]
 fn paint_clip(
+    cache: &mut PoseCache,
     commands: &mut Vec<render::Command>,
     asset: &Clip,
     layout: &render::Layout,
@@ -1965,12 +2005,32 @@ fn paint_clip(
     y: f64,
     anchor: bool,
 ) -> Result<()> {
+    const LIMIT: usize = 4 * 1024 * 1024;
+    // モデルは戦闘開始後に入れ替えない。位置・ズームはキャッシュ後に適用する。
+    let key = (std::ptr::from_ref(asset) as usize, frame, anchor);
+    if let Some(local) = cache.packets.get(&key) {
+        return paint_packets(commands, asset, layout, local, x, y);
+    }
     let local = if anchor {
         native(asset.model.pose_config(frame, 0, 1))?
     } else {
         native(asset.model.pose(frame, false, false, 1))?
     };
-    paint_packets(commands, asset, layout, &local, x, y)
+    paint_packets(commands, asset, layout, &local, x, y)?;
+    let size = local.capacity() * size_of::<render::Packet>();
+    if size <= LIMIT {
+        while cache.order.len() >= 1024 || cache.bytes + size > LIMIT {
+            if let Some(oldest) = cache.order.pop_front()
+                && let Some(value) = cache.packets.remove(&oldest)
+            {
+                cache.bytes -= value.capacity() * size_of::<render::Packet>();
+            }
+        }
+        cache.bytes += size;
+        cache.order.push_back(key);
+        cache.packets.insert(key, local);
+    }
+    Ok(())
 }
 fn paint_warp(
     commands: &mut Vec<render::Command>,

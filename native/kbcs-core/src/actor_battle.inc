@@ -120,9 +120,9 @@ struct KbcsBattle {
   }
   const bool full=unitLimit();
   for(const auto &p:definitions)if(!p.spawn.side&&p.deployment_slot>=0&&p.deployment_slot<10){const int i=p.deployment_slot,rarity=config.rules.slot_rarity[i];
-   if(config.screen.blocked[i]||full)out.blocked[i]=config.screen.blocked[i]|(full?128:0);
-   else if(!summonActive(i)){KbcsBattleLimit in{config.screen.fixed_money>=0,(cheats&KBCS_BATTLE_MONEY)?std::max(screen.money,cost(p)):screen.money,cost(p),(cheats&KBCS_BATTLE_NO_LIMIT)?0:config.rules.rarity_limits[rarity],out.active[rarity],(cheats&KBCS_BATTLE_NO_LIMIT)?-1:config.rules.total_limit,production.total};
-    const auto code=kbcs_core_battle_limit(&in,&out.blocked[i]);if(code)throw AttackFailure{code};}
+   out.blocked[i]=config.screen.blocked[i]|(full?128:0);
+   if(!config.screen.blocked[i]&&!summonActive(i)){KbcsBattleLimit in{config.screen.fixed_money>=0,(cheats&KBCS_BATTLE_MONEY)?std::max(screen.money,cost(p)):screen.money,cost(p),(cheats&KBCS_BATTLE_NO_LIMIT)?0:config.rules.rarity_limits[rarity],out.active[rarity],(cheats&KBCS_BATTLE_NO_LIMIT)?-1:config.rules.total_limit,production.total};
+    int32_t reason=0;const auto code=kbcs_core_battle_limit(&in,&reason);if(code)throw AttackFailure{code};out.blocked[i]|=reason;}
   }
   return out;
  }
@@ -415,7 +415,19 @@ struct KbcsBattle {
  void act(int side,int slot,KbcsBattleScreenState &screen){
   auto &words=actorAt(actors,side,slot).words;check(kbcs_core_actor_begin(actors,&config.environment,side,slot));
   if(!words[0])return;
-  if(!slot){if(!side||(config.environment.unit_modes[side]&1))check(kbcs_core_actor_cannon_action(&cannon,actors,&config.cannon,side));return;}
+  if(!slot){
+   if(!side||(config.environment.unit_modes[side]&1))check(kbcs_core_actor_cannon_action(&cannon,actors,&config.cannon,side));
+   // 006eb464: 自城HPが尽きた後も、論理Fごとに煙の5枠を巡回する。
+   if(!side&&words[8]<=0){
+    words[1]=2;
+    int32_t dx=0,dy=0;
+    check(kbcs_core_random_bounded(&seed,241,&dx));
+    check(kbcs_core_random_bounded(&seed,323,&dy));
+    auto &smoke=impacts[0][50+screen.frame%5];
+    smoke[0]=12;smoke[1]=words[3]+dx*10-1087;smoke[2]=words[4]-dy*10-587;smoke[3]=0;
+   }
+   return;
+  }
   const auto &p=profile(side,slot);const bool unit_route=!side||(config.environment.unit_modes[side]&1);
   if(side&&!unit_route){int32_t count=0;check(kbcs_core_actor_sniper_hit(&sniper,actors,&config.environment,slot,&seed,&count));}
   // 陣営0は006eb464、陣営1だけがunit-mode時に同経路へ委譲する。

@@ -433,6 +433,48 @@ fn ending_camera_respects_the_updated_zoom_and_scroll_bounds() {
 }
 
 #[test]
+fn destroyed_player_castle_keeps_emitting_smoke_during_defeat() {
+    let mut battle = Battle::new(&config(), &[], &[]).unwrap();
+    let layout = render::Layout {
+        viewport_width: 960.,
+        zoom: 1.,
+        ..Default::default()
+    };
+    let cuts: [render::Cut; 14] = std::array::from_fn(|i| render::Cut {
+        x: i as i32,
+        y: 0,
+        width: 137,
+        height: 117,
+    });
+    let draw = |battle: &Battle| {
+        battle
+            .hit_draw(&layout, &cuts, 1)
+            .unwrap()
+            .into_iter()
+            .map(|draw| (draw.points[0] as i32, draw.points[1] as i32, draw.cut[0]))
+            .collect::<Vec<_>>()
+    };
+    assert!(draw(&battle).is_empty());
+    edit(&mut battle, 0, 0, |words| words[8] = 0);
+    tick(&mut battle, 1);
+    assert_eq!(battle.outcome().unwrap().mode, 2);
+    // JP 15.7.2 ARM64の006ec31cと乱数本体で得た座標。6F目で最初の枠を再使用する。
+    assert_eq!(draw(&battle), [(1764, 85, 8)]);
+    tick(&mut battle, 5);
+    assert_eq!(
+        draw(&battle),
+        [
+            (1777, 119, 8),
+            (1801, 110, 8),
+            (1701, 249, 10),
+            (1803, 142, 9),
+            (1702, 346, 9)
+        ]
+    );
+    assert_eq!(battle.production().unwrap().1, 2630914406);
+}
+
+#[test]
 fn defeat_title_finishes_moving_before_the_hint_opens() {
     let mut battle = Battle::new(&config(), &[], &[]).unwrap();
     battle.hints(&[7], &[3], 3).unwrap();

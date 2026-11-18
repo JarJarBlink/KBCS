@@ -141,3 +141,5 @@ workspaceの左右を閉じても各24pxの縦ボタンを残す。ヘッダー�
 2026-10-30: [起動画面・設定・キー操作](settings.md)。提供画像のアイコン/ロゴ、設定への集約、データ管理と診断、戦闘入力の共用を記録した。
 
 戦闘画面の `battleCameraView` は、C++由来の `endCameraActive` と `cameraMaximum` から手動操作用の状態を作る。`battle-input.test.mjs` は、終了カメラから操作を引き継ぐ条件と、報酬・コンティニュー不可通知が共用する描画入口を検査する。
+
+操作盤・個体詳細・FPS制限・遮蔽判定は[戦闘の操作盤と詳細](battle-workbench.md)を参照。

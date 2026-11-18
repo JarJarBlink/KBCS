@@ -424,7 +424,7 @@ impl Service {
                 request,
                 self.persist_rewards,
             )?;
-            let stats = session.stats()?;
+            let stats = session.stats(false)?;
             let textures = session.scene.textures().to_vec();
             let title = session.title.clone();
             let active_combos = session.active_combo_ids();
@@ -544,7 +544,7 @@ impl Service {
             })?;
             let core_ms = started.elapsed().as_secs_f64() * 1000.;
             session.settle()?;
-            let mut runtime = session.stats()?;
+            let mut runtime = session.stats(request.compact && !request.debug)?;
             if let Some(query) = &request.inspection {
                 runtime["inspection"] = session.inspection(query)?;
             }
@@ -587,7 +587,20 @@ impl Service {
             let combo_frame = battle.state.hud_frame;
             runtime["comboIntro"] =
                 session.combo_intro(combo_frame, request.scene.viewport_width)?;
-            let frame = session.draw(&request.scene, combo_frame)?;
+            let mut ranges = crate::battle::ActorDrawRanges::default();
+            if let Some(id) = request.focus_actor
+                && let Some((actor, value)) = session.focused_actor(id)?
+            {
+                if actor.retired_frame < 0 {
+                    ranges.focus = Some((actor.side as usize, actor.slot as usize));
+                }
+                runtime["focusedActor"] = value;
+            }
+            let frame = session.draw(&request.scene, combo_frame, &mut ranges)?;
+            runtime["actorDrawRange"] = json!(ranges.actors);
+            if let Some(range) = ranges.preview {
+                runtime["focusedDrawRange"] = json!(range);
+            }
             return Reply::battle(
                 BattleFrame {
                     battle: &battle,

@@ -98,13 +98,17 @@ export function initializeWorkspace(){
     right.content.classList.add('formation-options');
   }else if(page==='stage-sortie'){
     move('#sortie-stage-navigation',left.content);move('#sortie-details',right.content);move('#battle-controls',viewbar);
-    move('#battle-actor-list',left.content);move('#battle-actor-detail',right.content);
+    move('#battle-actor-list',left.content);move('#battle-actor-detail',right.content);move('#battle-details',information);
     right.panel.querySelector('h2').textContent='ステージ詳細';
     let previousBottom,aspectRatio=1422/640;
     function fitBattleView(){
-      const active=body.classList.contains('workspace-battle'),shelf=active&&bottom.open&&aspectRatio;
-      body.classList.toggle('workspace-battle-shelf',!!shelf);
-      if(shelf){const height=Math.max(1,Math.floor(Math.min(editor.clientWidth/aspectRatio,editor.clientHeight-viewbar.offsetHeight-48)));main.style.height=height+'px';}
+      const active=body.classList.contains('workspace-battle'),shelf=active&&bottom.open;
+      body.classList.toggle('workspace-battle-shelf',shelf);
+      if(shelf){
+        const available=editor.clientHeight-viewbar.offsetHeight,reserve=Math.min(260,Math.floor(available*.38));
+        const height=Math.max(1,Math.floor(Math.min(aspectRatio?editor.clientWidth/aspectRatio:Infinity,available-reserve)));
+        main.style.height=height+'px';
+      }
       else main.style.removeProperty('height');
     }
     const battleObserver=new ResizeObserver(fitBattleView);battleObserver.observe(editor);battleObserver.observe(viewbar);
@@ -115,10 +119,11 @@ export function initializeWorkspace(){
       if(active){previousBottom=bottom.open;bottom.open=true;}
       else if(previousBottom!==undefined){bottom.open=previousBottom;previousBottom=undefined;}
       element('battle-actor-list').hidden=!active;element('battle-actor-detail').hidden=!active;
+      element('battle-details').hidden=!active;bottom.querySelector('summary > span').textContent=active?'戦闘詳細':'情報';
       left.panel.querySelector('h2').textContent=active?'敵':'このページ';
       right.panel.querySelector('h2').textContent=active?'味方':'ステージ詳細';
       for(const panel of [left.panel,right.panel]){const label=panel.querySelector('h2').textContent;panel.setAttribute('aria-label',label);panel.querySelector('.workspace-close').setAttribute('aria-label',label+'を閉じる');}
-      viewbar.querySelector('.workspace-tab').textContent=active?'戦闘':'出撃準備';element('battle-controls').hidden=!active;for(const button of element('battle-controls').querySelectorAll('button'))button.disabled=active;viewbar.classList.toggle('battle-viewbar',active);
+      viewbar.querySelector('.workspace-tab').textContent=active?'操作盤':'出撃準備';element('battle-controls').hidden=!active;for(const button of element('battle-controls').querySelectorAll('button'))button.disabled=active;viewbar.classList.toggle('battle-viewbar',active);
       fitBattleView();apply();
     });
   }else if(page==='stage-detail'){

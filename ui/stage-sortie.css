@@ -65,22 +65,46 @@
 .sortie-launch:disabled{filter:brightness(.498)}
 .sortie-launch:focus-visible{outline:2px solid var(--color-accent);outline-offset:3px}
 
-/* 上は常設操作/情報、中央は指定比率、余った高さは下の折りたたみパネルへ。 */
-.workspace-battle .workspace-viewbar{min-height:116px;align-items:flex-start}
+/* 上は操作盤、中央は指定比率、下はタブ切替の詳細。 */
+.workspace-battle .workspace-viewbar{min-height:48px;align-items:flex-start}
 .workspace-battle .workspace-tab{min-width:70px;align-self:stretch}
 .battle-controls{box-sizing:border-box;max-height:190px;overflow:auto;padding:8px;min-width:min(100%,320px)}
 .battle-actions{height:auto;min-height:32px;flex-wrap:wrap;overflow:visible;row-gap:6px;white-space:normal}
 .battle-actions button{min-height:28px;padding:4px 8px}
 .battle-aspect{display:flex;align-items:center;gap:5px;font-size:12px}
 .battle-aspect select{width:auto;max-width:180px}
-.battle-status-line,.battle-state,.battle-constraints{display:flex;gap:12px;min-height:19px;align-items:center;overflow:hidden;white-space:nowrap;font-size:12px;font-variant-numeric:tabular-nums}
+.battle-status-line,.battle-state,.battle-constraints{display:flex;flex-wrap:wrap;gap:4px 12px;min-height:19px;align-items:center;font-size:12px;font-variant-numeric:tabular-nums}
 .battle-status-line{color:var(--color-text-muted)}
 .battle-status-line [role=alert]{color:#ff9e9e}
-.battle-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));height:auto;min-height:40px;gap:4px 10px;padding-top:6px;font-size:12px;white-space:nowrap;overflow:hidden}
-.battle-stats output{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.battle-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));height:auto;gap:6px 12px;margin:6px 0 10px;font-size:12px;white-space:normal;overflow:visible}
+.battle-stats output{min-width:0;padding:3px 0}
 .workspace-battle-shelf .page-main{flex:0 0 auto}
 .workspace-battle-shelf .workspace-editor>.workspace-bottom{flex:1 1 48px;min-height:48px;display:flex;flex-direction:column}
 .workspace-battle-shelf .workspace-information{flex:1;height:auto;min-height:0}
+
+#battle-details [role=tablist]{display:flex;gap:4px;position:sticky;top:0;z-index:1;background:var(--color-surface);padding-bottom:5px;border-bottom:1px solid var(--color-border)}
+#battle-details [role=tab]{font-size:12px;padding:3px 10px}
+#battle-details [aria-selected=true]{border-color:var(--color-accent);color:var(--color-accent)}
+#battle-details [role=tabpanel]{padding-top:8px;font-size:12px}
+#battle-details [role=tabpanel][hidden]{display:none}
+.battle-actor-workbench{display:grid;grid-template-columns:minmax(100px,1fr) minmax(150px,1.25fr) minmax(160px,1.25fr);gap:12px}
+.battle-actor-workbench section{min-width:0}
+.battle-actor-workbench section+section{border-left:1px solid var(--color-border);padding-left:10px}
+.battle-actor-workbench h3{font-size:12px;margin:0 0 5px}
+.battle-actor-workbench p{color:var(--color-muted);font-size:11px;margin:4px 0}
+.battle-actor-workbench canvas{width:100%;max-width:256px;background:var(--color-control);border:1px solid var(--color-border)}
+.battle-actor-workbench dl{margin:0;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 6px;font-variant-numeric:tabular-nums}
+.battle-actor-workbench dt{color:var(--color-muted)}
+.battle-actor-workbench dd{margin:0;text-align:right;overflow-wrap:anywhere}
+.battle-actor-workbench ol{list-style:none;margin:0;padding:0;max-height:174px;overflow:auto}
+.battle-actor-workbench li{border-bottom:1px solid var(--color-border);padding:4px 0;font-size:11px}
+.workspace-information{container-type:inline-size}
+@container (max-width:480px){.battle-actor-workbench{grid-template-columns:1fr}.battle-actor-workbench section+section{border-left:0;padding-left:0}}
+.battle-stage-data{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,max-content));gap:3px 10px;margin:0 0 8px;font-variant-numeric:tabular-nums}
+.battle-stage-data>div{display:flex;align-items:baseline;gap:6px;padding:3px 6px;background:var(--color-control)}
+.battle-stage-data dt{color:var(--color-muted)}
+.battle-stage-data dd{margin:0}
+#battle-detail-stage h3{margin:0 0 6px;font-size:13px}
 
 .battle-cheats{display:flex;flex-wrap:wrap;gap:6px 16px;padding:6px 0;border-block:1px solid var(--color-border)}
 .battle-cheats[hidden]{display:none}.battle-cheats label{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap}.battle-cheats input{width:auto}

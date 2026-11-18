@@ -64,11 +64,10 @@ export async function prepareInspectorAssets(assets,textures,images,database,sig
  }finally{renderer.dispose();surface.width=surface.height=0;}
 }
 
-function createSideInspector(list,assets,database,enemies,onChange,side){
- let group='present',offset=0,selected=null,revision=0,lastRequest=-Infinity,lastValue;
+function createSideInspector(list,assets,database,enemies,onChange,side,select){
+ let group='present',offset=0,selected=null,revision=0,lastRequest=-Infinity;
  const controller=new AbortController(),options={signal:controller.signal},rows=new Map();
- list.innerHTML='<div class="battle-inspector-stats"></div><div class="battle-inspector-filter"><div class="battle-inspector-groups" role="group" aria-label="個体の表示範囲"><button data-group="present" aria-pressed="true">場内</button><button data-group="retired" aria-pressed="false">退場</button><button data-group="all" aria-pressed="false">すべて</button></div><span class="battle-inspector-clock"></span></div><details class="battle-inspector-selection"><summary>個体の詳細</summary><div class="battle-inspector-detail"></div></details><div class="battle-inspector-rows" aria-label="戦闘個体一覧"></div><div class="battle-inspector-pages"><button data-page="-1" aria-label="前の64体">◀</button><output></output><button data-page="1" aria-label="次の64体">▶</button></div>';
- const detail=list.querySelector('.battle-inspector-detail'),selection=list.querySelector('.battle-inspector-selection');
+ list.innerHTML='<div class="battle-inspector-stats"></div><div class="battle-inspector-filter"><div class="battle-inspector-groups" role="group" aria-label="個体の表示範囲"><button data-group="present" aria-pressed="true">場内</button><button data-group="retired" aria-pressed="false">退場</button><button data-group="all" aria-pressed="false">すべて</button></div><span class="battle-inspector-clock"></span></div><div class="battle-inspector-rows" aria-label="戦闘個体一覧"></div><div class="battle-inspector-pages"><button data-page="-1" aria-label="前の64体">◀</button><output></output><button data-page="1" aria-label="次の64体">▶</button></div>';
  const body=list.querySelector('.battle-inspector-rows'),stats=list.querySelector('.battle-inspector-stats'),clock=list.querySelector('.battle-inspector-clock'),pages=list.querySelector('.battle-inspector-pages');
  const icon=(key,label)=>key==='revive'||key==='burrow'?'<img class="battle-status-image" src="/icons/enemies/'+key+'.png" alt="">':propertyIconHtml(key==='aku-shield'||key==='enemy-barrier'?enemies:database,key,label,12,false);
  const statuses=actor=>actorStatuses(actor).map(([key,value,label,broken])=>'<span class="battle-status-chip'+(broken?' is-broken':'')+'" title="'+label+' '+value+'">'+icon(key,label)+'<span>'+value+'</span></span>').join('');
@@ -88,32 +87,20 @@ function createSideInspector(list,assets,database,enemies,onChange,side){
    else sourceImage(context,source,index*16,34,16,14);
   }
  }
- function showDetail(actor){
-  detail.replaceChildren();
-  if(!actor){detail.textContent='個体を選択';return;}
-  const profile=assets.profiles[actor.profile],heading=document.createElement('strong');heading.textContent='#'+actor.id+' '+(profile?.name||'個体');detail.append(heading);
-  const values=[['状態',actorState(actor)],['HP',number(actor.hp)+' / '+number(actor.maximum)],['座標','X '+actor.x/10+' / Y '+actor.y/10],['レイヤー',actor.layer],['生成',actor.bornFrame+'F'],['最終更新',actor.lastFrame+'F'],['死亡 / 蘇生',actor.deaths+' / '+actor.revivals],['陣営 / 枠 / 通番',actor.side+' / '+actor.slot+' / '+actor.serial],['行動 / アニメF',actor.action+' / '+actor.animation]];
-  if(actor.retiredFrame>=0)values.push(['退場',actor.retiredFrame+'F']);
-  if(actor.deathFrame>=0)values.push(['直近のHP0',actor.deathFrame+'F']);
-  const table=document.createElement('dl');for(const [name,value]of values){const term=document.createElement('dt'),definition=document.createElement('dd');term.textContent=name;definition.textContent=value;table.append(term,definition);}detail.append(table);
-  const chips=document.createElement('div');chips.className='battle-inspector-detail-status';chips.innerHTML=statuses(actor);detail.append(chips);
-  if(actor.attackers?.length){const heading=document.createElement('strong');heading.className='battle-inspector-cause-heading';heading.textContent='HP0になったフレームの攻撃元';detail.append(heading);for(const source of actor.attackers){const row=document.createElement('div');row.className='battle-inspector-cause';const image=document.createElement('canvas');image.width=32;image.height=24;sourceImage(image.getContext('2d'),source,0,0,32,24);const text=document.createElement('span');text.textContent=sourceName(source);row.title='HP確定前の予約量 '+number(source.reserved);row.append(image,text);detail.append(row);}}
- }
  function change(){++revision;lastRequest=-Infinity;onChange();}
- selection.addEventListener('toggle',()=>{if(selection.open)change();},options);
  list.addEventListener('click',event=>{
   const filter=event.target.closest('[data-group]'),page=event.target.closest('[data-page]'),row=event.target.closest('[data-actor]');
   if(filter){group=filter.dataset.group;offset=0;for(const button of list.querySelectorAll('[data-group]'))button.setAttribute('aria-pressed',String(button.dataset.group===group));}
   else if(page)offset=Math.max(0,offset+Number(page.dataset.page)*pageSize);
-  else if(row){selected=Number(row.dataset.actor);for(const [id,item]of rows)item.button.setAttribute('aria-pressed',String(id===selected));const actor=lastValue?.rows.find(actor=>actor.id===selected);if(actor)showDetail(actor);selection.open=true;}
+  else if(row){select(Number(row.dataset.actor));return;}
   else return;change();
  },options);
- showDetail(null);
  return {
-  query(now,force=false){if(!force&&now-lastRequest<200||!list.getClientRects().length&&!detail.getClientRects().length)return undefined;lastRequest=now;return {side,group,offset,selected,revision};},
+  select(id){selected=id;for(const [key,item]of rows)item.button.setAttribute('aria-pressed',String(key===id));},
+  query(now,force=false){if(!force&&now-lastRequest<200||!list.getClientRects().length)return undefined;lastRequest=now;return {side,group,offset,revision};},
   refresh:change,
   update(value,frame){
-   if(!value||value.side!==side||value.revision!==revision)return;lastValue=value;clock.textContent=frame+'F';
+   if(!value||value.side!==side||value.revision!==revision)return;clock.textContent=frame+'F';
    const [spawned,field,deaths,revived,retired]=value.counts[side];stats.textContent=(side?'出現 '+number(spawned):'生産 '+number(value.produced)+(value.produced!==spawned?'（生成 '+number(spawned)+'）':''))+'　場内 '+number(field)+'\n死亡 '+number(deaths)+'　蘇生 '+number(revived)+'　退場 '+number(retired);stats.title='生産は通常生産の成功数。生成には精霊・追加生産・砲の生成物も含む。死亡はHPが正から0になった回数。蘇生は待機から蘇生動作へ移った回数。場内は昇天中・退場済みを除く個体数。';
    const ids=new Set(value.rows.map(actor=>actor.id));for(const [id,item]of rows)if(!ids.has(id)){item.button.remove();rows.delete(id);}
    for(const actor of value.rows){
@@ -128,14 +115,14 @@ function createSideInspector(list,assets,database,enemies,onChange,side){
    orderActorRows(body,value.rows.map(actor=>rows.get(actor.id).button));
    if(!value.rows.length){body.dataset.empty='該当する個体なし';if(offset&&value.total<=offset){offset=Math.max(0,Math.floor((value.total-1)/pageSize)*pageSize);change();}}else delete body.dataset.empty;
    pages.querySelector('output').textContent=value.total?(offset+1)+'–'+Math.min(offset+pageSize,value.total)+' / '+value.total:'0';pages.querySelector('[data-page="-1"]').disabled=!offset;pages.querySelector('[data-page="1"]').disabled=offset+pageSize>=value.total;
-   if(value.selected&&selection.open)showDetail(value.selected);
   },
-  stop(){controller.abort();list.replaceChildren();detail.replaceChildren();rows.clear();lastValue=null;},
+  stop(){controller.abort();list.replaceChildren();rows.clear();},
  };
 }
 
-export function createBattleInspector(enemiesRoot,alliesRoot,assets,database,enemies,onChange){
- const panels=[createSideInspector(enemiesRoot,assets,database,enemies,onChange,1),createSideInspector(alliesRoot,assets,database,enemies,onChange,0)];
+export function createBattleInspector(enemiesRoot,alliesRoot,assets,database,enemies,onChange,onSelect){
+ const select=id=>{for(const panel of panels)panel.select(id);onSelect(id);};
+ const panels=[createSideInspector(enemiesRoot,assets,database,enemies,onChange,1,select),createSideInspector(alliesRoot,assets,database,enemies,onChange,0,select)];
  return {
   query(now,force=false){const values=panels.map(panel=>panel.query(now,force)).filter(Boolean);return values.length?values:undefined;},
   update(values,frame){for(const value of values||[])for(const panel of panels)panel.update(value,frame);},

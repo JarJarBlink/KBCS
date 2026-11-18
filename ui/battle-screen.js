@@ -2,7 +2,7 @@
 import {nativeFont,loadNativeFonts} from './native-font.js';
 import {readBattleKeys,battleKeyAction,editableKeyTarget} from './keyboard.js';
 import {createSessionId} from './src/shared/browser/session-id.js';
-import {battleAspects,battleViewportWidth,battleCameraView,battlePlaybackRate} from './battle-view.js';
+import {battleAspects,battleViewportWidth,battleCameraView,battlePlaybackRate,battleFpsLimits,battlePresentationClock} from './battle-view.js';
 import {audioBlobUrl} from './src/shared/browser/audio-preview.js';
 import {createBattleResults} from './battle-results.js';
 import {createBattleSounds} from './battle-audio.js';
@@ -15,6 +15,7 @@ import {initializeSceneGestures,createSceneMotion} from './src/features/stages/s
 import {sortieFixedMoney} from './sortie-view.js';
 import {prepareBattleInfo,drawBattleInfo} from './battle-info.js';
 import {prepareInspectorAssets,createBattleInspector} from './battle-inspector.js';
+import {createBattleDetails} from './battle-details.js';
 
 export function battleScreenConfiguration(database,snapshot){
  const {formation,map,items,deployment}=snapshot,profile=formation.profile;
@@ -64,27 +65,41 @@ export async function prepareBattleScreen(database,snapshot,assets,signal,report
 export async function startBattleScreen(root,canvas,scene,snapshot,resources,onReturn){
  let screenWidth=960,camera=scene.layout,cameraVersion=0,drawnVersion=-1,drawnRows=0;
  const backgroundCanvas=root.querySelector('[data-battle-background]'),controls=document.getElementById('battle-controls'),session=createSessionId();
+ const detailsRoot=document.getElementById('battle-details'),presentation=battlePresentationClock();
+ const fps=controls.querySelector('[data-battle-fps]'),simplify=controls.querySelector('[data-battle-simplify]');
+ fps.innerHTML=battleFpsLimits.map(value=>'<option value="'+value+'">'+value+' FPS</option>').join('');
+ try{fps.value=presentation.set(localStorage.getItem('kbcs:battle-fps'));simplify.checked=localStorage.getItem('kbcs:battle-simplify')==='true';}catch{fps.value=30;}
+ const clock=detailsRoot.querySelector('[data-battle-clock]');
+ const stagePanel=detailsRoot.querySelector('#battle-detail-stage'),shelf=detailsRoot.closest('details');
  const aspect=controls.querySelector('[data-battle-aspect]');aspect.innerHTML=battleAspects.map(([value,label])=>'<option value="'+value+'">'+label+'</option>').join('');
  try{aspect.value=localStorage.getItem('kbcs:battle-aspect')||'20:9';}catch{}if(!aspect.value)aspect.value='20:9';
  let painter;try{painter=createStagePainter(backgroundCanvas,()=>++cameraVersion,resources.sceneImages);}catch(error){resources.dispose();throw error;}
- let playbackPaused=false,stepQueue=0,paints=0,activeMs=0,activePaints=0,cheats=0,settingsVersion=0,appliedSettings=-1;
+ let playbackPaused=false,stepQueue=0,paints=0,activeMs=0,activePaints=0,lastActivePaint,cheats=0,settingsVersion=0,appliedSettings=-1;
  const speed=controls.querySelector('[data-battle-speed]'),cheatPanel=controls.querySelector('#battle-cheats');
  speed.innerHTML='<option value="0">アイテムに従う</option>'+[.1,.2,.25,.5,.75,...Array.from({length:20},(_,i)=>i+1)].map(value=>'<option value="'+value+'">'+value+'倍</option>').join('');
  cheatPanel.hidden=true;for(const input of cheatPanel.querySelectorAll('input'))input.checked=false;
  controls.querySelector('[data-debug=cheats]').setAttribute('aria-expanded','false');
- function changeSettings(){cheats=[...cheatPanel.querySelectorAll('input:checked')].reduce((flags,input)=>flags|Number(input.dataset.cheat),0);++settingsVersion;accumulator=0;lastTime=0;}
+ function changeSettings(event){
+  if(event.target===fps||event.target===simplify){
+   fps.value=presentation.set(fps.value);
+   try{localStorage.setItem('kbcs:battle-fps',fps.value);localStorage.setItem('kbcs:battle-simplify',String(simplify.checked));}catch{}
+   clearTimeout(presentationTimer);presentationTimer=0;++cameraVersion;return;
+  }
+  if(event.target!==speed&&!cheatPanel.contains(event.target))return;
+  cheats=[...cheatPanel.querySelectorAll('input:checked')].reduce((flags,input)=>flags|Number(input.dataset.cheat),0);++settingsVersion;accumulator=0;lastTime=0;
+ }
  controls.addEventListener('change',changeSettings);
  const timing={coreMs:0,apiMs:0,computeMs:0,drawMs:0},frames=createBattleFrameClient();
  const bandCanvas=document.createElement('canvas');
  const context=canvas.getContext('2d'),message=root.querySelector('[data-battle-message]'),menu=root.querySelector('[data-battle-menu]');
- const messageHome=message.parentElement;controls.querySelector('.battle-status-line').prepend(message);
+ const messageHome=message.parentElement;detailsRoot.querySelector('.battle-status-line').prepend(message);
  message.textContent='';
  const precisionWarning=document.createElement('span');precisionWarning.setAttribute('role','status');message.after(precisionWarning);
  const presentationWarning=resources.referencePresentation?'参照版の戦闘UI素材で表示しています。':'';
  precisionWarning.textContent=presentationWarning;precisionWarning.hidden=!presentationWarning;
  const keyBindings=readBattleKeys();
  let state={frame:0,intro:12,rows:2,page:0,page_frame:0,page_direction:1,paused:0,money:resources.money,worker:resources.worker,cannon:0,holding:-1,hold_frames:0,hold_wait:0,pointer_down:0,pointer_x:0,pointer_y:0,guard:0,pending_control:-1,items_on:resources.config.items,request_slot:-1,request_cannon:0,ui_frame:0,speed_mode:resources.speedMode,wallet_flash:0,description_item:-1,description_wait:0,start_x:0,start_y:0,gesture:0,page_step:1,request_action:0,bgm_level:3,se_level:3,vibration_on:0,info_mode:0,info_slot:0,saved_rows:2,hud_frame:0};
- let runtime={wait:Array(10).fill(0),maximum:Array(10).fill(0)},sessionCreated=false,skipCombos=false,returnPending=false,inspector,inspectionDirty=false;
+ let runtime={wait:Array(10).fill(0),maximum:Array(10).fill(0)},sessionCreated=false,skipCombos=false,returnPending=false,inspector,details,inspectionDirty=false;
  Object.assign(state,{rows:resources.options.rows,saved_rows:resources.options.rows,bgm_level:resources.options.bgmLevel,se_level:resources.options.seLevel});
  let savedOptions=JSON.stringify(resources.options),saveOptions=Promise.resolve();
  function persistOptions(){
@@ -92,11 +107,17 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(body===savedOptions)return;savedOptions=body;
   saveOptions=saveOptions.then(()=>readBattleJson('/api/battle-options',{method:'PUT',headers:{'Content-Type':'application/json'},body,keepalive:true})).catch(error=>{savedOptions='';if(!stopped)message.textContent='設定保存: '+error.message;});
  }
- const actorsInfo=document.createElement('span');actorsInfo.className='battle-actor-info';controls.querySelector('.battle-state').append(actorsInfo);
- const resultInfo=document.createElement('output');resultInfo.setAttribute('aria-live','polite');controls.querySelector('.battle-state').append(resultInfo);
- const limitInfo=document.createElement('span');controls.querySelector('.battle-constraints').append(limitInfo);
+ const actorsInfo=document.createElement('span');actorsInfo.className='battle-actor-info';detailsRoot.querySelector('.battle-state').append(actorsInfo);
+ const resultInfo=document.createElement('output');resultInfo.setAttribute('aria-live','polite');detailsRoot.querySelector('.battle-state').append(resultInfo);
+ const limitInfo=document.createElement('span');detailsRoot.querySelector('.battle-constraints').append(limitInfo);
+ const stageData=detailsRoot.querySelector('.battle-stage-data');
+ detailsRoot.querySelector('[data-battle-stage-name]').textContent=snapshot.stage.name+'（'+snapshot.map.key+' / 冠'+snapshot.crown+'）';
+ for(const [label,value] of [['ステージ幅',snapshot.stage.width],['敵最大数',snapshot.stage.maxEnemies],['背景ID',snapshot.stage.background],['冠倍率',snapshot.map.stars?.[snapshot.crown-1]==null?'—':snapshot.map.stars[snapshot.crown-1]+'%']]){
+  const pair=document.createElement('div'),term=document.createElement('dt'),data=document.createElement('dd');
+  term.textContent=label;data.textContent=value?.toLocaleString('ja-JP')??'—';pair.append(term,data);stageData.append(pair);
+ }
  let keySerial=0;
- let view,stopped=false,raf=0,busy=false,lastTime=0,accumulator=0,pointer={phase:0,x:0,y:0},control=0,error=false,failure=null;
+ let view,stopped=false,raf=0,busy=false,pendingScene,presenting=false,presentationTimer=0,returnAfterPaint=0,lastTime=0,lastCameraTime=0,firstPaint,lastPaint,accumulator=0,pointer={phase:0,x:0,y:0},control=0,error=false,failure=null;
  const requestController=new AbortController();
  let audio=null,audioId=-1;
  let audioStarted=false;
@@ -121,10 +142,34 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  }
  async function drawScene(next,version){
   if(!next||stopped)return;timing.computeMs=next.computeMs;
-  const drawing=performance.now();if(!await painter.paint(next))return;timing.drawMs=performance.now()-drawing;
+  const drawing=performance.now();if(!await painter.paint(next,simplify.checked))return;timing.drawMs=performance.now()-drawing;
   if(stopped)return;scene=next;drawnVersion=version;drawnRows=state.rows;
   // 操作中の新しい要求は古い描画応答で上書きしない。
   if(version===cameraVersion)camera=next.layout;
+ }
+ async function present(){
+  const next=pendingScene;pendingScene=null;
+  timing.displayWaitMs=next?performance.now()-next.received:0;
+  if(next)await drawScene(next.scene,next.version);
+  if(stopped)return;
+  const hudStart=performance.now();paint();
+  lastPaint=performance.now();timing.hudMs=lastPaint-hudStart;firstPaint??=lastPaint;presentation.presented(lastPaint);
+  if(!playbackPaused&&!state.paused&&!document.hidden&&state.intro>=24&&!state.battle_mode){
+   if(lastActivePaint!=null){activeMs+=lastPaint-lastActivePaint;++activePaints;}
+   lastActivePaint=lastPaint;
+  }else lastActivePaint=undefined;
+  if(next)details?.update(next.actor,next.frame,next.range,next.scene);
+ }
+ function queuePresentation(){
+  if(!pendingScene||presenting||presentationTimer||stopped||error||document.hidden)return;
+  const delay=presentation.delay(performance.now());
+  if(delay>0){presentationTimer=setTimeout(()=>{presentationTimer=0;queuePresentation();},Math.ceil(delay));return;}
+  presenting=true;
+  present().then(()=>{if(returnPending)returnAfterPaint=2;}).catch(fail).finally(()=>{
+   presenting=false;
+   // 次のブラウザー描画通知を待たず、既に経過したtickだけ送る。
+   scheduleUpdate();
+  });
  }
  async function update(ticks,stepping=false){
   inspectionDirty=false;
@@ -133,9 +178,10 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(ticks||immediate)pointer.phase=0;control=0;
   const version=cameraVersion,sentSettings=settingsVersion,sentKeys=keySerial;
   const sceneInput=stageSceneInput(snapshot.stage,{center:camera.center,zoom:camera.zoom,showEnemy:true,showPlayer:true,showEffects:true,session});
-  const {value:next,timing:measured}=await frames.load({session,input,cheats,skipCombos,inspection:inspector?.query(performance.now(),stepping||immediate),scene:{...sceneInput,viewportWidth:screenWidth}},requestController.signal);
+  const {value:next,timing:measured}=await frames.load({session,input,cheats,skipCombos,compact:true,inspection:inspector?.query(performance.now(),stepping||immediate),focusActor:details?.focus(),scene:{...sceneInput,viewportWidth:screenWidth}},requestController.signal);
   Object.assign(timing,measured);timing.coreMs=next.coreMs;
   if(stopped)return;appliedSettings=sentSettings;
+  accrueClock(performance.now());
   // 0tickキーの後に届いた同一Fの古い描画応答で、押下状態を巻き戻さない。
   if(sentKeys===keySerial||next.state.ui_frame>state.ui_frame||next.state.frame>state.frame){state=next.state;view=next.layout;}runtime=next.runtime;
   if(runtime.precision?.status==='partial'&&!precisionWarning.title){precisionWarning.textContent=[partialCalculation,presentationWarning].filter(Boolean).join(' ');precisionWarning.title=runtime.precision.issues.map(issue=>issue.domain+' '+issue.id).join(' / ');precisionWarning.hidden=false;}
@@ -143,10 +189,14 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   results.update(runtime,screenWidth,resources.atlas);
   inspector?.update(runtime.inspection,state.frame);
   sounds.update(runtime.sounds||[],state.se_level,state.speed_mode+1,playbackPaused&&!stepping,!!runtime.result.mode);
-  actorsInfo.textContent='味方 '+runtime.units+' / 敵 '+runtime.enemies+'　城 '+runtime.castleHp.map(value=>value.toLocaleString()).join(' / ');
   const result=runtime.result,rules=runtime.rules,finished=!!result.mode;
-  resultInfo.textContent=[result.reason===3?(result.mode===1?'時間終了（勝利）':'時間終了'):result.mode===1?'勝利':result.reason===2?'敗北':'',rules.scoreType===1||rules.scoreType===3||rules.scoreType===2&&finished||rules.nativeKind===-6&&finished?(rules.scoreType===3?'Pt ':'Score ')+result.score.toLocaleString():'',(rules.scoreType===1||rules.scoreType===3)?'残り '+(Math.max(0,rules.timeLimit-result.timer)/30).toFixed(2)+'秒':''].filter(Boolean).join('　');
-  limitInfo.textContent=[!finished&&runtime.points.wait>0?'フィーバー '+(runtime.points.wait/30).toFixed(1)+'秒':'',runtime.extras.length?'追加生産 待機 '+runtime.extras.length:'',rules.totalLimit>=0?'総生産 '+runtime.deployment.total+' / '+rules.totalLimit:'',...rules.rarityLimits.flatMap((limit,i)=>limit>0?['同時 '+['基本','EX','レア','激レア','超激レア','伝説レア'][i]+' '+runtime.deployment.active[i]+' / '+limit]:[])].join('　');
+  if(!stagePanel.hidden&&(!shelf||shelf.open)){
+   const [ownCastle,enemyCastle]=runtime.hud.health.map(([hp,max,unknown])=>unknown?'？':hp.toLocaleString('ja-JP')+' / '+max.toLocaleString('ja-JP'));
+   actorsInfo.textContent='味方 '+runtime.units+' / 敵 '+runtime.enemies+'　自城 '+ownCastle+'　敵城 '+enemyCastle+'　所持金 '+Math.trunc(state.money/100).toLocaleString('ja-JP');
+   resultInfo.textContent=[result.reason===3?(result.mode===1?'時間終了（勝利）':'時間終了'):result.mode===1?'勝利':result.reason===2?'敗北':'',rules.scoreType===1||rules.scoreType===3||rules.scoreType===2&&finished||rules.nativeKind===-6&&finished?(rules.scoreType===3?'Pt ':'Score ')+result.score.toLocaleString():'',(rules.scoreType===1||rules.scoreType===3)?'残り '+(Math.max(0,rules.timeLimit-result.timer)/30).toFixed(2)+'秒':''].filter(Boolean).join('　');
+   limitInfo.textContent=[!finished&&runtime.points.wait>0?'フィーバー '+(runtime.points.wait/30).toFixed(1)+'秒':'',runtime.extras.length?'追加生産 待機 '+runtime.extras.length:'',rules.totalLimit>=0?'総生産 '+runtime.deployment.total+' / '+rules.totalLimit:'',...rules.rarityLimits.flatMap((limit,i)=>limit>0?['同時 '+['基本','EX','レア','激レア','超激レア','伝説レア'][i]+' '+runtime.deployment.active[i]+' / '+limit]:[])].join('　');
+   clock.textContent=state.frame+'F / '+(state.frame/30).toFixed(2)+'秒';
+  }
   if(state.request_slot>=0)message.textContent='';
   if(state.request_cannon)message.textContent='にゃんこ砲を発射';
   menu.hidden=!state.paused;
@@ -154,14 +204,14 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(state.request_action===301)window.open('https://kbc-rakv0.pages.dev/information/appli/battlecats/help/index.html','_blank','noopener');
   if(state.request_action===302){if(runtime.result?.mode)returnPending=true;else{stop();onReturn();return;}}
   for(const button of controls.querySelectorAll('button'))button.disabled=false;
-  controls.querySelector('[data-battle-clock]').textContent=state.frame+'F / '+(state.frame/30).toFixed(2)+'秒';
   controls.querySelector('[data-debug=toggle]').textContent=playbackPaused||state.paused?'再開':'一時停止';
   controls.querySelector('[data-debug=rows]').textContent=state.rows===2?'2段':'1段';
   controls.querySelector('[data-debug=page]').disabled=state.rows===2||finished;
   for(const key of ['menu','rows'])controls.querySelector('[data-debug='+key+']').disabled=finished;
   for(const button of controls.querySelectorAll('[data-debug=step],[data-debug=ten]'))button.disabled=state.intro<24;
   if(playbackPaused&&!state.paused){state.pointer_down=0;state.holding=-1;state.hold_frames=0;pointer.phase=0;if(!stepping)accumulator=0;}
-  await drawScene(next.scene,version);
+  if(next.scene)next.scene.actorRange=runtime.actorDrawRange;
+  pendingScene={scene:next.scene,version,actor:runtime.focusedActor,range:runtime.focusedDrawRange,frame:next.state.frame,received:performance.now()};
  }
  function sprite(name,index,x,y,width,height){
   const atlas=resources.atlas.atlases[name],cut=atlas.rects[index];if(!cut)throw Error(name+' cut '+index+' がありません');
@@ -183,7 +233,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  }
  function paint(){
   if(!view)return;
-  ++paints;if(!playbackPaused&&!state.paused&&!document.hidden&&state.intro>=24)++activePaints;context.clearRect(0,0,screenWidth,640);
+  ++paints;context.clearRect(0,0,screenWidth,640);
   if(runtime.result?.mode&&runtime.ending.phase){results.paint(context,screenWidth,sprite,number,resources.atlas,resources.images);paintFade();return;}
   // 005d0044 / 005d0a68 / 005d1f2c / 005d2408 / 006e21c0。背景と同じ終了時計を使う。
   const slide=runtime.endingHudSlide??0,moneyY=10-slide;
@@ -195,17 +245,18 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   for(const index of order){const [x,y,w,h]=view.slots[index],form=resources.forms[index];
    if(!form){sprite('uni',0,x,y,w,h);if(view.modes[index]===2){context.fillStyle='rgba(0,0,0,.392)';context.fillRect(x,y,w,h);}continue;}
    const summon=runtime.hud.summons[index],image=resources.images.get(form.icon);
-   const tint=summon[0]?(summon[1]?[157,215,255]:[135,100,100]):null;
-   if(tint)context.drawImage(tinted(image,[9,21,110,85],tint,form.icon+'-summon-'+summon[1]),x,y,w,h);
+   const restricted=!summon[0]&&(runtime.deployment.blocked[index]&(0x7f|0x100))!==0;
+   const tint=summon[0]&&summon[1]?'summon-ready':summon[0]||restricted?'slot-locked':null;
+   if(tint)context.drawImage(tinted(image,[9,21,110,85],tint==='summon-ready'?[157,215,255]:[135,100,100],form.icon+'-'+tint),x,y,w,h);
    else context.drawImage(image,9,21,110,85,x,y,w,h);
-   const cost=runtime.costs[index],disabled=state.battle_mode||runtime.deployment.blocked[index]||(!summon[0]&&((!(cheats&1)&&cost>state.money)||runtime.wait[index]>0)),base=disabled?46:35;
-   if(disabled||view.modes[index]===2){context.fillStyle='rgba(0,0,0,.392)';context.fillRect(x,y,w,h);}
+   const cost=runtime.costs[index],disabled=!tint&&(state.battle_mode||(!(cheats&1)&&cost>state.money)||runtime.wait[index]>0),base=disabled?46:35;
+   if(disabled||(!tint&&view.modes[index]===2)){context.fillStyle='rgba(0,0,0,.392)';context.fillRect(x,y,w,h);}
    if(summon[0]&&summon[1]){const cut=resources.atlas.atlases.img002_ja.rects[53],[sx,sy]=view.labels[index];context.drawImage(tinted(resources.images.get(resources.atlas.atlases.img002_ja.image),cut,[summon[4],summon[4],summon[4]],'summon-'+summon[4]),sx+Math.trunc((110-cut[2])/2),sy+Math.trunc((85-cut[3])/2));}
    const gauge=runtime.hud.gauges[index];
    if(gauge[2]){
     const [gx,gy,,cyan,red]=gauge;context.fillStyle='#000';context.fillRect(gx,gy,97,14);
     context.fillStyle='#f00';context.fillRect(gx+2,gy+2,red,10);context.fillStyle='#0ff';context.fillRect(gx+2,gy+2,cyan,10);
-   }else if(!summon[0]){const [labelX,labelY]=view.labels[index];number(Math.trunc(cost/100),base,labelX+94,labelY+62,-3);sprite('img001_ja',disabled?56:45,labelX+94,labelY+62,22,26);}
+   }else if(!summon[0]&&(!restricted||resources.config.fixed_money>=0&&view.modes[index]!==2)){const [labelX,labelY]=view.labels[index];number(Math.trunc(cost/100),base,labelX+94,labelY+62,-3);sprite('img001_ja',disabled?56:45,labelX+94,labelY+62,22,26);}
    if(index<5&&!state.info_mode&&view.modes[index]===1&&!skipCombos&&runtime.comboIntro?.layout.blink<2&&runtime.comboIntro.combo?.members.some(member=>member.id===snapshot.formation.slots[index]?.unitId))sprite('img002_ja',44,x-8,y-8,w+16,h+16);
   }
   }
@@ -301,12 +352,12 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  function changeAspect(){try{localStorage.setItem('kbcs:battle-aspect',aspect.value);}catch{}resize();}
  aspect.addEventListener('change',changeAspect);
  const observer=new ResizeObserver(resize);
- const monitor=createBattleMonitor(controls,()=>({...timing,...frames.stats(),frame:state.frame,paints,activeMs,activePaints,cheats,speed:Number(speed.value),lag:accumulator*(state.speed_mode?state.speed_mode+1:1)+stepQueue,images:stageMediaStats(resources.sceneImages)}));
+ const monitor=createBattleMonitor(detailsRoot,()=>({...timing,...frames.stats(),frame:state.frame,paints,firstPaint,lastPaint,activeMs,activePaints,cheats,speed:Number(speed.value),fpsLimit:Number(fps.value),omitted:painter.omitted(),simplify:simplify.checked,lag:accumulator*(state.speed_mode?state.speed_mode+1:1)+stepQueue,images:stageMediaStats(resources.sceneImages)}));
  function command(event){
   const button=event.target.closest('[data-debug],[data-battle-control]');if(!button)return;
   const action=button.dataset.debug;
   if(action==='cheats'){cheatPanel.hidden=!cheatPanel.hidden;button.setAttribute('aria-expanded',String(!cheatPanel.hidden));}
-  else if(action==='toggle'){playbackPaused=!(playbackPaused||state.paused);accumulator=0;lastTime=0;if(playbackPaused&&!state.paused){state.pointer_down=0;state.holding=-1;state.hold_frames=0;pointer.phase=0;}if(state.paused&&!playbackPaused)control=1;button.textContent=playbackPaused?'再開':'一時停止';sounds.update([],state.se_level,1,playbackPaused,!!runtime.result.mode);if(audio){if(playbackPaused)audio.pause();else if(audioStarted&&!audio.ended&&!runtime.result.mode)audio.play().catch(()=>{});}}
+  else if(action==='toggle'){playbackPaused=!(playbackPaused||state.paused);accumulator=0;lastTime=0;lastActivePaint=undefined;if(playbackPaused&&!state.paused){state.pointer_down=0;state.holding=-1;state.hold_frames=0;pointer.phase=0;}if(state.paused&&!playbackPaused)control=1;button.textContent=playbackPaused?'再開':'一時停止';sounds.update([],state.se_level,1,playbackPaused,!!runtime.result.mode);if(audio){if(playbackPaused)audio.pause();else if(audioStarted&&!audio.ended&&!runtime.result.mode)audio.play().catch(()=>{});}}
   else if(action==='step'||action==='ten'){playbackPaused=true;stepQueue+=action==='step'?1:10;accumulator=0;if(state.paused)control=1;}
   else if(action==='menu')control=2;
   else if(action==='rows')control=3;
@@ -317,15 +368,16 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   else if(!action)control=Number(button.dataset.battleControl);
  }
  controls.addEventListener('click',command);
+ detailsRoot.addEventListener('click',command);
  root.addEventListener('click',command);
- function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.message};message.textContent='戦闘停止: '+e.message;message.title=message.textContent;message.setAttribute('role','alert');if(audio)audio.pause();for(const button of controls.querySelectorAll('button'))button.disabled=!['report','return'].includes(button.dataset.debug);}}
+function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.message};message.textContent='戦闘停止: '+e.message;message.title=message.textContent;message.setAttribute('role','alert');const shelf=detailsRoot.closest('details');if(shelf)shelf.open=true;if(audio)audio.pause();for(const button of controls.querySelectorAll('button'))button.disabled=!['report','return'].includes(button.dataset.debug);}}
  function sendInput(input){
   const serial=++keySerial;
   return readBattleJson('/api/battle-session/input',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session,cheats,...input}),signal:requestController.signal}).then(next=>{
    if(stopped)return;
    if(state.battle_mode&&!next.state.battle_mode)return;
    sounds.update(next.sounds,state.se_level,state.speed_mode+1,playbackPaused,!!runtime.result?.mode);
-   if(serial===keySerial&&next.state.ui_frame>=state.ui_frame&&next.state.frame>=state.frame){state=next.state;view=next.layout;++cameraVersion;inspector?.refresh();persistOptions();menu.hidden=!state.paused;paint();}
+   if(serial===keySerial&&next.state.ui_frame>=state.ui_frame&&next.state.frame>=state.frame){state=next.state;view=next.layout;++cameraVersion;inspector?.refresh();persistOptions();menu.hidden=!state.paused;}
   }).catch(fail);
  }
  function key(event){
@@ -346,31 +398,44 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  function keyup(event){const action=battleKeyAction(event.code,keyBindings,state);if(action?.camera)cameraMotion.key(action.camera,false);}
  const blur=()=>cameraMotion.clear();
  window.addEventListener('keyup',keyup);window.addEventListener('blur',blur);
- function visibility(){if(document.hidden){cameraMotion.clear();control=2;}}
+ function visibility(){lastTime=lastCameraTime=0;lastActivePaint=undefined;if(document.hidden){cameraMotion.clear();control=2;}}
  document.addEventListener('visibilitychange',visibility);
- async function animate(now){
-  if(stopped)return;
-  if(lastTime&&!document.hidden){
-   const moved=cameraMotion.step(cameraView(),(now-lastTime)/1000);if(moved){camera={...camera,...moved};++cameraVersion;}
-   const elapsed=now-lastTime;if(!playbackPaused&&!state.paused&&state.intro>=24)activeMs+=elapsed;
-   if(!playbackPaused||state.paused)accumulator+=elapsed*30/1000*(state.intro>=24&&!state.paused&&!state.battle_mode?battlePlaybackRate(Number(speed.value),state.speed_mode):1);
-  }lastTime=now;
-  if(!busy&&(Math.floor(accumulator)>0||control||stepQueue||inspectionDirty||drawnVersion!==cameraVersion||appliedSettings!==settingsVersion||playbackPaused&&(cheats&4)&&pointer.phase===2)){
+ function accrueClock(now){
+  if(document.hidden)return;
+  if(lastTime&&(!playbackPaused||state.paused))accumulator+=(now-lastTime)*30/1000*(state.intro>=24&&!state.paused&&!state.battle_mode?battlePlaybackRate(Number(speed.value),state.speed_mode):1);
+  lastTime=now;
+ }
+ function scheduleUpdate(){
+  if(stopped||error||document.hidden)return;
+  accrueClock(performance.now());
+  if(!returnAfterPaint&&!busy&&!presenting&&!pendingScene&&(Math.floor(accumulator)>0||control||stepQueue||inspectionDirty||drawnVersion!==cameraVersion||appliedSettings!==settingsVersion||playbackPaused&&(cheats&4)&&pointer.phase===2)){
    busy=true;const stepping=!control&&stepQueue>0,ticks=control?0:stepping?Math.min(30,stepQueue):Math.min(playbackPaused?1:30,Math.floor(accumulator));if(stepping)stepQueue-=ticks;else accumulator-=ticks;
-   try{await update(ticks,stepping);paint();}catch(e){fail(e);}finally{busy=false;}
+   update(ticks,stepping).catch(fail).finally(()=>{busy=false;queuePresentation();});
   }
-  // 全面暗転を一度画面へ提示した後、次の表示更新で準備画面へ戻る。
-  if(returnPending&&!stopped){raf=requestAnimationFrame(()=>{stop();onReturn();});return;}
+ }
+ function animate(now){
+  if(stopped)return;
+  // 暗転を提示した描画機会を1回通してから準備画面へ戻る。
+  if(returnAfterPaint&&!--returnAfterPaint){stop();onReturn();return;}
+  if(lastCameraTime&&!document.hidden){
+   const moved=cameraMotion.step(cameraView(),(now-lastCameraTime)/1000);if(moved){camera={...camera,...moved};++cameraVersion;}
+  }lastCameraTime=now;
+  queuePresentation();scheduleUpdate();
   if(!error&&!stopped)raf=requestAnimationFrame(animate);
  }
  window.addEventListener('pagehide',stop);
- function stop(){if(stopped)return;inspector?.stop();inspector=null;results.stop();window.removeEventListener('pagehide',stop);stopped=true;if(sessionCreated)fetch('/api/battle-session?'+new URLSearchParams({session}),{method:'DELETE',keepalive:true}).catch(()=>{});actorsInfo.remove();resultInfo.remove();limitInfo.remove();precisionWarning.remove();messageHome.append(message);cancelAnimationFrame(raf);requestController.abort();observer.disconnect();aspect.removeEventListener('change',changeAspect);controls.removeEventListener('change',changeSettings);painter.dispose();monitor.stop();controls.removeEventListener('click',command);gestures.dispose();sounds.stop();tints.clear();cameraPointers.clear();canvas.removeEventListener('wheel',wheel);if(audio){audio.pause();audio.removeAttribute('src');}resources.dispose();for(const type of ['pointerdown','pointerup','pointercancel','pointermove'])canvas.removeEventListener(type,input);root.removeEventListener('click',command);window.removeEventListener('keydown',key);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);cameraMotion.clear();document.removeEventListener('visibilitychange',visibility);}
+ function stop(){if(stopped)return;inspector?.stop();inspector=null;details?.stop();pendingScene=null;detailsRoot.removeEventListener('click',command);results.stop();window.removeEventListener('pagehide',stop);stopped=true;if(sessionCreated)fetch('/api/battle-session?'+new URLSearchParams({session}),{method:'DELETE',keepalive:true}).catch(()=>{});actorsInfo.remove();resultInfo.remove();limitInfo.remove();precisionWarning.remove();message.removeAttribute('title');message.setAttribute('role','status');messageHome.append(message);cancelAnimationFrame(raf);clearTimeout(presentationTimer);requestController.abort();observer.disconnect();aspect.removeEventListener('change',changeAspect);controls.removeEventListener('change',changeSettings);painter.dispose();monitor.stop();controls.removeEventListener('click',command);gestures.dispose();sounds.stop();tints.clear();cameraPointers.clear();canvas.removeEventListener('wheel',wheel);if(audio){audio.pause();audio.removeAttribute('src');}resources.dispose();for(const type of ['pointerdown','pointerup','pointercancel','pointermove'])canvas.removeEventListener(type,input);root.removeEventListener('click',command);window.removeEventListener('keydown',key);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);cameraMotion.clear();document.removeEventListener('visibilitychange',visibility);}
  try{resize();observer.observe(canvas.parentElement);
   const sceneInput={...stageSceneInput(snapshot.stage,{center:camera.center,zoom:camera.zoom,showEnemy:true,showPlayer:true,showEffects:true,session}),viewportWidth:screenWidth};
   const started=await readBattleJson('/api/battle-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({snapshot,config:resources.config,state,scene:sceneInput}),signal:requestController.signal});sessionCreated=true;
   await Promise.all([...new Set(started.textures)].filter(path=>path&&!resources.sceneImages.has(path)).map(async path=>{const image=new Image();image.src='/api/asset/'+path;try{await image.decode();}catch{throw Error('戦闘画像を読み込めません: '+path);}requestController.signal.throwIfAborted();resources.sceneImages.set(path,image);}));
   const prepared=await prepareInspectorAssets(started.inspectionAssets,started.textures,resources.sceneImages,resources.database,requestController.signal);
-  inspector=createBattleInspector(document.getElementById('battle-actor-list'),document.getElementById('battle-actor-detail'),prepared,resources.database,resources.enemies,()=>{inspectionDirty=true;});
-  await update(0);paint();raf=requestAnimationFrame(animate);}catch(error){stop();throw error;}
+  // 最初の出現時にGPU転送が集中しないよう、暗転中の転送量に上限を設ける。
+  const textures=started.inspectionAssets.profiles.flatMap(profile=>[profile.idle,profile.kb,profile.soul].map(pose=>started.textures[pose?.texture]));
+  timing.warmTextureBytes=painter.warmTextures(textures,32*1024*1024);
+  const requestInspection=()=>{inspectionDirty=true;};
+  details=createBattleDetails(detailsRoot,prepared,resources.sceneImages,requestInspection);
+  inspector=createBattleInspector(document.getElementById('battle-actor-list'),document.getElementById('battle-actor-detail'),prepared,resources.database,resources.enemies,requestInspection,id=>details.select(id));
+  await update(0);await present();raf=requestAnimationFrame(animate);}catch(error){stop();throw error;}
  return {stop};
 }

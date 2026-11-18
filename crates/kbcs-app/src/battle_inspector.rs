@@ -76,6 +76,20 @@ fn pose(clip: Option<&Clip>, anchor: bool, frame: i32) -> Result<Value> {
 }
 
 impl Session {
+    pub fn focused_actor(&self, id: i32) -> Result<Option<(Inspection, Value)>> {
+        let records = native(self.core.inspection())?;
+        let Some(record) = usize::try_from(i64::from(id) - 1)
+            .ok()
+            .and_then(|index| records.get(index))
+            .filter(|record| record.id == id)
+        else {
+            return Ok(None);
+        };
+        let mut value = serde_json::to_value(record)?;
+        value["attackers"] = json!(native(self.core.inspection_sources(id))?);
+        Ok(Some((*record, value)))
+    }
+
     pub fn inspection(&self, queries: &[Query]) -> Result<Value> {
         ensure!(queries.len() <= 2, "一覧の要求数が不正です");
         let records = native(self.core.inspection())?;

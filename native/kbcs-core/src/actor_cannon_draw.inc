@@ -83,7 +83,9 @@ extern "C" uint32_t kbcs_core_battle_hit_draw(const KbcsBattle *battle,const Kbc
  ActorPoolScope pool_scope(battle?&battle->pool:nullptr);
  if(!battle||!scene||!paint||!out||!count||!paint->cuts[0]||paint->counts[0]<14||capacity<224+(actorEnd()-51)*4)return 1;*count=0;
  const int shift=int(scene->viewport_width-960)/2;
- for(int side=0;side<2;++side)for(int slot=0;slot<std::max(56,actorEnd());++slot){const auto &v=slot<51?battle->impacts[side][slot]:slot<actorEnd()?battle->pool.extra[slot-51].impacts[side]:battle->impacts[side][slot];if(v[0]<=1)continue;
+ // 共通の煙を含む原本56枠は、上限解除で増えた個体の被弾枠とは別に描く。
+ constexpr int native_slots=56;
+ for(int side=0;side<2;++side)for(int slot=0;slot<native_slots+actorEnd()-51;++slot){const auto &v=slot<native_slots?battle->impacts[side][slot]:battle->pool.extra[slot-native_slots].impacts[side];if(v[0]<=1)continue;
   const auto &r=paint->cuts[0][13-v[0]/2];const int x=(v[1]-battle->camera)/10+shift,y=v[2]/10;
   const auto sprite=[&](int blend,int red,int green,int blue){KbcsDrawCommand c{paint->textures[0],2,4,blend,1,{},{r.x,r.y,r.width,r.height},{red,green,blue,1,0,0}};
    const int points[8]={x,y,x,y+117,x+137,y+117,x+137,y};
