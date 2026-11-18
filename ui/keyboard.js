@@ -26,4 +26,8 @@ export function battleKeyAction(code,keys,state){
  if(action.id==='page')return state.rows===1?{control:4}:null;
  return {target:({wallet:102,cannon:101,options:state.paused?(state.info_mode?308:300):100,speed:200,sniper:205,computer:203})[action.id]};
 }
-export function editableKeyTarget(target){return !!target?.closest?.('input,textarea,select,[contenteditable=""],[contenteditable="true"],dialog[open]');}
+export function editableKeyTarget(target){
+ if(target?.closest?.('textarea,[contenteditable]:not([contenteditable="false"]),dialog[open]'))return true;
+ const input=target?.closest?.('input');
+ return !!input&&!['button','checkbox','radio','range','reset','submit'].includes(input.type);
+}

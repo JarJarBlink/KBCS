@@ -15,14 +15,17 @@ import {stageRulesHtml,stageFormationHtml} from './src/features/stages/view.js';
 import {readBattleJson,battleFormation,castleHealth,prepareBattleAssets,effectiveStageLimit,stageDeployment} from './battle-support.js';
 
 const node=id=>document.getElementById('sortie-'+id),route=new URLSearchParams(location.search);
+const largeStart=node('large-start');
 let artwork,battleArtwork,paintFormation,formationIndex=1,deployment,deployVersion=0,battle;
 let database,enemies,units,map,stages=[],stage,entry,health,choiceVersion=0,controller,loadedAssets,prepared;
 let reorder,formationSaving=false,formationSelected=-1;
 let saved={items:{},speed:2};try{saved=readSortiePreferences(localStorage,sessionStorage);}catch{}
+largeStart.checked=saved.large===true;
 let crown=Math.max(1,Number(route.get('crown'))||1),items={...saved.items},speed=saved.speed;
 const stageMedia=initializeStageMedia(node('media'),id=>stages.find(value=>value.id===id));
 function status(message,error=false){node('message').textContent=message;node('message').classList.toggle('sortie-status-error',error);}
 function store(){saved={...saved,formation:entry?.id??saved.formation,items,speed};try{for(const storage of [localStorage,sessionStorage])storage.setItem('kbcs:sortie',JSON.stringify(saved));}catch{}}
+largeStart.onchange=()=>{saved.large=largeStart.checked;store();};
 const moneyControls=document.createElement('label');moneyControls.className='sortie-fixed-money';moneyControls.hidden=true;
 moneyControls.innerHTML='所持金<input type="number" min="0" max="10000000" step="1" aria-label="お小遣い制ステージの所持金">円<button type="button">ステージ初期値</button>';
 node('items').before(moneyControls);
@@ -122,7 +125,7 @@ async function depart(){
     loadedAssets=await prepareBattleAssets(stage,formation,scene,report,active.signal);
     const screen=await prepareBattleScreen(units,snapshot,loadedAssets,active.signal,report,enemies);active.signal.throwIfAborted();
     prepared=snapshot;node('initial').hidden=false;node('setup').hidden=true;stageMedia.clear();
-    battle=await startBattleScreen(node('initial'),node('canvas'),scene,snapshot,screen,returnToPreparation,recording,active.signal);active.signal.throwIfAborted();status('');
+    battle=await startBattleScreen(node('initial'),node('canvas'),scene,snapshot,screen,returnToPreparation,recording,active.signal,largeStart.checked);active.signal.throwIfAborted();status('');
   }catch(error){returnToPreparation();if(error.name!=='AbortError')status(error.message,true);}
   finally{if(controller===active){controller=null;node('blackout').hidden=true;node('load-info').hidden=true;ready();}}
 }

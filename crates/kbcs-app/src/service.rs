@@ -177,7 +177,7 @@ impl Service {
     }
 
     pub fn start_updates(&self) {
-        self.updates.check(true);
+        self.updates.start_polling();
     }
 
     pub fn handle(&self, method: &str, path: &str, body: &[u8]) -> Reply {
@@ -324,6 +324,16 @@ impl Service {
         if path == "/api/updates/startup" {
             ensure!(method == "POST", "POSTが必要です");
             return Ok(Reply::json(json!({"claimed":self.updates.claim_startup()})));
+        }
+        if path == "/api/updates/acknowledge-app" {
+            ensure!(
+                method == "POST" && body.len() <= 1024,
+                "更新通知の応答が不正です"
+            );
+            let value: Value = serde_json::from_slice(body)?;
+            self.updates
+                .acknowledge_app_notice(value["tag"].as_str().context("本体のタグがありません")?);
+            return Ok(Reply::json(json!({"accepted":true})));
         }
         if path == "/api/updates/dismiss-restart" {
             ensure!(

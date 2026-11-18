@@ -1,8 +1,8 @@
 ﻿# データ・本体の更新（2026-10-29）
 
-GUI/preview起動→Service::start_updates→updates::Manager::check。CLIのService::newだけではネットワーク処理を始めない。データと本体の確認エラーは独立させる。公式DBが開けない初回はデータの自動取得を始める。既存DBはversion_codeとrelease_tag/release_publishedを比較する。ホームの再確認でも同じ状態を使う。
+GUI/preview起動→Service::start_updates→updates::Manager::start_polling。起動時はデータと本体を確認し、以降は約1分（65秒）間隔で本体の配布情報を取得する。定期確認はホストのワーカーで行う。CLIのService::newだけではネットワーク処理を始めない。公式DBが開けない初回はデータの自動取得を始める。既存DBはversion_codeとrelease_tag/release_publishedを比較する。設定の再確認でも同じ状態を使う。
 
-UIは全ページのmain.js→updates.jsが初回通知を管理する。startup claimはプロセス内で1回だけで、ページ再読み込みごとに確認し直さない。「いいえ」は自動取得をせず、ホームのデータ管理から実行できる案内を出す。本体とデータの更新候補が揃った場合は、本体を先に案内する。本体を見送るか再起動を後回しにした場合は、続けてデータ更新を案内する。本体の更新で再起動する場合は、次回起動時にデータを確認する。初回取得は進捗、バックグラウンド継続、失敗時の再試行案内を表示する。home.jsは同じ状態を購読する。
+UIはページへ移動したときに最新の更新状態を読み込む。戦闘準備から出撃した時点で通知を閉じ、戦闘が終わって準備へ戻ったときに再確認する。定期確認で新しい本体が見つかっても、開いているページには通知を追加しない。応答済みの版は同じプロセス内で通知を繰り返さない。本体と初回のデータ更新候補が揃った場合は本体を先に案内する。「いいえ」以降は設定のデータ管理から本体を取得できる。
 
 API: GET /api/updates（確認/進捗/導入済み版）、POST /check、/startup、/download {kind:data|app}、/apply。先頭はすべて/api/updates。旧/api/importの標準GitHub URLも統合リリースへ接続し、明示したローカルGit原本の手動取り込みを維持する。処理はバックグラウンド。DB snapshotを切り替え、snapshot名を含む既存キャッシュキーを利用する。
 

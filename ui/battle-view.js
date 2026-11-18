@@ -27,10 +27,17 @@ export function accumulateBattleTicks(pending,elapsed,rate,limit){
  return Math.floor(total)>capacity?capacity+pending%1:total;
 }
 export function battlePresentationClock(){
- let limit=30,last=-Infinity;
+ let limit=30,last=-Infinity,deadline=-Infinity;
  return {
-  set(value){limit=fpsLimit(value);return limit;},
-  delay(now){return Math.max(0,1000/limit-(now-last));},
-  presented(now){last=now;},
+  set(value){const next=fpsLimit(value);if(limit!==next){limit=next;deadline=last+1000/limit;}return limit;},
+  delay(now){return Math.max(0,deadline-now);},
+  presented(now){
+   const period=1000/limit;
+   // 通常のタイマーの遅れは次の間隔に累積させない。大きく遅れた場合はそこから刻み直す。
+   const lateness=now-deadline;
+   deadline=(lateness>=0&&lateness<=Math.min(4,period/8)?deadline:now)+period;
+   last=now;
+  },
+  reset(){last=deadline=-Infinity;},
  };
 }

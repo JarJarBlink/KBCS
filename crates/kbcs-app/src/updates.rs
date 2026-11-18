@@ -12,6 +12,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, Ordering},
     },
+    time::Duration,
 };
 
 #[cfg(target_os = "macos")]
@@ -33,6 +34,7 @@ struct State {
     error: Option<String>,
     app_directory: Option<PathBuf>,
     app_restart_pending: bool,
+    app_notified: Option<String>,
 }
 
 pub struct Manager {
@@ -58,15 +60,55 @@ impl Manager {
         }
     }
 
-    pub fn check(self: &Arc<Self>, first_run: bool) {
-        {
-            let mut state = self.state.lock().unwrap();
-            if state.checking {
-                return;
+    pub fn start_polling(self: &Arc<Self>) {
+        self.check(true);
+        let manager = Arc::downgrade(self);
+        std::thread::spawn(move || {
+            loop {
+                std::thread::sleep(Duration::from_secs(65));
+                let Some(manager) = manager.upgrade() else {
+                    break;
+                };
+                if manager.begin_check(false) {
+                    manager.finish_app_check(releases::latest_app());
+                }
             }
-            state.checking = true;
+        });
+    }
+
+    fn begin_check(&self, include_data: bool) -> bool {
+        let mut state = self.state.lock().unwrap();
+        if state.checking || (!include_data && self.busy.load(Ordering::SeqCst)) {
+            return false;
+        }
+        state.checking = true;
+        if include_data {
             state.data_error = None;
-            state.app_error = None;
+        }
+        true
+    }
+
+    fn finish_app_check(&self, app: Result<Option<Release>>) {
+        let mut state = self.state.lock().unwrap();
+        match app {
+            Ok(app) => {
+                state.app_error = None;
+                // 展開した版やダウンロード中の版を、定期確認の結果で置き換えない。
+                if state.app.is_none()
+                    || (state.app_directory.is_none() && !self.busy.load(Ordering::SeqCst))
+                {
+                    state.app = app;
+                }
+            }
+            Err(error) => state.app_error = Some(format!("{error:#}")),
+        }
+        state.checking = false;
+        state.checked = true;
+    }
+
+    pub fn check(self: &Arc<Self>, first_run: bool) {
+        if !self.begin_check(true) {
+            return;
         }
         let manager = self.clone();
         std::thread::spawn(move || {
@@ -86,14 +128,7 @@ impl Manager {
             if first_run && missing && has_data {
                 let _ = manager.start("data");
             }
-            let app = releases::latest_app();
-            let mut state = manager.state.lock().unwrap();
-            match app {
-                Ok(app) => state.app = app,
-                Err(error) => state.app_error = Some(format!("{error:#}")),
-            }
-            state.checking = false;
-            state.checked = true;
+            manager.finish_app_check(releases::latest_app());
         });
     }
 
@@ -125,6 +160,7 @@ impl Manager {
             "available":releases::app_version(&release.tag_name).is_some_and(|v| v > semver_current()),
             "url":release.html_url,"ready":ready,
             "restartPending":desktop&&ready&&state.app_restart_pending,
+            "tag":release.tag_name,"noticePending":state.app_notified.as_ref()!=Some(&release.tag_name),
         }));
         json!({"localDataPresent":!missing,"checking":state.checking,"checked":state.checked,"busy":self.busy.load(Ordering::SeqCst),
             "startupPending":!self.startup_claimed.load(Ordering::SeqCst),
@@ -135,6 +171,13 @@ impl Manager {
 
     pub fn claim_startup(&self) -> bool {
         !self.startup_claimed.swap(true, Ordering::SeqCst)
+    }
+
+    pub fn acknowledge_app_notice(&self, tag: &str) {
+        let mut state = self.state.lock().unwrap();
+        if state.app.as_ref().is_some_and(|app| app.tag_name == tag) {
+            state.app_notified = Some(tag.to_owned());
+        }
     }
 
     pub fn dismiss_restart(&self) {

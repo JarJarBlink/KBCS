@@ -8,10 +8,21 @@ test('連続入力や上限変更で描画間隔を飛び越えない',()=>{
  const clock=battlePresentationClock();
  assert.equal(clock.delay(100),0);clock.presented(100);
  assert.ok(clock.delay(133.3)>0);
- for(let i=0;i<10;++i)assert.equal(clock.delay(110),1000/30-10);
+ for(let i=0;i<10;++i)assert.ok(Math.abs(clock.delay(110)-(1000/30-10))<1e-9);
  assert.equal(clock.delay(134),0);clock.presented(134);
  clock.set(20);assert.ok(clock.delay(183.9)>0);assert.equal(clock.delay(184),0);
  assert.equal(clock.set(120),30);
+});
+
+test('短いタイマー遅延が積み重ならず、大きな遅延では次の描画を詰めない',()=>{
+ const clock=battlePresentationClock();let now=0;clock.presented(now);
+ for(let i=0;i<300;++i){
+  now=Math.ceil(now+clock.delay(now))+.9;
+  clock.presented(now);
+ }
+ assert.ok(Math.abs(now-10_000)<2);
+ now+=800;clock.presented(now);
+ assert.ok(Math.abs(clock.delay(now)-1000/30)<1e-9);
 });
 
 test('停止時間を取り戻さず、低い描画上限と指定速度は保つ',()=>{

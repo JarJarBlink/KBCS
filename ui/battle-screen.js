@@ -62,10 +62,11 @@ export async function prepareBattleScreen(database,snapshot,assets,signal,report
  return {database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,referencePresentation,dispose:()=>{signal.removeEventListener('abort',dispose);dispose();},...values};
 }
 
-export async function startBattleScreen(root,canvas,scene,snapshot,resources,onReturn,recording,signal){
+export async function startBattleScreen(root,canvas,scene,snapshot,resources,onReturn,recording,signal,largeAtStart=false){
  let screenWidth=960,camera=scene.layout,cameraVersion=0,drawnVersion=-1,drawnRows=0;
  const backgroundCanvas=root.querySelector('[data-battle-background]'),controls=document.getElementById('battle-controls'),session=createSessionId();
  const detailsRoot=document.getElementById('battle-details'),presentation=battlePresentationClock();
+ const largeHint=root.querySelector('[data-battle-large-hint]');let large=false,largeHintTimer;
  const fps=controls.querySelector('[data-battle-fps]');
  fps.innerHTML=battleFpsLimits.map(value=>'<option value="'+value+'">'+value+' FPS</option>').join('');
  try{fps.value=presentation.set(localStorage.getItem('kbcs:battle-fps'));}catch{fps.value=30;}
@@ -117,7 +118,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   term.textContent=label;data.textContent=value?.toLocaleString('ja-JP')??'—';pair.append(term,data);stageData.append(pair);
  }
  let keySerial=0;
- let view,stopped=false,raf=0,busy=false,pendingScene,presenting=false,presentationTimer=0,returnAfterPaint=0,lastTime=0,lastCameraTime=0,firstPaint,lastPaint,accumulator=0,pointer={phase:0,x:0,y:0},control=0,error=false,failure=null;
+ let view,stopped=false,raf=0,busy=false,pendingScene,presenting=false,presentationTimer=0,updateTimer=0,returnAfterPaint=0,lastTime=0,lastCameraTime=0,firstPaint,lastPaint,accumulator=0,pointer={phase:0,x:0,y:0},control=0,error=false,failure=null;
  const requestController=new AbortController();
  let audio=null,audioId=-1;
  let audioStarted=false;
@@ -135,10 +136,20 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(!tints.has(key)){const surface=document.createElement('canvas');surface.width=cut[2];surface.height=cut[3];const paint=surface.getContext('2d');paint.drawImage(image,...cut,0,0,cut[2],cut[3]);paint.globalCompositeOperation='multiply';paint.fillStyle='rgb('+color.join(',')+')';paint.fillRect(0,0,surface.width,surface.height);paint.globalCompositeOperation='destination-in';paint.drawImage(image,...cut,0,0,cut[2],cut[3]);tints.set(key,surface);}return tints.get(key);
  }
  function resize(){
-  const box=canvas.parentElement.getBoundingClientRect(),width=battleViewportWidth(aspect.value,box.width,box.height);
-  document.dispatchEvent(new CustomEvent('kbcs:battle-view',{detail:{ratio:aspect.value==='auto'?null:width/640}}));
+  const choice=large?'auto':aspect.value;
+  const box=canvas.parentElement.getBoundingClientRect(),width=battleViewportWidth(choice,box.width,box.height);
+  document.dispatchEvent(new CustomEvent('kbcs:battle-view',{detail:{ratio:choice==='auto'?null:width/640}}));
   if(width===screenWidth&&canvas.width===width&&backgroundCanvas.width===width)return;
   screenWidth=width;resources.config.viewport_width=width;canvas.width=width;canvas.height=640;canvas.style.width='min(100cqw,'+(width/640*100)+'cqh)';backgroundCanvas.width=width;backgroundCanvas.height=640;backgroundCanvas.style.width=canvas.style.width;++cameraVersion;
+ }
+ function setLargeBattle(enabled){
+  large=enabled;document.body.classList.toggle('battle-large',enabled);
+  if(sessionCreated)showLargeHint();
+  resize();canvas.focus({preventScroll:true});
+ }
+ function showLargeHint(){
+  clearTimeout(largeHintTimer);largeHint.hidden=!large;
+  if(large)largeHintTimer=setTimeout(()=>{largeHint.hidden=true;},5000);
  }
  async function drawScene(next,version){
   if(!next||stopped)return;timing.computeMs=next.computeMs;
@@ -148,12 +159,13 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(version===cameraVersion)camera=next.layout;
  }
  async function present(){
+  const scheduledAt=performance.now();
   const next=pendingScene;pendingScene=null;
-  timing.displayWaitMs=next?performance.now()-next.received:0;
+  timing.displayWaitMs=next?scheduledAt-next.received:0;
   if(next)await drawScene(next.scene,next.version);
   if(stopped)return;
   const hudStart=performance.now();paint();recording?.frame(backgroundCanvas,canvas);
-  lastPaint=performance.now();timing.hudMs=lastPaint-hudStart;firstPaint??=lastPaint;presentation.presented(lastPaint);
+  lastPaint=performance.now();timing.hudMs=lastPaint-hudStart;firstPaint??=lastPaint;presentation.presented(scheduledAt);
   if(!playbackPaused&&!state.paused&&!document.hidden&&state.intro>=24&&!state.battle_mode){
    if(lastActivePaint!=null){activeMs+=lastPaint-lastActivePaint;++activePaints;}
    lastActivePaint=lastPaint;
@@ -362,6 +374,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   else if(action==='rows')control=3;
   else if(action==='page')control=4;
   else if(action==='camera'){camera={...camera,center:snapshot.stage.width,zoom:1};++cameraVersion;}
+  else if(action==='large')setLargeBattle(true);
   else if(action==='report'){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   else if(action==='return'||button.dataset.battleControl==='return'){stop();onReturn();return;}
   else if(!action)control=Number(button.dataset.battleControl);
@@ -379,40 +392,53 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
    if(serial===keySerial&&next.state.ui_frame>=state.ui_frame&&next.state.frame>=state.frame){state=next.state;view=next.layout;++cameraVersion;inspector?.refresh();persistOptions();menu.hidden=!state.paused;}
   }).catch(fail);
  }
+ function restoreBattleFocus(event){
+  if(document.querySelector('dialog:modal')||editableKeyTarget(event.target))return;
+  const target=event.type==='change'?event.target.closest?.('select'):event.detail>0&&event.target.closest?.('button,[role="button"],summary,input[type="checkbox"],input[type="radio"]');
+  if(target)canvas.focus({preventScroll:true});
+ }
+ document.addEventListener('click',restoreBattleFocus);
+ document.addEventListener('change',restoreBattleFocus);
  function key(event){
-  if(event.isComposing||event.ctrlKey||event.altKey||event.metaKey||editableKeyTarget(event.target))return;
+  if(event.isComposing||event.ctrlKey||event.altKey||event.metaKey||editableKeyTarget(event.target)||document.querySelector('dialog:modal'))return;
+  if(large&&event.code==='Escape'){event.preventDefault();event.stopPropagation();if(!event.repeat)setLargeBattle(false);return;}
   // 2段で切替操作が無効でも、Spaceでフォーカス中の段数ボタンを押さない。
-  if(event.code===keyBindings.page)event.preventDefault();
+  if(event.code===keyBindings.page){event.preventDefault();event.stopPropagation();}
   const action=battleKeyAction(event.code,keyBindings,state);
-  if(action?.camera){const view=cameraView();if(!view||error||stopped)return;event.preventDefault();if(action.camera==='cameraReset'){cameraMotion.clear();camera={...camera,center:snapshot.stage.width,zoom:1};++cameraVersion;}else cameraMotion.key(action.camera,true);return;}
+  if(action?.camera){const view=cameraView();if(!view||error||stopped)return;event.preventDefault();event.stopPropagation();if(action.camera==='cameraReset'){cameraMotion.clear();camera={...camera,center:snapshot.stage.width,zoom:1};++cameraVersion;}else cameraMotion.key(action.camera,true);return;}
   if(event.repeat||state.intro<24||runtime.result?.mode||error||stopped||state.page_frame)return;
   if(state.paused&&event.code!==keyBindings.options)return;
   if(!action)return;
   if(playbackPaused&&!state.paused&&action.target!==100&&(!(cheats&4)||!Number.isInteger(action.target)||action.target>=10))return;
-  event.preventDefault();
+  event.preventDefault();event.stopPropagation();
   const input=playbackPaused&&action.target===100?2:action.control??1000+action.target;
   sendInput({control:input});
  }
- window.addEventListener('keydown',key);
+ window.addEventListener('keydown',key,true);
  function keyup(event){const action=battleKeyAction(event.code,keyBindings,state);if(action?.camera)cameraMotion.key(action.camera,false);}
  const blur=()=>cameraMotion.clear();
  window.addEventListener('keyup',keyup);window.addEventListener('blur',blur);
- function visibility(){lastTime=lastCameraTime=0;lastActivePaint=undefined;if(document.hidden){cameraMotion.clear();control=2;}}
+ function visibility(){lastTime=lastCameraTime=0;lastActivePaint=undefined;presentation.reset();if(document.hidden){cameraMotion.clear();control=2;}}
  document.addEventListener('visibilitychange',visibility);
+ function clockRate(){return state.intro>=24&&!state.paused&&!state.battle_mode?battlePlaybackRate(Number(speed.value),state.speed_mode):1;}
  function accrueClock(now){
   if(document.hidden)return;
   if(lastTime&&(!playbackPaused||state.paused)){
-   const rate=state.intro>=24&&!state.paused&&!state.battle_mode?battlePlaybackRate(Number(speed.value),state.speed_mode):1;
-   accumulator=accumulateBattleTicks(accumulator,now-lastTime,rate,fps.value);
+   accumulator=accumulateBattleTicks(accumulator,now-lastTime,clockRate(),fps.value);
   }
   lastTime=now;
  }
  function scheduleUpdate(){
   if(stopped||error||document.hidden)return;
   accrueClock(performance.now());
-  if(!returnAfterPaint&&!busy&&!presenting&&!pendingScene&&(Math.floor(accumulator)>0||control||stepQueue||inspectionDirty||drawnVersion!==cameraVersion||appliedSettings!==settingsVersion||playbackPaused&&(cheats&4)&&pointer.phase===2)){
+  if(returnAfterPaint||busy||presenting||pendingScene)return;
+  if(Math.floor(accumulator)>0||control||stepQueue||inspectionDirty||drawnVersion!==cameraVersion||appliedSettings!==settingsVersion||playbackPaused&&(cheats&4)&&pointer.phase===2){
+   clearTimeout(updateTimer);updateTimer=0;
    busy=true;const stepping=!control&&stepQueue>0,ticks=control?0:stepping?Math.min(30,stepQueue):Math.min(playbackPaused?1:30,Math.floor(accumulator));if(stepping)stepQueue-=ticks;else accumulator-=ticks;
    update(ticks,stepping).catch(fail).finally(()=>{busy=false;queuePresentation();});
+  }else if(!updateTimer&&(!playbackPaused||state.paused)){
+   // 次の論理Fが貯まる時刻に起こし、requestAnimationFrameだけを待つ数msの遅れを減らす。
+   updateTimer=setTimeout(()=>{updateTimer=0;scheduleUpdate();},Math.ceil((1-accumulator)*1000/(30*clockRate())));
   }
  }
  function animate(now){
@@ -426,9 +452,22 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
   if(!error&&!stopped)raf=requestAnimationFrame(animate);
  }
  window.addEventListener('pagehide',stop);
- function stop(){if(stopped)return;inspector?.stop();inspector=null;details?.stop();pendingScene=null;detailsRoot.removeEventListener('click',command);results.stop();window.removeEventListener('pagehide',stop);stopped=true;signal?.removeEventListener('abort',stop);recording?.detach();if(sessionCreated)fetch('/api/battle-session?'+new URLSearchParams({session}),{method:'DELETE',keepalive:true}).catch(()=>{});actorsInfo.remove();resultInfo.remove();limitInfo.remove();precisionWarning.remove();message.removeAttribute('title');message.setAttribute('role','status');messageHome.append(message);cancelAnimationFrame(raf);clearTimeout(presentationTimer);requestController.abort();observer.disconnect();aspect.removeEventListener('change',changeAspect);controls.removeEventListener('change',changeSettings);painter.dispose();monitor.stop();controls.removeEventListener('click',command);gestures.dispose();sounds.stop();tints.clear();cameraPointers.clear();canvas.removeEventListener('wheel',wheel);if(audio){audio.pause();audio.removeAttribute('src');}resources.dispose();for(const type of ['pointerdown','pointerup','pointercancel','pointermove'])canvas.removeEventListener(type,input);root.removeEventListener('click',command);window.removeEventListener('keydown',key);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);cameraMotion.clear();document.removeEventListener('visibilitychange',visibility);}
+ function stop(){
+  if(stopped)return;stopped=true;
+  inspector?.stop();inspector=null;details?.stop();pendingScene=null;
+  document.body.classList.remove('battle-large');largeHint.hidden=true;clearTimeout(largeHintTimer);
+  detailsRoot.removeEventListener('click',command);results.stop();window.removeEventListener('pagehide',stop);
+  signal?.removeEventListener('abort',stop);recording?.detach();if(sessionCreated)fetch('/api/battle-session?'+new URLSearchParams({session}),{method:'DELETE',keepalive:true}).catch(()=>{});
+  actorsInfo.remove();resultInfo.remove();limitInfo.remove();precisionWarning.remove();message.removeAttribute('title');message.setAttribute('role','status');messageHome.append(message);
+  cancelAnimationFrame(raf);clearTimeout(presentationTimer);clearTimeout(updateTimer);requestController.abort();observer.disconnect();
+  aspect.removeEventListener('change',changeAspect);controls.removeEventListener('change',changeSettings);painter.dispose();monitor.stop();controls.removeEventListener('click',command);
+  gestures.dispose();sounds.stop();tints.clear();cameraPointers.clear();canvas.removeEventListener('wheel',wheel);if(audio){audio.pause();audio.removeAttribute('src');}resources.dispose();
+  for(const type of ['pointerdown','pointerup','pointercancel','pointermove'])canvas.removeEventListener(type,input);
+  root.removeEventListener('click',command);window.removeEventListener('keydown',key,true);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);cameraMotion.clear();
+  document.removeEventListener('visibilitychange',visibility);document.removeEventListener('click',restoreBattleFocus);document.removeEventListener('change',restoreBattleFocus);
+ }
  signal?.addEventListener('abort',stop,{once:true});
- try{signal?.throwIfAborted();resize();observer.observe(canvas.parentElement);
+ try{signal?.throwIfAborted();if(largeAtStart)setLargeBattle(true);else resize();observer.observe(canvas.parentElement);
   const sceneInput={...stageSceneInput(snapshot.stage,{center:camera.center,zoom:camera.zoom,showEnemy:true,showPlayer:true,showEffects:true,session}),viewportWidth:screenWidth};
   const started=await readBattleJson('/api/battle-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({snapshot,config:resources.config,state,scene:sceneInput}),signal:requestController.signal});sessionCreated=true;
   await Promise.all([...new Set(started.textures)].filter(path=>path&&!resources.sceneImages.has(path)).map(async path=>{const image=new Image();image.src='/api/asset/'+path;try{await image.decode();}catch{throw Error('戦闘画像を読み込めません: '+path);}requestController.signal.throwIfAborted();resources.sceneImages.set(path,image);}));
@@ -440,6 +479,6 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
   details=createBattleDetails(detailsRoot,prepared,resources.sceneImages,requestInspection);
   inspector=createBattleInspector(document.getElementById('battle-actor-list'),document.getElementById('battle-actor-detail'),prepared,resources.database,resources.enemies,requestInspection,id=>details.select(id));
   recording?.attach({name:snapshot.map.key+'-'+(snapshot.stage.index+1),size:()=>[screenWidth,640],audio:()=>sounds.recordAudio(),redraw:requestInspection});
-  await update(0);await present();raf=requestAnimationFrame(animate);}catch(error){stop();throw error;}
+  await update(0);await present();if(large)showLargeHint();raf=requestAnimationFrame(animate);}catch(error){stop();throw error;}
  return {stop};
 }

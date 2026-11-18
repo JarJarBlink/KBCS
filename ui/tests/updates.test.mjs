@@ -12,14 +12,20 @@ class Element {
   close(){this.handlers.close?.();}
   remove(){this.owner.dialogs=this.owner.dialogs.filter(dialog=>dialog!==this);}
 }
+function makePage(){
+  const events=new Map(),windowEvents=new Map();
+  const document={dialogs:[],createElement(tag){return new Element(tag,this);},createTextNode(text){return {textContent:text};},getElementById(){return null;},addEventListener(name,callback){events.set(name,callback);}};
+  document.body=new Element('body',document);globalThis.document=document;
+  globalThis.window={addEventListener(name,callback){windowEvents.set(name,callback);}};
+  return {document,battle:detail=>events.get('kbcs:battle-mode')({detail}),show:()=>windowEvents.get('pageshow')({persisted:true})};
+}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 async function settle(check){for(let i=0;i<100;i++){await tick();if(check())return;}assert.fail('更新通知が完了しませんでした');}
 const originalFetch=globalThis.fetch;
 globalThis.requestAnimationFrame=callback=>callback();globalThis.Image=class{decode(){return Promise.resolve();}};
 try{
   for(const accept of [false,true]){
-    const document={dialogs:[],createElement(tag){return new Element(tag,this);},createTextNode(text){return {textContent:text};},getElementById(){return null;}};
-    document.body=new Element('body',document);globalThis.document=document;globalThis.window={};
+    const {document}=makePage();
     const value={checking:false,checked:true,startupPending:true,busy:false,desktop:true,currentVersion:'0.1.35',data:{version:'15.7.4',size:900000000,available:true,missing:false},app:{available:false}};
     const calls=[];
     globalThis.fetch=async(url,options={})=>{
@@ -41,10 +47,9 @@ try{
     await updates.applyUpdate();assert.ok(restarted);
   }
   for(const choice of ['decline','later','restart','failed']){
-    const document={dialogs:[],createElement(tag){return new Element(tag,this);},createTextNode(text){return {textContent:text};},getElementById(){return null;}};
-    document.body=new Element('body',document);globalThis.document=document;
+    const {document}=makePage();
     const actions=[];
-    globalThis.window={ipc:{postMessage(message){actions.push(message);}}};
+    window.ipc={postMessage(message){actions.push(message);}};
     const value={checking:false,checked:true,startupPending:true,busy:false,desktop:true,currentVersion:'0.1.45',data:{version:'16.0.0',size:900000000,available:true,missing:false},app:{version:'0.1.46',available:true,ready:false}};
     globalThis.fetch=async(url,options={})=>{
       if(url.endsWith('/startup')){value.startupPending=false;return {ok:true,json:async()=>({claimed:true})};}
@@ -84,8 +89,7 @@ try{
     }
   }
   {
-    const document={dialogs:[],createElement(tag){return new Element(tag,this);},createTextNode(text){return {textContent:text};},getElementById(){return null;}};
-    document.body=new Element('body',document);globalThis.document=document;globalThis.window={};
+    const {document}=makePage();
     const value={checking:false,checked:true,startupPending:false,busy:true,job:'app',desktop:true,app:{available:true,ready:false,restartPending:false}};
     globalThis.fetch=async url=>{
       if(url.endsWith('/dismiss-restart')){value.app.restartPending=false;return {ok:true,json:async()=>({accepted:true})};}
@@ -102,8 +106,33 @@ try{
     assert.equal(document.dialogs.length,0);
     assert.equal(value.app.ready,true);
   }
-  const document={dialogs:[],createElement(tag){return new Element(tag,this);},createTextNode(text){return {textContent:text};},getElementById(){return null;}};
-  document.body=new Element('body',document);globalThis.document=document;globalThis.window={};
+  {
+    const {document,battle,show}=makePage();
+    const value={busy:false,checking:false,checked:true,startupPending:false,currentVersion:'0.1.51',app:null};
+    let statusReads=0,acknowledged=0;
+    globalThis.fetch=async(url,options={})=>{
+      if(url.endsWith('/acknowledge-app')){
+        assert.equal(JSON.parse(options.body).tag,value.app.tag);
+        acknowledged++;value.app.noticePending=false;
+        return Response.json({accepted:true});
+      }
+      if(url.endsWith('/api/updates'))statusReads++;
+      return Response.json(value);
+    };
+    const updates=await import('../updates.js?battle-navigation');updates.initializeUpdates();
+    await settle(()=>statusReads===1);await tick();
+    value.app={available:true,tag:'kbcs-v0.1.52',version:'0.1.52',noticePending:true};
+    await updates.checkUpdates();assert.equal(document.dialogs.length,0);
+    battle(true);show();await updates.checkUpdates();assert.equal(document.dialogs.length,0);
+    battle(false);await settle(()=>document.dialogs.length===1);
+    assert.match(document.dialogs[0].children[0].textContent,/^KBCS v0\.1\.52/);
+    battle(true);await settle(()=>document.dialogs.length===0);assert.equal(acknowledged,0);
+    battle(false);await settle(()=>document.dialogs.length===1);
+    document.dialogs[0].children.at(-1).children[0].onclick();
+    await settle(()=>acknowledged===1);await tick();show();await tick();
+    assert.equal(document.dialogs.length,0);
+  }
+  const {document}=makePage();
   const first={checking:false,checked:true,startupPending:true,busy:true,job:'data',message:'ZIP 1/10',data:{missing:true,available:true},app:{version:'0.1.46',available:true}};
   let downloads=0;
   globalThis.fetch=async(url)=>{

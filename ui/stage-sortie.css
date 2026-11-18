@@ -25,6 +25,11 @@
 .workspace-battle #sortie-message{display:none}
 .battle-screen{display:flex;flex:1;min-height:0;flex-direction:column;background:#000}
 .battle-screen[hidden],.battle-menu[hidden]{display:none}
+.sortie-panel .sortie-large-start{justify-content:flex-end;margin-inline-end:16px}
+.sortie-large-start input{width:auto}
+.battle-large .site-header,.battle-large .workspace-viewbar,.battle-large .workspace-bottom,.battle-large .workspace-panel,.battle-large .workspace-separator,.battle-large .workspace-edge,.battle-large .battle-record-bar{display:none}
+.battle-large #sortie-initial{position:fixed;inset:0;z-index:10001}
+.battle-large-hint{position:absolute;inset:16px 0 auto;margin:0 auto;width:max-content;max-width:calc(100% - 32px);padding:8px 14px;border-radius:6px;background:#061025e8;color:#fff;pointer-events:none;text-align:center}
 .battle-stage{position:relative;display:flex;flex:1;min-height:0;align-items:center;justify-content:center;overflow:hidden;container-type:size}
 .battle-stage canvas{display:block;width:min(100cqw,150cqh);height:auto;object-fit:fill;touch-action:none;user-select:none}
 .battle-menu{position:absolute;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}
