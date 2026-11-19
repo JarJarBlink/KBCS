@@ -33,11 +33,11 @@ export async function unpackBattleFrame(buffer){
  return parseBattleFrame(header,payload,0);
 }
 
-export function createBattleFrameClient(){
+export function createBattleFrameClient({compress=true}={}){
  const samples=new Float64Array(120);let count=0;
  return {
   async load(payload,signal){
-   const started=performance.now(),body=JSON.stringify({...payload,packed:true,compressed:typeof DecompressionStream==='function'});
+   const started=performance.now(),body=JSON.stringify({...payload,packed:true,compressed:compress&&typeof DecompressionStream==='function'});
    const response=await fetch(payload.session?'/api/battle-session/frame':'/api/battle-frame',{method:'POST',headers:{'Content-Type':'application/json'},body,signal});
    if(!response.ok){const value=await response.json();throw Error(value.error||'戦闘フレームを取得できません');}
    const buffer=await response.arrayBuffer(),received=performance.now(),value=await unpackBattleFrame(buffer),finished=performance.now();

@@ -7,6 +7,7 @@ mod cache;
 #[cfg(any(windows, target_os = "macos"))]
 mod desktop;
 mod motion_pose;
+mod phone;
 mod recording;
 mod recording_frames;
 mod runtime;

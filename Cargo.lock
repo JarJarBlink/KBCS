@@ -1188,6 +1188,7 @@ version = "0.1.57"
 dependencies = [
  "anyhow",
  "flate2",
+ "getrandom 0.4.3",
  "include_dir",
  "kbcs-bridge",
  "kbcs-data",

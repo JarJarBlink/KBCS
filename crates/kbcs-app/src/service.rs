@@ -88,6 +88,8 @@ pub struct Service {
     poses: Arc<Mutex<Cache<ModelSlot>>>,
     battles: Arc<Mutex<BTreeMap<String, BattleSlot>>>,
     recordings: Arc<crate::recording::Recordings>,
+    pub phone: Arc<crate::phone::Phone>,
+    phone_surface: bool,
     pub persist_rewards: bool,
     pub workers: Arc<crate::workers::Workers>,
     runtime: Arc<Mutex<crate::runtime::Monitor>>,
@@ -168,6 +170,8 @@ impl Service {
             poses: Arc::new(Mutex::new(Cache::new(64, usize::MAX))),
             battles: Arc::new(Mutex::new(BTreeMap::new())),
             recordings: Arc::new(crate::recording::Recordings::default()),
+            phone: Arc::new(crate::phone::Phone::default()),
+            phone_surface: false,
             persist_rewards: true,
             workers: Arc::new(crate::workers::Workers::new()),
             runtime: Arc::new(Mutex::new(crate::runtime::Monitor::default())),
@@ -184,6 +188,15 @@ impl Service {
 
     pub fn start_updates(&self) {
         self.updates.start_polling();
+    }
+
+    pub fn phone_service(&self) -> Self {
+        let mut service = self.clone();
+        service.desktop = false;
+        service.phone = Arc::default();
+        service.phone_surface = true;
+        service.battles = Arc::default();
+        service
     }
 
     pub fn handle(&self, method: &str, path: &str, body: &[u8]) -> Reply {
@@ -232,6 +245,16 @@ impl Service {
     fn route(&self, method: &str, path: &str, body: &[u8]) -> Result<Reply> {
         let url = url::Url::parse(&format!("http://kbcs.localhost{path}"))?;
         let path = url.path();
+        if path == "/api/phone" {
+            ensure!(self.desktop, "スマホ接続はKBCSデスクトップ版で使えます");
+            match method {
+                "POST" => self.phone.start(self)?,
+                "DELETE" => self.phone.stop(),
+                "GET" => (),
+                _ => anyhow::bail!("スマホ接続の操作が不正です"),
+            }
+            return Ok(Reply::json(self.phone.status()));
+        }
         if path == "/api/battle-recording" {
             return Ok(Reply::json(self.recordings.handle(method, &url, body)?));
         }
@@ -1343,7 +1366,7 @@ impl Service {
             return Ok(Reply {
                 status: 200,
                 mime,
-                bytes: if mime.starts_with("text/html") {
+                bytes: if mime.starts_with("text/html") && !self.phone_surface {
                     // blocking scriptを本文より先に読み、moduleの依存取得中もホームを隠す。
                     String::from_utf8_lossy(file.contents())
                         .replacen(

@@ -220,11 +220,19 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
                 response
             }
         })
-        .with_navigation_handler(|url| {
-            open_battle_help(&url);
-            url.starts_with("http://kbcs.localhost/")
-                || url.starts_with("kbcs://localhost/")
-                || url == "https://ponosgames.com/information/appli/battlecats/combo/index.html"
+        .with_navigation_handler({
+            let phone = service.phone.clone();
+            move |url| {
+                open_battle_help(&url);
+                let internal = url.starts_with("http://kbcs.localhost/")
+                    || url.starts_with("kbcs://localhost/");
+                let allowed = internal
+                    || url == "https://ponosgames.com/information/appli/battlecats/combo/index.html";
+                if allowed {
+                    phone.navigate(&url);
+                }
+                allowed
+            }
         })
         .with_on_page_load_handler(|event, url| {
             if matches!(event, wry::PageLoadEvent::Finished) {
@@ -238,7 +246,10 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
         *control_flow = ControlFlow::Wait;
         use serde_json::json;
         match event {
-            Event::LoopDestroyed => service.discard_recording_uploads(),
+            Event::LoopDestroyed => {
+                service.discard_recording_uploads();
+                service.phone.stop();
+            }
             Event::UserEvent(DesktopEvent::Exit(code)) => *control_flow = ControlFlow::ExitWithCode(code),
             Event::UserEvent(DesktopEvent::Display(BattleDisplay::List)) => {
                 monitors = window.available_monitors().collect();

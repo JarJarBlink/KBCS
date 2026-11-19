@@ -2,7 +2,7 @@
 import {nativeFont,loadNativeFonts} from './native-font.js';
 import {readBattleKeys,battleKeyAction,editableKeyTarget} from './keyboard.js';
 import {createSessionId} from './src/shared/browser/session-id.js';
-import {battleAspects,battleViewportWidth,battleCameraView,battlePlaybackRate,battleFpsLimits,battlePresentationClock,accumulateBattleTicks} from './battle-view.js';
+import {battleAspects,battleViewportWidth,phoneCanvasSize,battleCameraView,battlePlaybackRate,battleFpsLimits,battlePresentationClock,accumulateBattleTicks} from './battle-view.js';
 import {audioBlobUrl} from './src/shared/browser/audio-preview.js';
 import {createBattleResults} from './battle-results.js';
 import {createBattleSounds} from './battle-audio.js';
@@ -28,7 +28,7 @@ export function battleScreenConfiguration(database,snapshot){
  const speed=mask&1&&snapshot.speed===3?3:2;
  return {config:{worker_level:facility('worker'),wallet_level:facility('wallet'),attack_level:facility('cannonAttack'),charge_level:facility('cannonCharge'),chapter:['EOC','EOCZ'].includes(map.series)?map.number:3,income_treasure:treasure(3),wallet_treasure:treasure(4),charge_treasure:treasure(1),speed_treasure:treasure(17),income_combo:combo(8),wallet_combo:combo(9),charge_combo:combo(7),charge_start_combo:combo(3),items:mask,speed,fixed_money:rule?fixed*100:-1,costs:deployment.slots.map(v=>v.cost),present:formation.slots.map(v=>Number(!!v)),blocked:deployment.slots.map(v=>v.reasons)},speedMode:mask&1?speed-1:0,worker:items.rich||rule?7:Math.min(7,combo(4)),money:rule?fixed*100:combo(5)*100};
 }
-export async function prepareBattleScreen(database,snapshot,assets,signal,report,enemies){
+export async function prepareBattleScreen(database,snapshot,assets,signal,report,enemies,{phone=false}={}){
  await loadNativeFonts();
  const [atlas,options]=await Promise.all([readBattleJson('/images/native-battle/manifest.json',{signal}),readBattleJson('/api/battle-options',{signal})]);
  let presentationDifferences=[];
@@ -47,7 +47,7 @@ export async function prepareBattleScreen(database,snapshot,assets,signal,report
  const values=battleScreenConfiguration(database,snapshot);
  const info=await prepareBattleInfo(database,snapshot,signal);
  // 一覧の状態アイコンも幕が開く前にデコードする。
- const statusImages=await Promise.all([...new Set([database.imageBase+database.propertyAtlas.path,enemies.imageBase+enemies.propertyAtlas.path,'/icons/enemies/revive.png','/icons/enemies/burrow.png'])].map(async url=>{const image=new Image();image.src=url;await image.decode();signal.throwIfAborted();return image;}));
+ const statusImages=phone?[]:await Promise.all([...new Set([database.imageBase+database.propertyAtlas.path,enemies.imageBase+enemies.propertyAtlas.path,'/icons/enemies/revive.png','/icons/enemies/burrow.png'])].map(async url=>{const image=new Image();image.src=url;await image.decode();signal.throwIfAborted();return image;}));
  const audioUrls=new Map(),audioErrors=new Map(),audioController=new AbortController();
  const dispose=()=>{audioController.abort();for(const url of audioUrls.values())URL.revokeObjectURL(url);audioUrls.clear();};
  signal.addEventListener('abort',dispose,{once:true});
@@ -60,10 +60,11 @@ export async function prepareBattleScreen(database,snapshot,assets,signal,report
  catch(error){dispose();signal.removeEventListener('abort',dispose);throw error;}
  // 後の曲の取得は開始を待たせない。将来の切替入口は読込完了を確認する。
  Promise.all(tracks.slice(1).map(async track=>{try{await loadAudio(track);}catch(error){if(error.name!=='AbortError')audioErrors.set(track.id,error.message);}}));
- return {database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,presentationDifferences,dispose:()=>{signal.removeEventListener('abort',dispose);dispose();},...values};
+ return {phone,database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,presentationDifferences,dispose:()=>{signal.removeEventListener('abort',dispose);dispose();},...values};
 }
 
 export async function startBattleScreen(root,canvas,scene,snapshot,resources,onReturn,recording,signal,largeAtStart=false){
+ const {phone}=resources;
  let screenWidth=960,camera=scene.layout,cameraVersion=0,drawnVersion=-1,drawnRows=0;
  const backgroundCanvas=root.querySelector('[data-battle-background]'),controls=document.getElementById('battle-controls'),session=createSessionId();
  const detailsRoot=document.getElementById('battle-details'),presentation=battlePresentationClock();
@@ -91,10 +92,11 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   cheats=[...cheatPanel.querySelectorAll('input:checked')].reduce((flags,input)=>flags|Number(input.dataset.cheat),0);++settingsVersion;accumulator=0;lastTime=0;
  }
  controls.addEventListener('change',changeSettings);
- const timing={coreMs:0,apiMs:0,computeMs:0,drawMs:0},frames=createBattleFrameClient();
+ const timing={coreMs:0,apiMs:0,computeMs:0,drawMs:0},frames=createBattleFrameClient({compress:!phone});
  const bandCanvas=document.createElement('canvas');
  const context=canvas.getContext('2d'),message=root.querySelector('[data-battle-message]'),menu=root.querySelector('[data-battle-menu]');
- const messageHome=message.parentElement;detailsRoot.querySelector('.battle-status-line').prepend(message);
+ const messageHome=message.parentElement;
+ if(!phone)detailsRoot.querySelector('.battle-status-line').prepend(message);
  message.textContent='';
  const notices=document.createElement('div');notices.className='battle-precision-notices';
  const precisionWarning=document.createElement('div');precisionWarning.hidden=true;
@@ -147,8 +149,14 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   const choice=large?'auto':aspect.value;
   const box=canvas.parentElement.getBoundingClientRect(),width=battleViewportWidth(choice,box.width,box.height);
   document.dispatchEvent(new CustomEvent('kbcs:battle-view',{detail:{ratio:choice==='auto'?null:width/640}}));
-  if(width===screenWidth&&canvas.width===width&&backgroundCanvas.width===width)return;
-  screenWidth=width;resources.config.viewport_width=width;canvas.width=width;canvas.height=640;canvas.style.width='min(100cqw,'+(width/640*100)+'cqh)';backgroundCanvas.width=width;backgroundCanvas.height=640;backgroundCanvas.style.width=canvas.style.width;++cameraVersion;
+  const [pixels,height]=phone?phoneCanvasSize(width,box,window.devicePixelRatio||1):[width,640];
+  if(width===screenWidth&&canvas.width===pixels&&canvas.height===height&&backgroundCanvas.width===pixels&&backgroundCanvas.height===height)return;
+  screenWidth=width;resources.config.viewport_width=width;
+  for(const surface of [canvas,backgroundCanvas]){
+   surface.width=pixels;surface.height=height;surface.style.width='min(100cqw,'+(width/640*100)+'cqh)';
+  }
+  context.setTransform(pixels/width,0,0,height/640,0,0);
+  ++cameraVersion;
  }
  function setLargeBattle(enabled){
   large=enabled;document.body.classList.toggle('battle-large',enabled);
@@ -156,8 +164,8 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   resize();canvas.focus({preventScroll:true});
  }
  function showLargeHint(){
-  clearTimeout(largeHintTimer);largeHint.hidden=!large;
-  if(large)largeHintTimer=setTimeout(()=>{largeHint.hidden=true;},5000);
+  clearTimeout(largeHintTimer);largeHint.hidden=!large||phone;
+  if(large&&!phone)largeHintTimer=setTimeout(()=>{largeHint.hidden=true;},5000);
  }
  async function drawScene(next,version){
   if(!next||stopped)return;timing.computeMs=next.computeMs;
@@ -321,7 +329,9 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(intro?.combo&&!skipCombos){
    // 乗算をHUDにも適用し、透明な部分は背景側の同じ帯を見せる。
    const [x,y,w,h]=intro.layout.band;if(bandCanvas.width!==w||bandCanvas.height!==h){bandCanvas.width=w;bandCanvas.height=h;}
-   const band=bandCanvas.getContext('2d');band.globalCompositeOperation='source-over';band.clearRect(0,0,w,h);band.drawImage(canvas,x,y,w,h,0,0,w,h);band.globalCompositeOperation='multiply';band.fillStyle='rgb(40,40,77)';band.fillRect(0,0,w,h);band.globalCompositeOperation='destination-in';band.drawImage(canvas,x,y,w,h,0,0,w,h);context.clearRect(x,y,w,h);context.drawImage(bandCanvas,x,y);
+   const band=bandCanvas.getContext('2d'),sx=canvas.width/screenWidth,sy=canvas.height/640;
+   const sample=()=>band.drawImage(canvas,x*sx,y*sy,w*sx,h*sy,0,0,w,h);
+   band.globalCompositeOperation='source-over';band.clearRect(0,0,w,h);sample();band.globalCompositeOperation='multiply';band.fillStyle='rgb(40,40,77)';band.fillRect(0,0,w,h);band.globalCompositeOperation='destination-in';sample();context.clearRect(x,y,w,h);context.drawImage(bandCanvas,x,y);
   }
   if(intro?.combo&&intro.layout.age>=6&&!skipCombos){
    const {layout,combo}=intro;context.textAlign='center';context.textBaseline='top';
@@ -380,7 +390,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  const observer=new ResizeObserver(resize);
  const enemyPanel=document.getElementById('battle-actor-list'),allyPanel=document.getElementById('battle-actor-detail');
  const display=createBattleDisplay({controls,details:detailsRoot,enemies:enemyPanel,allies:allyPanel,setLarge:setLargeBattle,key,keyup,blur:()=>cameraMotion.clear(),recording});
- const monitor=createBattleMonitor(detailsRoot,()=>({...timing,...frames.stats(),frame:state.frame,paints,firstPaint,lastPaint,activeMs,activePaints,cheats,speed:Number(speed.value),fpsLimit:Number(fps.value),lag:accumulator*(state.speed_mode?state.speed_mode+1:1)+stepQueue,images:stageMediaStats(resources.sceneImages)}));
+ const monitor=phone?null:createBattleMonitor(detailsRoot,()=>({...timing,...frames.stats(),frame:state.frame,paints,firstPaint,lastPaint,activeMs,activePaints,cheats,speed:Number(speed.value),fpsLimit:Number(fps.value),lag:accumulator*(state.speed_mode?state.speed_mode+1:1)+stepQueue,images:stageMediaStats(resources.sceneImages)}));
  function command(event){
   const button=event.target.closest('[data-debug],[data-battle-control]');if(!button)return;
   const action=button.dataset.debug;
@@ -393,7 +403,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   else if(action==='camera'){camera={...camera,center:snapshot.stage.width,zoom:1};++cameraVersion;}
   else if(action==='large')setLargeBattle(true);
   else if(action==='fullscreen')display.request();
-  else if(action==='report'){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  else if(action==='report'&&monitor){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   else if(action==='return'||button.dataset.battleControl==='return'){stop();onReturn();return;}
   else if(!action)control=Number(button.dataset.battleControl);
  }
@@ -479,7 +489,7 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
   signal?.removeEventListener('abort',stop);recording?.detach();if(sessionCreated)fetch('/api/battle-session?'+new URLSearchParams({session}),{method:'DELETE',keepalive:true}).catch(()=>{});
   actorsInfo.remove();resultInfo.remove();limitInfo.remove();notices.remove();message.removeAttribute('title');message.setAttribute('role','status');messageHome.append(message);
   cancelAnimationFrame(raf);clearTimeout(presentationTimer);clearTimeout(updateTimer);requestController.abort();observer.disconnect();
-  aspect.removeEventListener('change',changeAspect);controls.removeEventListener('change',changeSettings);painter.dispose();monitor.stop();controls.removeEventListener('click',command);
+  aspect.removeEventListener('change',changeAspect);controls.removeEventListener('change',changeSettings);painter.dispose();monitor?.stop();controls.removeEventListener('click',command);
   gestures.dispose();sounds.stop();tints.clear();cameraPointers.clear();canvas.removeEventListener('wheel',wheel);if(audio){audio.pause();audio.removeAttribute('src');}resources.dispose();
   for(const type of ['pointerdown','pointerup','pointercancel','pointermove'])canvas.removeEventListener(type,input);
   root.removeEventListener('click',command);window.removeEventListener('keydown',key,true);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);cameraMotion.clear();
@@ -490,13 +500,15 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
   const sceneInput={...stageSceneInput(snapshot.stage,{center:camera.center,zoom:camera.zoom,showEnemy:true,showPlayer:true,showEffects:true,session}),viewportWidth:screenWidth};
   const started=await readBattleJson('/api/battle-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({snapshot,config:resources.config,state,scene:sceneInput}),signal:requestController.signal});sessionCreated=true;
   await Promise.all([...new Set(started.textures)].filter(path=>path&&!resources.sceneImages.has(path)).map(async path=>{const image=new Image();image.src='/api/asset/'+path;try{await image.decode();}catch{throw Error('戦闘画像を読み込めません: '+path);}requestController.signal.throwIfAborted();resources.sceneImages.set(path,image);}));
-  const prepared=await prepareInspectorAssets(started.inspectionAssets,started.textures,resources.sceneImages,resources.database,requestController.signal);
+  const prepared=phone?null:await prepareInspectorAssets(started.inspectionAssets,started.textures,resources.sceneImages,resources.database,requestController.signal);
   // 最初の出現時にGPU転送が集中しないよう、暗転中の転送量に上限を設ける。
   const textures=started.inspectionAssets.profiles.flatMap(profile=>[profile.idle,profile.kb,profile.soul].map(pose=>started.textures[pose?.texture]));
   timing.warmTextureBytes=painter.warmTextures(textures,32*1024*1024);
   const requestInspection=()=>{inspectionDirty=true;};
-  details=createBattleDetails(detailsRoot,prepared,resources.sceneImages,requestInspection);
-  inspector=createBattleInspector(enemyPanel,allyPanel,prepared,resources.database,resources.enemies,requestInspection,id=>details.select(id));
+  if(prepared){
+   details=createBattleDetails(detailsRoot,prepared,resources.sceneImages,requestInspection);
+   inspector=createBattleInspector(enemyPanel,allyPanel,prepared,resources.database,resources.enemies,requestInspection,id=>details.select(id));
+  }
   recording?.attach({name:snapshot.map.key+'-'+(snapshot.stage.index+1),size:()=>[screenWidth,640],audio:()=>sounds.recordAudio(),redraw:requestInspection,button:controls.querySelector('[data-recording]')});
   await update(0);await present();if(large)showLargeHint();raf=requestAnimationFrame(animate);}catch(error){stop();throw error;}
  return {stop};

@@ -1,14 +1,15 @@
 ﻿import { initializeThemeControls } from "../shared/theme/theme.js";
 
-initializeThemeControls();
-
 import {initializeSiteSettings} from '../shared/browser/game-settings.js';
-initializeSiteSettings();
-
 import {initializeWorkspace} from "/workspace.js";
-initializeWorkspace();
-
 import {initializeUpdates,observeUpdates} from '/updates.js';
 import {initializeStartup} from '/startup.js';
-initializeStartup(observeUpdates);
-initializeUpdates();
+
+const phone=location.pathname==='/pages/stage-sortie/'&&new URLSearchParams(location.search).get('phone')==='1';
+initializeThemeControls();
+if(!phone){
+ initializeSiteSettings();
+ initializeWorkspace();
+ initializeStartup(observeUpdates);
+ initializeUpdates();
+}else document.body.classList.add('phone-surface');

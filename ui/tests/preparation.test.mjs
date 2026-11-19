@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {createAudioPreview} from '../src/shared/browser/audio-preview.js';
 import {readSortiePreferences,toggleSortieItem,sortieEnemyLinksHtml,sortieItemsHtml} from '../sortie-view.js';
 import {readFileSync} from 'node:fs';
-import {battleViewportWidth,battlePlaybackRate} from '../battle-view.js';
+import {battleViewportWidth,phoneCanvasSize,battlePlaybackRate} from '../battle-view.js';
 
 const local={getItem:()=>JSON.stringify({formation:7,items:{speedup:true},speed:3})},session={getItem:()=>JSON.stringify({formation:1,speed:2})};
 assert.equal(readSortiePreferences(local,session).formation,7);assert.equal(readSortiePreferences(local,session).speed,3);
@@ -19,6 +19,8 @@ for(const [on,speed,cut] of [[false,2,6],[true,2,0],[true,3,16]]){
 }
 for(const [ratio,expected]of [['20:9',1422],['16:9',1138],['18:9',1280],['21:9',1493]]){assert.equal(battleViewportWidth(ratio,300,600),expected);assert.equal(battleViewportWidth(ratio,1600,600),expected);}
 assert.equal(battleViewportWidth('auto',960,640),960);assert.equal(battleViewportWidth('unknown',960,640),1422);
+assert.deepEqual(phoneCanvasSize(1422,{width:800,height:360},3),[2400,1080]);
+assert.deepEqual(phoneCanvasSize(1920,{width:1920,height:640},3),[3840,1280]);
 class AudioMock{
  constructor(){this.dataset={source:'/api/stage-audio/193'};this.paused=true;this.duration=NaN;this.currentTime=0;}
  load(){assert.ok(this.src.startsWith('blob:'));this.duration=120;this.onloadedmetadata?.();}

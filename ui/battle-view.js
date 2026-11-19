@@ -6,6 +6,13 @@ export function battleViewportWidth(choice,width,height){
  return Math.max(960,Math.min(3840,Math.round(ratio*640)));
 }
 
+// ネイティブの座標系と、スマホ画面へ出力する物理画素数を分ける。
+export function phoneCanvasSize(width,box,dpr){
+ const scale=Math.min(box.width/width,box.height/640)*dpr;
+ const pixels=Math.min(3840,Math.max(1,Math.round(width*scale)));
+ return [pixels,Math.max(1,Math.round(640*pixels/width))];
+}
+
 // 終了演出の操作権と拡大上限は戦闘コアが返す。
 export function battleCameraView(state,runtime,camera,width){
  if(state.intro<24||state.paused||runtime.endCameraActive)return null;
