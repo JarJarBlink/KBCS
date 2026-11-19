@@ -41,8 +41,12 @@ export function sortieEnemyLinksHtml(stage,map,crown,database){
 // 006dca34/006ddfb8のmapicon: ON=0..5、OFF=6..11、3倍=16。
 export function sortieItemsHtml(manifest,items,speed){
  return battleItems.map((item,index)=>{
-  const cut=index===0&&items.speedup&&speed===3?16:index+(items[item.key]?0:6),rect=manifest.atlases.mapicon.rects[cut],width=rect[2],height=rect[3];
-  return '<button type="button" data-item="'+item.key+'" aria-pressed="'+!!items[item.key]+'" aria-label="'+esc(item.name+(index===0&&items.speedup?' '+speed+'倍':'')+(items[item.key]?'：有効':'：無効'))+'"><span class="sortie-item-image"><svg viewBox="0 0 '+width+' '+height+'" width="'+width+'" height="'+height+'" aria-hidden="true"><svg width="'+width+'" height="'+height+'" viewBox="'+rect.join(' ')+'" overflow="hidden"><image href="/images/native-battle/mapicon.png"/></svg></svg></span><span>'+item.name+(index===0&&items.speedup?' '+speed+'倍':'')+'</span></button>';
+  const enabled=!!items[item.key],boosted=index===0&&enabled&&speed===3;
+  const atlas=manifest.atlases.mapicon,rect=atlas.rects[boosted?16:index+(enabled?0:6)];
+  const label=esc(item.name+(index===0&&enabled?' '+speed+'倍':'')+(enabled?'：有効':'：無効'));
+  // 3倍の80px枠を41pxで描き、余白を含めたまま通常の36pxアイコンと実画の大きさを揃える。
+  const size=boosted?41:36;
+  return '<button type="button" data-item="'+item.key+'" aria-pressed="'+enabled+'" aria-label="'+label+'" title="'+label+'"><svg width="'+size+'" height="'+size+'" viewBox="'+rect.join(' ')+'" overflow="hidden" aria-hidden="true"><image href="'+atlas.url+'"/></svg></button>';
  }).join('');
 }
 export function toggleSortieItem(items,speed,key){

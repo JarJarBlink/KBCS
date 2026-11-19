@@ -142,9 +142,9 @@ async function load(){
     crown=Math.max(1,Math.min(map.stars.length,Math.trunc(Number(params.get('crown')))||1));
     document.title=map.name+' | KBCS';element('stage-title').textContent=map.key+' '+map.name;
     element('stage-version').textContent='JP データv'+database.gameVersion;
-    const index=database.maps.findIndex(value=>value.key===map.key);
-    element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[database.maps[index-1],'前'],[database.maps[index+1],'次']].map(([value,label])=>value?'<a href="'+stageMapUrl(value,crown)+'">'+label+'のマップ</a>':'').join('')+'</div><div class="workspace-stage-list"><button type="button" data-stage-choice="">すべて（'+bases.length+'）</button>'+bases.map(stage=>'<button type="button" data-stage-choice="'+stage.index+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</button>').join('')+'</div>';
-    element('stage-status').hidden=true;element('stage-content').hidden=false;render();
-  }catch(error){element('stage-status').hidden=false;element('stage-status').textContent=error.message;element('stage-retry').hidden=false;}
+    const mapIndex=database.maps.findIndex(value=>value.key===map.key);
+    element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[database.maps[mapIndex-1],'前'],[database.maps[mapIndex+1],'次']].map(([value,label])=>value?'<a href="'+stageMapUrl(value,crown)+'">'+label+'のマップ</a>':'').join('')+'</div><div class="workspace-stage-list"><button type="button" data-stage-choice="">すべて（'+bases.length+'）</button>'+bases.map(stage=>'<button type="button" data-stage-choice="'+stage.index+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</button>').join('')+'</div>';
+    element('stage-content').hidden=false;await render();element('stage-status').hidden=true;
+  }catch(error){element('stage-content').hidden=true;element('stage-status').hidden=false;element('stage-status').textContent=error.message;element('stage-retry').hidden=false;}
 }
 element('stage-retry').addEventListener('click',load);load();

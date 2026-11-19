@@ -14,8 +14,11 @@ const items={};let speed=2;speed=toggleSortieItem(items,speed,'speedup');assert.
 const manifest=JSON.parse(readFileSync(new URL('../images/native-battle/manifest.json',import.meta.url),'utf8').replace(/^\uFEFF/,''));
 for(const [on,speed,cut] of [[false,2,6],[true,2,0],[true,3,16]]){
  const rect=manifest.atlases.mapicon.rects[cut],markup=sortieItemsHtml(manifest,{speedup:on},speed).split('</button>')[0];
- assert.ok(markup.includes('viewBox="0 0 '+rect.slice(2).join(' ')+'"'));
+ const size=cut===16?41:36;
+ assert.ok(markup.includes('width="'+size+'" height="'+size+'"'));
  assert.ok(markup.includes('viewBox="'+rect.join(' ')+'" overflow="hidden"'));
+ assert.ok(markup.includes('aria-label="スピードアップ'));
+ assert.doesNotMatch(markup,/>[^<]*スピードアップ/);
 }
 for(const [ratio,expected]of [['20:9',1422],['16:9',1138],['18:9',1280],['21:9',1493]]){assert.equal(battleViewportWidth(ratio,300,600),expected);assert.equal(battleViewportWidth(ratio,1600,600),expected);}
 assert.equal(battleViewportWidth('auto',960,640),960);assert.equal(battleViewportWidth('unknown',960,640),1422);

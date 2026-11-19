@@ -17,6 +17,23 @@ pub struct Start {
     #[serde(default)]
     pub require_exact: bool,
 }
+
+fn set_sortie_speed(
+    snapshot: &Value,
+    screen: &mut battle_screen::Config,
+    state: &mut battle_screen::State,
+) {
+    // 持ち込みは出撃準備の記録で決める。入力に残った速度やアイテムのビットは引き継がない。
+    let equipped = snapshot["items"]["speedup"].as_bool() == Some(true);
+    screen.items = (screen.items & !1) | i32::from(equipped);
+    screen.speed = if equipped && snapshot["speed"] == 3 {
+        3
+    } else {
+        2
+    };
+    state.items_on = (state.items_on & !1) | i32::from(equipped);
+    state.speed_mode = if equipped { screen.speed - 1 } else { 0 };
+}
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Request {
@@ -1082,17 +1099,7 @@ impl Session {
         }
         let mut screen = start.config;
         let mut state = start.state;
-        if let Some(speedup) = snapshot["items"]["speedup"].as_bool() {
-            // 006d6d04の通常速度とブースト分岐に、準備で選んだ初期倍率を渡す。
-            screen.items = (screen.items & !1) | i32::from(speedup);
-            screen.speed = if speedup && snapshot["speed"] == 3 {
-                3
-            } else {
-                2
-            };
-            state.items_on = (state.items_on & !1) | i32::from(speedup);
-            state.speed_mode = if speedup { screen.speed - 1 } else { 0 };
-        }
+        set_sortie_speed(snapshot, &mut screen, &mut state);
         let config = battle::Config {
             environment,
             screen,
@@ -2085,6 +2092,33 @@ fn paint_packets(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn sortie_speed_overrides_stale_battle_inputs() {
+        use super::{battle_screen, json, set_sortie_speed};
+
+        for (equipped, speed, expected) in [
+            (None, 3, (0, 2, 0)),
+            (Some(false), 3, (0, 2, 0)),
+            (Some(true), 2, (1, 2, 1)),
+            (Some(true), 3, (1, 3, 2)),
+        ] {
+            let mut screen = battle_screen::Config {
+                items: 9,
+                speed: 3,
+                ..Default::default()
+            };
+            let mut state = battle_screen::State {
+                items_on: 9,
+                speed_mode: 2,
+                ..Default::default()
+            };
+            let items = equipped.map_or_else(|| json!({}), |value| json!({"speedup":value}));
+            set_sortie_speed(&json!({"items":items,"speed":speed}), &mut screen, &mut state);
+            assert_eq!((screen.items - 8, screen.speed, state.speed_mode), expected);
+            assert_eq!(state.items_on, screen.items);
+        }
+    }
+
     #[test]
     fn native_effect_bindings() {
         let fixture: serde_json::Value = serde_json::from_str(

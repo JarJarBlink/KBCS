@@ -89,6 +89,32 @@ try{
     }
   }
   {
+    const {document,show}=makePage();
+    const value={checked:true,desktop:true,busy:false,app:{available:true,tag:'kbcs-v0.1.57',version:'0.1.57',ready:false}};
+    const actions=[],statuses=[];
+    let hold=false,release;
+    window.ipc={postMessage(message){actions.push(message);}};
+    globalThis.fetch=async url=>{
+      if(url.endsWith('/download')){value.busy=true;value.job='app';actions.push('download');return Response.json({accepted:true});}
+      if(url.endsWith('/apply')){actions.push('apply');return Response.json({restart:true});}
+      if(hold){hold=false;const previous=structuredClone(value);return new Promise(resolve=>{release=()=>resolve(Response.json(previous));});}
+      return Response.json(value);
+    };
+    const updates=await import('../updates.js?overlapping-home-status');updates.observeUpdates(status=>statuses.push(status.busy));updates.initializeUpdates();
+    await settle(()=>document.dialogs.length===1);
+    hold=true;show();await settle(()=>release);
+    document.dialogs[0].children.at(-1).children[1].onclick();
+    await settle(()=>statuses.at(-1)===true);
+    release();await tick();assert.equal(statuses.at(-1),true);
+    value.busy=false;value.app.ready=value.app.restartPending=true;
+    await updates.checkUpdates();
+    await new Promise(resolve=>setTimeout(resolve,1050));
+    assert.equal(document.dialogs[0]?.children[0].textContent,'KBCSのダウンロードが完了しました');
+    document.dialogs[0].children.at(-1).children[1].onclick();
+    await settle(()=>actions.includes('kbcs:restart-for-update'));
+    assert.deepEqual(actions,['download','apply','kbcs:restart-for-update']);
+  }
+  {
     const {document}=makePage();
     const value={checking:false,checked:true,startupPending:false,busy:true,job:'app',desktop:true,app:{available:true,ready:false,restartPending:false}};
     globalThis.fetch=async url=>{

@@ -1,6 +1,6 @@
 ﻿import {showStartupProgress} from './startup.js';
 let state=null,timer,started=false,pendingStartup=false,presenting=false,restarting=false;
-let battleActive=false,visitPending=true,restartHere=false,currentPrompt;
+let battleActive=false,visitPending=true,currentPrompt,refreshVersion=0;
 const listeners=new Set();
 async function request(path,body){
   const response=await fetch('/api/updates'+path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -9,14 +9,16 @@ async function request(path,body){
 export function observeUpdates(listener){listeners.add(listener);if(state)listener(state);return()=>listeners.delete(listener);}
 export async function downloadUpdate(kind){
   await request('/download',{kind});
-  if(kind==='app')restartHere=true;
   state={...state,busy:true,job:kind,error:null};
   await refresh();
 }
 export async function checkUpdates(){await request('/check',{});await refresh();}
 export async function applyUpdate(){
   if(!window.ipc?.postMessage)throw Error('再起動して更新はKBCSアプリで実行してください');
-  await request('/apply',{});window.ipc.postMessage('kbcs:restart-for-update');
+  if(restarting)return;
+  restarting=true;
+  try{await request('/apply',{});window.ipc.postMessage('kbcs:restart-for-update');}
+  catch(error){restarting=false;throw error;}
 }
 function notice(message){
   if(battleActive)return;
@@ -50,12 +52,13 @@ async function offerAppUpdate(){
   if(!app?.available||battleActive)return false;
   const accepted=await ask('KBCS v'+app.version+' が利用可能です！','ダウンロードしますか？ 現在のバージョンは v'+state.currentVersion+' です。');
   if(accepted===null)return false;
-  if(app.tag)await request('/acknowledge-app',{tag:app.tag});
   if(!accepted){
+    if(app.tag)await request('/acknowledge-app',{tag:app.tag});
     notice('KBCS本体はホームの「設定 → データ管理」から更新できます。');
     return false;
   }
   await downloadUpdate('app');
+  if(state.busy)notice('KBCS本体をダウンロードしています。完了後に再起動を案内します。');
   while(state.busy&&!battleActive)await new Promise(resolve=>setTimeout(resolve,1000));
   if(state.job==='app'&&state.error)throw Error(state.error);
   return offerRestart();
@@ -63,7 +66,7 @@ async function offerAppUpdate(){
 function restartPending(){return state?.desktop&&state.app?.ready&&state.app.restartPending&&!state.busy;}
 async function offerRestart(){
   if(battleActive||!restartPending())return false;
-  restartHere=false;
+  document.getElementById('update-notice')?.remove();
   const accepted=await ask('KBCSのダウンロードが完了しました','今すぐ再起動して更新しますか？','再起動して更新','後で');
   if(accepted===null)return false;
   if(!accepted){
@@ -73,13 +76,12 @@ async function offerRestart(){
     return false;
   }
   await applyUpdate();
-  restarting=true;
   return true;
 }
 async function presentUpdates(){
   if(battleActive||presenting||restarting||!state?.checked||state.checking)return;
   const visit=visitPending;
-  if(!visit&&!(restartHere&&restartPending())||state.busy&&state.job==='app')return;
+  if((!visit&&!restartPending())||(state.busy&&state.job==='app'))return;
   const startup=pendingStartup;presenting=true;pendingStartup=false;visitPending=false;
   try{
     const initialDataDownload=startup&&state.data?.missing&&state.busy&&state.job==='data';
@@ -100,13 +102,17 @@ async function presentUpdates(){
   finally{presenting=false;if(visitPending)void presentUpdates();}
 }
 async function refresh(){
+  const version=++refreshVersion;
   clearTimeout(timer);
   try{
-    state=await request('');for(const listener of listeners)listener(state);
+    const latest=await request('');
+    // 手動確認やページ復帰と重なっても、古い状態でダウンロード監視を止めない。
+    if(version!==refreshVersion)return;
+    state=latest;for(const listener of listeners)listener(state);
     if(visitPending&&!battleActive&&state.checked&&!state.checking&&state.startupPending){const claim=await request('/startup',{});pendingStartup||=claim.claimed;}
     void presentUpdates();
-  }catch(error){if(visitPending)notice('更新状態を取得できませんでした: '+error.message);}
-  if(!state||state.checking||state.busy)timer=setTimeout(refresh,1000);
+  }catch(error){if(version===refreshVersion&&visitPending)notice('更新状態を取得できませんでした: '+error.message);}
+  if(version===refreshVersion&&(!state||state.checking||state.busy))timer=setTimeout(refresh,1000);
 }
 export function initializeUpdates(){
   if(started)return;started=true;

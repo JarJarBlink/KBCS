@@ -823,6 +823,23 @@ fn native_screen_witnesses() {
     );
     assert_eq!(unequipped.state.speed_mode, 0);
     assert_eq!(unequipped.layout.item_icons[0], [0; 5]);
+    let stale_press = call(
+        Config {
+            items: 0,
+            ..config.clone()
+        },
+        State {
+            guard: 5,
+            pending_control: 200,
+            ..base.clone()
+        },
+        Input {
+            ticks: 1,
+            ..Input::default()
+        },
+    );
+    assert_eq!(stale_press.state.speed_mode, 0);
+    assert_eq!(stale_press.layout.item_icons[0], [0; 5]);
     for (limit, expected_modes) in [(2, [0, 1, 0]), (3, [2, 0, 1])] {
         let mut speed_state = State {
             items_on: 1,

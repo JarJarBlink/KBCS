@@ -33,3 +33,5 @@ Managerはupdates_macos::prepare/applyを使う。同じ配布アセット命名
 CIは各OSのbuildとpublishを独立実行する。先に成功した環境のZIPを公開し、後から成功した環境を同じソース/タグへ追加できる。公開処理はJSON/チェックサムのGitHub側検証を先に済ませ、ZIPを最後に置く。対応ZIPのないOSへ他CPUの版を案内しない。
 
 releases::latest_app → latest_app_forは、ドラフト・本体以外のタグ・対象OS/CPUのZIPなし・size=0・不正/欠落SHAを除外してSemVer最大を選ぶ。Windowsのみ新版が成功した場合はWindowsへ新版、Macへ最後に成功した版を返す。Macの追加公開は次の起動/手動checkで検出する。実際のダウンロード時のsize/SHA/CPU/署名検査は従来通りで、更新ファイル形式とapply-update CLIを変えない。旧アプリにもOS/CPU別ZIPの選択は既にあるため、この公開方式を使うための先行更新を必須にしない。
+
+ホームとデータ管理は同じ`downloadUpdate`から取得を始め、`app.restartPending`で再起動を案内する。`refresh`はページ復帰や手動確認で取得が重なっても最新の要求だけを採用し、取得中の監視を続ける。通知の辞退は本体の案内を消化する。取得が失敗した場合は次のページ遷移で同じ版を再案内できる。

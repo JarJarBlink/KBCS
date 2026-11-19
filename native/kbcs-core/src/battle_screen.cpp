@@ -7,7 +7,7 @@ namespace {
 using I = int64_t;
 int width(const KbcsBattleScreenConfig &c){return c.viewport_width?c.viewport_width:960;}
 int press(int counter){const int sizes[6]={0,0,6,-10,0,0};return sizes[counter];}
-void toggle_speed(const KbcsBattleScreenConfig &c,KbcsBattleScreenState &s){s.speed_mode=(s.speed_mode+1)%(c.speed==3?3:2);if(s.speed_mode)s.items_on|=1;else s.items_on&=~1;}
+void toggle_speed(const KbcsBattleScreenConfig &c,KbcsBattleScreenState &s){if(!(c.items&1))return;s.speed_mode=(s.speed_mode+1)%(c.speed==3?3:2);if(s.speed_mode)s.items_on|=1;else s.items_on&=~1;}
 void change_page(KbcsBattleScreenState &s,int direction){if(s.rows!=1)return;if(!s.page_frame){s.page_frame=1;s.page_direction=direction;s.page_step=1;}else if(s.page_direction!=direction){s.page_step=-1;}s.holding=-1;s.hold_frames=0;s.hold_wait=0;s.gesture=1;}
 int wallet(const KbcsBattleScreenConfig &c,int worker) {
  if(c.fixed_money>=0)return c.fixed_money;
@@ -143,7 +143,7 @@ extern "C" uint32_t kbcs_core_battle_screen_advance_custom(const KbcsBattleScree
  if(in.control==4)change_page(s,1);
  if(in.control==8)change_page(s,0);
  if(in.control==9)change_page(s,1);
- if(in.control==5&&(c.items&1))toggle_speed(c,s);
+ if(in.control==5)toggle_speed(c,s);
  if(in.control==6&&(c.items&8))s.items_on^=8;
  if(in.control==7&&(c.items&32))s.items_on^=32;
  const auto release=[&](int target)->uint32_t{
