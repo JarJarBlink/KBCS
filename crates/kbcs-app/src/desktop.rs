@@ -308,6 +308,7 @@ fn start(root: PathBuf, region: String, source: String, check: bool) -> Result<(
 // 画面操作をせず、実際のWebViewで同梱素材・C++入口・別窓と可逆録画を確認する。
 const DESKTOP_CHECK: &str = r#"
 const runDesktopCheck = async () => {
+  if (!(location.href.startsWith('kbcs://localhost/') || location.href.startsWith('http://kbcs.localhost/'))) return;
   const report = (message) => window.ipc.postMessage('kbcs:desktop-check-progress:'+message);
   report('JavaScript started');
   const checks = {};

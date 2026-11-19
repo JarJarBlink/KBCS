@@ -10,7 +10,7 @@
 
 ## 自動ビルド
 
-[build.yml](../../../.github/workflows/build.yml)はpush・pull_request・手動起動で動く。ローカルcommitだけではGitHubは起動できず、pushが必要。既存の研究/ゲーム原本への接続・データ自動取得・原本への書込はCIで行わない。
+[build.yml](../../../.github/workflows/build.yml)はmainまたはkbcs-vタグへのpush・pull_request・手動起動で動く。開発ブランチはPRを開くと検証を開始する。README.mdと既存の解析公開資料だけの変更では、ブランチpush・PRからはビルドを起動しない。既存の研究/ゲーム原本への接続・データ自動取得・原本への書込はCIで行わない。
 
 | runner | Rust target | 配布名 |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ RunnerのCPUは[GitHubの一覧](https://docs.github.com/en/actions/reference/ru
 
 共通のJS/Python回帰はOSごとに繰り返さない。ccのparallel機能はCargoのjobserverに従い、C++20・ffp-contract=off・fwrapvを維持して並列コンパイルする。配布版のthin LTOは維持。Cargoのregistry/git/targetをOS/CPU/コンパイラ別に復元し、失敗後にも途中成果物を保存する。Cargoのtimings HTMLは7日、インストーラのZIP/SHA/情報JSONは14日保存する。
 
-mainへのpushではprepare-release.pyが版・Cargo.lock・README・未作成の説明を揃え、botコミットのSHAを各buildと公開へ渡す。指定なしは最新kbcs-vタグからpatchを1上げ、未公開の予約版またはversion入力を優先する。PR・他ブランチ・forkはビルドだけ。GITHUB_TOKENで作るコミット/タグは別workflowを起動しないため、同じrunで完了する。
+mainへのpushではprepare-release.pyが版・Cargo.lock・README・未作成の説明を揃え、botコミットのSHAを各buildと公開へ渡す。指定なしは最新kbcs-vタグからpatchを1上げ、未公開の予約版またはversion入力を優先する。PRと、他ブランチ・forkでの手動起動はビルドだけ。GITHUB_TOKENで作るコミット/タグは別workflowを起動しないため、同じrunで完了する。
 
 build.ymlはmatrixからbuild-platform.ymlを呼び、OSごとのbuild → publishが独立して進む。他OSが失敗・実行中でも、成功した環境の三点とGitHub側のsize/digestを検証して公開する。公開処理だけをqueue: maxの共通concurrency groupで直列化する。最初の成功OSがドラフトから公開し、後続の成功OSは同じソース/タグへ追加。既存タグ・完成した環境のZIP/SHA/情報JSONは上書きしない。再実行・途中失敗の回復と検証範囲は[scriptsの設計](../../../scripts/docs/release.md)を参照。
 
@@ -57,6 +57,8 @@ MacのMach port取得/解放はmach2の公開APIを使う。libcの非推奨mach
 WKWebViewの初期化スクリプトのdynamic importはdocumentのURLを明示して解決する。また、専用スキームのlocation.originがnullでも履歴保存できるよう、native-state.jsはlocation.hrefをbaseに、protocol/hostで同一アプリを判定する。
 
 起動検査の標準出力/エラーは一時ファイルで受ける。WebView2の子プロセスにpipeが引き継がれても、親の終了を検知した後に出力読取で待ち続けないようにする。タイムアウト時も途中のエラーログを表示する。
+
+`desktop-check`の別窓はMacで親のWKWebView設定を受け取る。0.1.55ではabout:blankからも検査が起動し、別窓でルート相対URLが解決できず先に失敗を送った。検査の開始はアプリのURLに限定し、別窓のDOM・CSS・録画を含む既存の確認項目は親から実行する。[実行ログ](https://github.com/sinsuirakv0/KBCS/actions/runs/44506975199/job/135501422496)
 
 実WebViewの検査はpackage.pyでDLL/Info.plist/署名を揃えた後の配布物に対して実行する。ビルドツリーの実行ファイルや、開発用PATH内のWebView2Loaderを前提にしない。検査成功後にZIPを作る。
 

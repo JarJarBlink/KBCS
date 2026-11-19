@@ -43,6 +43,11 @@ jobs:
         with:
           ref: ${{ inputs.commit }}
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/research/reference/
+            !/research/comparisons/
+          sparse-checkout-cone-mode: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13'
@@ -66,6 +71,7 @@ jobs:
             build-v2-${{ inputs.platform }}-rust1981-llvm20260922-${{ hashFiles('Cargo.lock') }}-
             build-v2-${{ inputs.platform }}-rust1981-llvm20260922-
       - name: Check Rust lints before building release tests
+        id: clippy
         run: cargo clippy --workspace --all-targets --release --locked --target "$TARGET" -- -D warnings
         env:
           TARGET: ${{ inputs.target }}
@@ -108,6 +114,33 @@ jobs:
           name: timings-${{ inputs.platform }}
           path: target/cargo-timings/*.html
           if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Generate and verify a Clippy patch
+        id: fix_clippy
+        if: ${{ failure() && !cancelled() && steps.clippy.outcome == 'failure' }}
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          cargo clippy --fix --workspace --all-targets --release --locked --target "$TARGET"
+          if git diff --quiet HEAD -- '*.rs'; then
+            echo 'Clippy did not produce a Rust patch.'
+            exit 0
+          fi
+          cargo clippy --workspace --all-targets --release --locked --target "$TARGET" -- -D warnings
+          cargo test --workspace --release --locked --target "$TARGET"
+          git diff --quiet HEAD -- . ':(exclude,glob)**/*.rs'
+          git diff --check HEAD
+          git diff --no-ext-diff --binary --output="$RUNNER_TEMP/kbcs-clippy.patch" HEAD -- '*.rs'
+          printf 'Verified Clippy patch base: `%s`\n' "$(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'available=true' >> "$GITHUB_OUTPUT"
+      - name: Upload verified Clippy patch
+        if: ${{ !cancelled() && steps.fix_clippy.outputs.available == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: clippy-fix-${{ inputs.platform }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kbcs-clippy.patch
+          if-no-files-found: error
           retention-days: 7
 
   publish:
