@@ -1,4 +1,4 @@
-﻿use crate::{
+use crate::{
     model::{csv_rows, numeric_rows},
     store::Database,
 };
@@ -171,6 +171,7 @@ fn catalog_selection(
     }
     let mut maps = Vec::new();
     let mut stages = Vec::new();
+    let mut stage_ranges = Vec::new();
     let mut statement=connection.prepare_cached("SELECT id,name,source_path,raw_headers,options_raw,options_row,series,native_kind,map_index,acquisition_id,score_id,mode FROM stage_map WHERE region=? ORDER BY id")?;
     let entries = statement.query_map([region], |row| {
         Ok((
@@ -207,6 +208,7 @@ fn catalog_selection(
         if selected.is_some_and(|s| s != key) {
             continue;
         }
+        let first_stage = stages.len();
         let materials = crate::stage_materials::read(connection, region, id)?;
         let mut statement = connection.prepare_cached(
             "SELECT multiplier FROM stage_crown WHERE region=? AND map_id=? ORDER BY crown",
@@ -341,7 +343,10 @@ fn catalog_selection(
             }
             stages.push(json!({"id":stage_id,"map":key,"index":index,"name":name,"energy":n[0],"xp":n[1],"width":n[2],"castleHealth":n[3],"spawnInterval":[n[4],n[5]],"background":n[6],"maxEnemies":n[7].map(|v|v.min(50)),"enemyCastle":if n[8].is_some_and(|v|v>1) {n[8].map(|v|v-2)}else{None},"timeLimit":n[9].map(|v|v*1800),"bossGuard":n[10]==Some(1),"noContinue":n[11]==Some(1),"difficulty":difficulty,"spawns":spawns,"enemies":enemies,"flags":flags,"music":music,"rewards":drops.iter().map(|drop|drop["id"].clone()).collect::<Vec<_>>(),"drops":drops.iter().filter(|d|d["kind"]=="normal" || d["kind"]=="weight").collect::<Vec<_>>(),"scoreRewards":drops.iter().filter(|d|d["kind"]=="score").map(|d|json!({"id":d["id"],"count":d["count"],"score":d["weight"]})).collect::<Vec<_>>(),"clearRewards":[],"rewardMode":number(&reward_numbers,8),"rewardOnce":reward_numbers.last().copied().flatten(),"source":text[3],"metadataRow":metadata_row,"rawSettings":raw(text[0].clone())?,"rawHeader":raw(text[1].clone())?,"rawRewards":reward_raw}));
         }
-        for stage in stages.iter_mut().filter(|s| s["map"] == key) {
+        let mut entries = connection.prepare_cached(
+            "SELECT definition_path,listed FROM stage_entry WHERE region=? AND map_id=? AND stage_index=?",
+        )?;
+        for stage in &mut stages[first_stage..] {
             let index = stage["index"].as_i64().context("面番号欠測")?;
             stage["nativeMode"] = json!(mode);
             stage["nativeKind"] = json!(kind);
@@ -349,7 +354,8 @@ fn catalog_selection(
             stage["damageCondition"] = json!(
                 stage["scoreMode"] == true || stage["timeLimit"].as_i64().is_some_and(|v| v > 0)
             );
-            let (definition,listed):(Option<String>,i64)=connection.query_row("SELECT definition_path,listed FROM stage_entry WHERE region=? AND map_id=? AND stage_index=?",params![region,id,index],|r|Ok((r.get(0)?,r.get(1)?)))?;
+            let (definition, listed): (Option<String>, i64) =
+                entries.query_row(params![region, id, index], |r| Ok((r.get(0)?, r.get(1)?)))?;
             if summary
                 && let Some(info) = definition
                     .as_ref()
@@ -467,6 +473,7 @@ fn catalog_selection(
             }
         }
         maps.push(json!({"key":key,"series":series,"number":map_index,"nativeId":id,"name":name,"stars":stars,"limits":limits,"materials":materials,"stages":stage_ids,"rules":[],"conditions":[],"source":path,"rawHeaders":raw(headers.clone())?,"acquisitionId":acquisition_id,"scoreId":score_id,"nativeKind":kind,"nativeMode":mode,"rawOptions":raw(options)?,"optionsRow":option_row}));
+        stage_ranges.push(first_stage..stages.len());
     }
     for map in &mut maps {
         let extra = extras.map(
@@ -484,22 +491,42 @@ fn catalog_selection(
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
+        map["rewardResetType"] = json!(values.get(8));
         map["clearLimit"] = json!(values.get(9).copied().unwrap_or(0));
         map["interval"] = json!(values.get(11).copied().unwrap_or(0));
         map["abyss"] = json!(values.get(2) == Some(&1));
         map["hiddenAfterClear"] = json!(values.get(14).is_some_and(|v| *v > 0));
     }
-    for map in &maps {
-        for stage in stages.iter_mut().filter(|s| s["map"] == map["key"]) {
-            if map["rules"].as_array().is_some_and(|v| !v.is_empty()) {
-                add_flag(stage, "specialRule", true)?;
+    for (map, range) in maps.iter().zip(stage_ranges) {
+        let flags = [
+            (
+                map["rules"].as_array().is_some_and(|v| !v.is_empty()),
+                "specialRule",
+            ),
+            (map["abyss"] == true, "abyss"),
+            (
+                map["clearLimit"].as_i64().is_some_and(|v| v > 0),
+                "clearLimit",
+            ),
+            (
+                map["interval"].as_i64().is_some_and(|v| v > 0),
+                "mapInterval",
+            ),
+            (map["hiddenAfterClear"] == true, "hiddenAfterClear"),
+            (
+                map["rewardResetType"].as_i64().is_some_and(|v| v > 0),
+                "rewardReset",
+            ),
+        ];
+        let materials = map.pointer("/materials/items").and_then(Value::as_array);
+        let series = map["series"].as_str().unwrap_or("");
+        for stage in &mut stages[range] {
+            for (active, flag) in flags {
+                if active {
+                    add_flag(stage, flag, true)?;
+                }
             }
-            if map["abyss"] == true {
-                add_flag(stage, "abyss", true)?;
-            }
-        }
-        if let Some(items) = map.pointer("/materials/items").and_then(Value::as_array) {
-            for stage in stages.iter_mut().filter(|stage| stage["map"] == map["key"]) {
+            if let Some(items) = materials {
                 let rewards = stage["rewards"].as_array_mut().context("報酬配列不正")?;
                 for item in items {
                     if !rewards.contains(&item["id"]) {
@@ -507,29 +534,32 @@ fn catalog_selection(
                     }
                 }
             }
+            crate::stage_media::annotate(stage, series);
         }
     }
     let (_, _, _, bytes) = database.source("res/GatyaitemName.csv")?;
     let names = csv_rows(&bytes)?;
-    let mut rewards = BTreeMap::new();
+    let mut reward_ids = BTreeSet::new();
     for stage in &stages {
         for reward in stage["rewards"].as_array().context("報酬配列不正")? {
-            let id = reward.as_i64().context("報酬ID欠測")?;
-            let icon = format!("Image/gatyaitemD_{id:02}_f.png");
-            let exists: bool = connection.query_row(
-                "SELECT EXISTS(SELECT 1 FROM source_file WHERE path=?)",
-                [&icon],
-                |row| row.get(0),
-            )?;
-            let name = names
-                .get(id as usize)
-                .and_then(|row| row.first())
-                .cloned()
-                .unwrap_or_else(|| format!("報酬 {id}"));
-            rewards.entry(id.to_string()).or_insert_with(
-                || json!({"id":id,"name":name,"icon":if exists {Some(icon)}else{None}}),
-            );
+            reward_ids.insert(reward.as_i64().context("報酬ID欠測")?);
         }
+    }
+    let mut rewards = BTreeMap::new();
+    let mut icons =
+        connection.prepare_cached("SELECT EXISTS(SELECT 1 FROM source_file WHERE path=?)")?;
+    for id in reward_ids {
+        let icon = format!("Image/gatyaitemD_{id:02}_f.png");
+        let exists: bool = icons.query_row([&icon], |row| row.get(0))?;
+        let name = names
+            .get(id as usize)
+            .and_then(|row| row.first())
+            .cloned()
+            .unwrap_or_else(|| format!("報酬 {id}"));
+        rewards.insert(
+            id.to_string(),
+            json!({"id":id,"name":name,"icon":if exists {Some(icon)}else{None}}),
+        );
     }
     // アイテム名の配列へキャラ報酬IDを当てず、原本の対応表で結ぶ。
     let (_, _, _, bytes) = database.source("Data/drop_chara.csv")?;
@@ -562,14 +592,6 @@ fn catalog_selection(
         }
     }
     rewards::decorate(database, &mut rewards)?;
-    for stage in &mut stages {
-        let series = maps
-            .iter()
-            .find(|map| map["key"] == stage["map"])
-            .and_then(|map| map["series"].as_str())
-            .unwrap_or("");
-        crate::stage_media::annotate(stage, series);
-    }
     Ok(
         json!({"schemaVersion":2,"gameVersion":metadata.get("version"),"calculationVersion":crate::compatibility::calculation_version(database)?,"revision":metadata.get("revision"),"buildId":metadata.get("build_id"),"imageBase":"/api/asset/","scope":{"bands":maps.iter().filter_map(|m|m["nativeId"].as_i64()).map(|id|id/1000*1000).collect::<BTreeSet<_>>(),"nativeVersion":"15.7.2"},"series":maps.iter().filter_map(|m|m["series"].as_str()).collect::<BTreeSet<_>>().into_iter().map(|s|json!({"id":s,"label":series_label(s)})).collect::<Vec<_>>(),"maps":maps,"stages":stages,"rewards":rewards,"musicCatalog":crate::stage_media::music_catalog(database)?}),
     )
@@ -698,6 +720,53 @@ pub fn search_catalog(database: &Database, region: &str) -> Result<Value> {
                 }
             }
         }
+    }
+    Ok(value)
+}
+
+pub fn search_index(database: &Database, region: &str) -> Result<Value> {
+    let mut value = search_catalog(database, region)?;
+    let retain = |value: &mut Value, fields: &[&str]| {
+        if let Some(object) = value.as_object_mut() {
+            object.retain(|key, _| fields.contains(&key.as_str()));
+        }
+    };
+    for map in value["maps"].as_array_mut().into_iter().flatten() {
+        retain(
+            map,
+            &[
+                "key", "name", "nativeId", "series", "stages", "stars", "limits",
+            ],
+        );
+        for limit in map["limits"].as_array_mut().into_iter().flatten() {
+            retain(limit, &["crown", "stage"]);
+        }
+    }
+    for stage in value["stages"].as_array_mut().into_iter().flatten() {
+        retain(
+            stage,
+            &[
+                "id",
+                "index",
+                "map",
+                "name",
+                "energy",
+                "difficulty",
+                "width",
+                "background",
+                "flags",
+                "enemies",
+                "music",
+                "rewards",
+                "patterns",
+            ],
+        );
+        for entry in stage["patterns"].as_array_mut().into_iter().flatten() {
+            retain(entry, &["enemies", "flags", "background", "width"]);
+        }
+    }
+    if let Some(object) = value.as_object_mut() {
+        object.remove("musicCatalog");
     }
     Ok(value)
 }

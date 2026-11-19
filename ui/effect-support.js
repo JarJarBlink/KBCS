@@ -8,6 +8,19 @@ export const comboAvailable = (combo, slots = []) => !isUnsupported(combo) && (c
   (combo.unlock || []).some(unlock => slots.some(member => member?.unitId === unlock.unitId &&
     member.level + member.plus >= unlock.minimumLevel && member.talents[unlock.talentIndex] > 0)));
 
+export function battlePrecisionReasons(issues,{dataVersion,calculationVersion,rules,combos}){
+  const subjects={talent:'本能ID',equipment:'本能玉の効果ID',equipmentSlot:'本能玉スロットの解放条件ID',unitColumn:'味方キャラデータの列',enemyColumn:'敵キャラデータの列'};
+  return issues.map(({domain,id})=>{
+    if(domain==='ruleset')return `JPデータ v${dataVersion} と戦闘計算の参照版 v${calculationVersion} が異なります（ルールセットID ${id}）`;
+    if(domain==='stageRule'||domain==='combo'){
+      const stageRule=domain==='stageRule',label=stageRule?'特殊ルール':'にゃんコンボ';
+      const name=(stageRule?rules:combos)?.find(value=>value.id===id)?.[stageRule?'label':'name'];
+      return `${label}${name?'「'+name+'」':''}（ID ${id}）は未実装または未検証です`;
+    }
+    return `${subjects[domain]??domain+' ID'} ${id} は未実装または未検証です`;
+  });
+}
+
 export function unsupportedTalentHtml(talent) {
   const raw = talent.raw;
   const id = `本能ID ${talent.id}`;

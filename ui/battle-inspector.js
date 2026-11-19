@@ -1,7 +1,7 @@
 ﻿import {NativeWebGLRenderer} from './src/features/motion/native-webgl-renderer.js';
 import {propertyIconHtml} from './src/shared/game/database-view.js';
 
-const size=[64,48],pageSize=64;
+const size=[64,48],attackIcon=[30,22],pageSize=64;
 const actions=new Map([[0,'移動'],[1,'待機'],[2,'攻撃'],[3,'KB'],[4,'昇天'],[5,'吹き飛ばし'],[6,'吹き飛ばし'],[7,'衝撃波'],[10,'登場'],[11,'潜行開始'],[12,'潜行'],[13,'潜行終了'],[14,'蘇生待ち'],[15,'蘇生中'],[16,'復帰'],[18,'ワープ開始'],[19,'ワープ待ち'],[20,'ワープ終了'],[21,'死亡時烈波']]);
 const number=value=>value.toLocaleString('ja-JP'),remaining=value=>value<0?'∞':number(value);
 
@@ -75,16 +75,22 @@ function createSideInspector(list,assets,database,enemies,onChange,side,select){
  function sourceImage(context,source,x,y,width,height){
   const image=source.kind===1?assets.profiles[source.profile]?.icon:null;
   if(image)context.drawImage(image,x,y,width,height);
-  else{context.fillStyle='#14233b';context.fillRect(x,y,width,height);context.fillStyle='#fff';context.font='10px sans-serif';context.textAlign='center';context.fillText(source.kind===2?'砲':source.kind===3?'狙':'他',x+width/2,y+height-2);}
+  else{context.fillStyle='#14233b';context.fillRect(x,y,width,height);context.fillStyle='#fff';context.font='12px sans-serif';context.textAlign='center';context.fillText(source.kind===2?'砲':source.kind===3?'狙':'他',x+width/2,y+height-4);}
  }
- function picture(actor,canvas){
+ function picture(actor,{image,attackers}){
   const profile=assets.profiles[actor.profile],kind=actorPortrait(actor),source=kind==='bone'?assets.bone:profile?.[kind];
-  const context=canvas.getContext('2d');context.clearRect(0,0,...size);
+  const context=image.getContext('2d');context.clearRect(0,0,...size);
   if(source)context.drawImage(source,0,0,...size);
   if(kind==='kb'&&profile?.soul)context.drawImage(profile.soul,0,0,22,22);
-  if(kind!=='icon')for(const [index,source]of (actor.attackers||[]).slice(0,4).entries()){
-   if(index===3&&actor.attackers.length>4){context.fillStyle='#14233b';context.fillRect(48,34,16,14);context.fillStyle='#fff';context.font='9px sans-serif';context.textAlign='center';context.fillText('+'+(actor.attackers.length-3),56,45);}
-   else sourceImage(context,source,index*16,34,16,14);
+  const sources=kind==='icon'?[]:actor.attackers||[];
+  attackers.hidden=!sources.length;
+  if(!sources.length)return;
+  const [width,height]=attackIcon,shown=Math.min(4,sources.length),paint=attackers.getContext('2d');
+  attackers.width=shown*width;attackers.height=height;
+  for(let index=0;index<shown;index++){
+   const x=index*width;
+   if(index===3&&sources.length>4){paint.fillStyle='#14233b';paint.fillRect(x,0,width,height);paint.fillStyle='#fff';paint.font='12px sans-serif';paint.textAlign='center';paint.fillText('+'+(sources.length-3),x+width/2,height-4);}
+   else sourceImage(paint,sources[index],x,0,width,height);
   }
  }
  function change(){++revision;lastRequest=-Infinity;onChange();}
@@ -104,9 +110,9 @@ function createSideInspector(list,assets,database,enemies,onChange,side,select){
    const [spawned,field,deaths,revived,retired]=value.counts[side];stats.textContent=(side?'出現 '+number(spawned):'生産 '+number(value.produced)+(value.produced!==spawned?'（生成 '+number(spawned)+'）':''))+'　場内 '+number(field)+'\n死亡 '+number(deaths)+'　蘇生 '+number(revived)+'　退場 '+number(retired);stats.title='生産は通常生産の成功数。生成には精霊・追加生産・砲の生成物も含む。死亡はHPが正から0になった回数。蘇生は待機から蘇生動作へ移った回数。場内は昇天中・退場済みを除く個体数。';
    const ids=new Set(value.rows.map(actor=>actor.id));for(const [id,item]of rows)if(!ids.has(id)){item.button.remove();rows.delete(id);}
    for(const actor of value.rows){
-    let item=rows.get(actor.id);if(!item){const button=document.createElement('button');button.type='button';button.className='battle-inspector-row';button.dataset.actor=actor.id;const image=document.createElement('canvas');[image.width,image.height]=size;image.setAttribute('aria-hidden','true');const text=document.createElement('span');text.className='battle-inspector-numbers';text.innerHTML='<span class="battle-inspector-primary"><span class="battle-inspector-name"></span><span class="battle-inspector-hp"></span></span><span class="battle-inspector-secondary"><span class="battle-inspector-x"></span><span class="battle-inspector-status"></span></span>';button.append(image,text);item={button,image,text,kind:null};rows.set(actor.id,item);body.append(button);}
+    let item=rows.get(actor.id);if(!item){const button=document.createElement('button');button.type='button';button.className='battle-inspector-row';button.dataset.actor=actor.id;const image=document.createElement('canvas');[image.width,image.height]=size;image.setAttribute('aria-hidden','true');const text=document.createElement('span');text.className='battle-inspector-numbers';text.innerHTML='<span class="battle-inspector-primary"><span class="battle-inspector-name"></span><span class="battle-inspector-hp"></span></span><span class="battle-inspector-secondary"><span class="battle-inspector-x"></span><span class="battle-inspector-status"></span></span><canvas class="battle-inspector-attackers" width="0" height="0" aria-hidden="true" hidden></canvas>';button.append(image,text);item={button,image,text,attackers:text.querySelector('canvas'),kind:null};rows.set(actor.id,item);body.append(button);}
     const profile=assets.profiles[actor.profile],kind=actorPortrait(actor),signature=kind+':'+actor.profile+':'+JSON.stringify(actor.attackers||[]);
-    if(item.kind!==signature){picture(actor,item.image);item.kind=signature;}
+    if(item.kind!==signature){picture(actor,item);item.kind=signature;}
     item.button.title='#'+actor.id+' '+(profile?.name||'個体')+' / '+actorState(actor)+(actor.attackers?.length?' / 攻撃元: '+actor.attackers.map(sourceName).join('、'):'');item.button.setAttribute('aria-pressed',String(actor.id===selected));item.button.classList.toggle('is-retired',actor.retiredFrame>=0);
     item.text.querySelector('.battle-inspector-name').textContent='#'+actor.id+' '+(profile?.name||'個体');item.text.querySelector('.battle-inspector-hp').textContent=number(actor.hp)+' / '+number(actor.maximum);
     item.text.querySelector('.battle-inspector-x').textContent='X '+actor.x/10+' · '+actorState(actor);

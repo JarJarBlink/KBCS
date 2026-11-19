@@ -5,6 +5,7 @@ use kbcs_data::{import, store::Database};
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
+    io::Write,
     path::PathBuf,
     sync::{
         Arc, Mutex, Weak,
@@ -1225,7 +1226,17 @@ impl Service {
                 .query_pairs()
                 .find(|(k, _)| k == "map")
                 .map(|(_, v)| v.into_owned());
-            let key = if category == "stages" {
+            let search = (category == "units" || category == "stages" && map.is_none())
+                && url.query_pairs().any(|(key, value)| key == "view" && value == "search");
+            let gzip = search && url.query_pairs().any(|(key, value)| key == "gzip" && value == "1");
+            let mime = if gzip {
+                "application/gzip"
+            } else {
+                "application/json; charset=utf-8"
+            };
+            let key = if search {
+                format!("{category}-search/{gzip}")
+            } else if category == "stages" {
                 format!("stages/{}", map.as_deref().unwrap_or("index"))
             } else if category == "motion-choices" {
                 format!("motion-choices/{motion_kind}")
@@ -1243,7 +1254,7 @@ impl Service {
             if let Some(bytes) = cached {
                 return Ok(Reply {
                     status: 200,
-                    mime: "application/json; charset=utf-8",
+                    mime,
                     bytes,
                 });
             }
@@ -1258,20 +1269,31 @@ impl Service {
             } else if category == "stages" {
                 if let Some(map) = map.as_deref() {
                     kbcs_data::stages::catalog_map(&database, &self.region, Some(map))?
+                } else if search {
+                    kbcs_data::stages::search_index(&database, &self.region)?
                 } else {
                     kbcs_data::stages::search_catalog(&database, &self.region)?
                 }
+            } else if search {
+                kbcs_data::view::search_index(&database, &self.region)?
             } else {
                 kbcs_data::view::catalog(&database, &self.region)?
             };
             let bytes = serde_json::to_vec(&value)?;
+            let bytes = if gzip {
+                let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+                encoder.write_all(&bytes)?;
+                encoder.finish()?
+            } else {
+                bytes
+            };
             self.catalog
                 .lock()
                 .map_err(|_| anyhow::anyhow!("表示キャッシュロック失敗"))?
                 .insert(key, (current, bytes.clone()), bytes.len());
             return Ok(Reply {
                 status: 200,
-                mime: "application/json; charset=utf-8",
+                mime,
                 bytes,
             });
         }

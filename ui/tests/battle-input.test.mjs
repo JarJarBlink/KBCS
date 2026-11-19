@@ -36,7 +36,7 @@ assert.equal(editableKeyTarget({closest:selector=>selector.includes('select')?{}
 assert.equal(editableKeyTarget({closest:selector=>selector.includes('dialog[open]')?{}:null}),true);
 const screen=readFileSync(new URL('../battle-screen.js',import.meta.url),'utf8');
 const sortie=readFileSync(new URL('../pages/stage-sortie/index.html',import.meta.url),'utf8');
-assert.match(sortie,/id="sortie-launch"[^>]*><\/button><label[^>]*><input type="checkbox" id="sortie-large-start"/);
+assert.match(sortie,/class="sortie-launch-options"><button[^>]*data-recording>録画<\/button><label><input type="checkbox" id="sortie-large-start"/);
 assert.match(sortie,/data-debug="large"/);
 assert.match(screen,/large&&event\.code==='Escape'/);
 assert.ok(!screen.includes('keyQueue'));

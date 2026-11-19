@@ -3,7 +3,7 @@
 KBCS（Kenkou Battle Cats Simulator）は、『にゃんこ大戦争』日本版の戦闘を正確に再現することを目指す、Windows・macOS向けのシミュレーターです。
 
 <p align="center">
-  <img src="ui/images/brand/loading-center.png" width="720" alt="KBCSの起動画面に表示されるロゴ">
+  <img src="docs/images/kbcs-banner.png" width="720" alt="KBCSの起動画面に表示されるロゴ">
 </p>
 
 ## 目次
@@ -15,6 +15,7 @@ KBCS（Kenkou Battle Cats Simulator）は、『にゃんこ大戦争』日本版
   - [ステージデータ](#ステージデータ)
   - [モーションビューア](#モーションビューア)
 - [ダウンロード](#ダウンロード)
+- [最低動作環境](#最低動作環境)
 - [推奨動作環境](#推奨動作環境)
 - [インストール手順](#インストール手順)
 - [初回データ取得・更新](#初回データ取得更新)
@@ -65,19 +66,32 @@ KBCS（Kenkou Battle Cats Simulator）は、『にゃんこ大戦争』日本版
 
 [リリースページ](https://github.com/sinsuirakv0/KBCS/releases)の **Assets** から、自分の端末用ZIPがある最新のKBCS版をダウンロードします。OSごとにビルドが成功し次第公開するため、最新リリースに対応ZIPがない場合は一つ前以降のリリースを確認してください。アプリ内の更新も、端末に対応した最新版を案内します。
 
-## 推奨動作環境
+## 最低動作環境
 
-以下は快適に利用するための推奨目安です。
+Windows欄のCPU・メモリ・GPUは、普段の利用で動作を確認しているPCを基準にした目安です。このPCはSATA SSDを使用しています。
 
 | 項目 | Windows | Mac |
 | --- | --- | --- |
 | OS | Windows 11・64ビット（x64） | macOS 14以降 |
-| CPU | x64対応・4コア以上 | Apple Silicon（Mシリーズ・arm64）またはIntel（x64） |
-| メモリ | 16GB以上 | 16GB以上 |
-| グラフィックス | WebGL 2.0対応GPU | WebGL 2.0対応GPU |
-| ストレージ | SSD・空き容量5GB以上 | SSD・空き容量5GB以上 |
-| 必要なソフト | Microsoft Edge WebView2 Runtime（Evergreen） | OS付属のWebKitを使用 |
-| 通信環境 | 初回データ取得・更新時にインターネット接続 | 初回データ取得・更新時にインターネット接続 |
+| CPU | x64対応。Intel Core i5-8350U（4コア・8スレッド）を目安 | Apple Silicon（arm64）またはIntel（x64） |
+| メモリ | 8 GBを目安 | 下限は未計測 |
+| グラフィックス | WebGL 2.0が使えること。Intel UHD Graphics 620で動作実績あり | WebGL 2.0が使えること |
+| ストレージ | データ保存先の空き5 GBを目安 | データ保存先の空き5 GBを目安 |
+| 実行環境 | Microsoft Edge WebView2 Runtime（Evergreen） | OS付属のWebKit |
+| インターネット接続 | 初回データ取得・更新時に必要 | 初回データ取得・更新時に必要 |
+
+## 推奨動作環境
+
+戦闘の高速再生や録画、ほかのアプリとの同時利用を想定した目安です。
+
+| 項目 | Windows | Mac |
+| --- | --- | --- |
+| CPU | Core i5-8350Uと同程度以上 | Apple Silicon（Mシリーズ）またはIntel（x64） |
+| メモリ | 16 GB以上 | 16 GB以上 |
+| グラフィックス | WebGL 2.0対応でGPUアクセラレーションが使える環境 | WebGL 2.0対応でGPUアクセラレーションが使える環境 |
+| ストレージ | SSD・データ保存先の空き10 GB以上 | SSD・データ保存先の空き10 GB以上 |
+
+更新や録画に必要な空き容量は、取得するデータや録画形式によって変わります。
 
 ## インストール手順
 

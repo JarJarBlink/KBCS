@@ -80,6 +80,7 @@
 .unit-property-image { display: inline-block; position: relative; overflow: hidden; }
 .unit-property-image img { position: absolute; max-width: none; pointer-events: none; }
 .unit-information .unit-property { margin-right: 2px; }
+.unit-hit-details { margin: 0; padding-inline-start: 1.6em; }
 .unit-abilities li, .unit-abilities li > a { display: inline-flex; align-items: center; gap: 2px; }
 .unit-abilities .unit-property { margin-right: 0; }
 .unit-information button { min-height: 22px; padding: 0 5px; margin-left: 8px; }

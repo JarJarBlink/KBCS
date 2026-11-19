@@ -1,9 +1,12 @@
 ﻿import {calculateNative} from './native-calculation.js';
-import {calculateEnemyStats as presentation,defaultEnemySettings,readEnemySettings as readSettings,writeEnemySettings as writeSettings} from './src/shared/game/enemy-stats.js';
+import {calculateEnemyStats as presentation,defaultEnemySettings,enemyDetailUrl,readEnemySettings as readSettings,writeEnemySettings as writeSettings} from './src/shared/game/enemy-stats.js';
 const cache=new Map();
 const options=settings=>({...defaultEnemySettings,...settings});
 const key=(enemy,settings)=>JSON.stringify([enemy.id,...['health','attack','nativeCrown','alien','starred','god1','god2','god3','strengthen','critical','savage'].map(k=>options(settings)[k])]);
 export function stageEnemySettings(spawn,map,crown,settings){return {...settings,health:spawn.health,attack:spawn.attack,nativeCrown:map.stars[crown-1]??100};}
+export function stageEnemyDetailUrl(enemy,spawn,map,crown){
+  return enemyDetailUrl(enemy)+(spawn?'&'+new URLSearchParams(stageEnemySettings(spawn,map,crown)):'');
+}
 export async function prepareEnemyStatistics(entries){
   const missing=new Map(entries.filter(({enemy,settings})=>enemy&&!cache.has(key(enemy,settings))).map(entry=>[key(entry.enemy,entry.settings),entry]));
   const inputs=[],rows=[];

@@ -8,12 +8,13 @@
 .battle-inspector-clock{font-size:10px;opacity:.75}
 .battle-inspector-rows{border-top:1px solid var(--color-border)}
 .battle-inspector-rows:empty:after{content:attr(data-empty);display:block;padding:12px 2px;opacity:.7}
-.battle-inspector-row{display:flex;align-items:center;gap:3px;width:100%;min-width:0;height:39px;padding:1px 0;text-align:left;border:0;border-bottom:1px solid var(--color-border);border-radius:0;background:transparent;color:inherit;cursor:pointer}
+.battle-inspector-row{display:flex;align-items:center;gap:3px;width:100%;min-width:0;min-height:39px;padding:1px 0;text-align:left;border:0;border-bottom:1px solid var(--color-border);border-radius:0;background:transparent;color:inherit;cursor:pointer}
 .battle-inspector-row:hover,.battle-inspector-row[aria-pressed=true]{background:var(--color-control)}
 .battle-inspector-row[aria-pressed=true]{box-shadow:inset 2px 0 #72afff}
 .battle-inspector-row>canvas{flex:0 0 44px;width:44px;height:33px;object-fit:contain}
 .battle-inspector-row.is-retired{opacity:.75}
 .battle-inspector-numbers{display:block;flex:1;min-width:0;font-size:10px;line-height:17px}
+.battle-inspector-attackers{display:block;max-width:100%;height:22px;object-fit:contain;object-position:left center;margin-block:1px 3px}
 .battle-inspector-primary,.battle-inspector-secondary{display:flex;gap:4px;align-items:center;min-width:0;white-space:nowrap}
 .battle-inspector-name{flex:1;overflow:hidden;text-overflow:ellipsis;font-size:10px}
 .battle-inspector-hp{flex:0 0 auto;font-size:10px}

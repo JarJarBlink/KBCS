@@ -88,6 +88,7 @@ function initialize() {
   element('enemy-title').textContent=enemy.name+' 敵詳細';document.title=enemy.name+' | KBC';
   element('enemy-version').textContent='JP データv'+database.gameVersion;
   for(const key of ['health','attack'])element('enemy-'+key).value=settings[key];
+  if(settings.nativeCrown!==100){const rate=document.createElement('span');rate.className='db-meta';rate.textContent='冠倍率 '+settings.nativeCrown+'%';element('enemy-attack').closest('.db-toolbar').append(rate);}
   element('enemy-time').value=settings.seconds?'seconds':'frames';element('enemy-same').checked=same;
   element('enemy-compare-enabled').checked=comparison.enabled;element('enemy-compare-same').checked=comparison.same;
   element('enemy-condition-controls').innerHTML=enemyConditionControls(enemy,settings,'enemy-current-');

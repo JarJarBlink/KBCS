@@ -1,4 +1,4 @@
-﻿use crate::{
+use crate::{
     SCHEMA_VERSION,
     model::{Attack, Form, Property, UnitSummary, normalize_query},
     source::parse_json,
@@ -134,33 +134,30 @@ impl Database {
     }
 
     pub fn form(&self, region: &str, id: u32, index: usize) -> Result<Form> {
-        let mut form = self.connection.query_row("SELECT f.name,f.description,u.rarity,f.hp,f.speed,f.range,f.cost,f.respawn_raw,f.knockbacks,f.interval_raw,f.area,f.attack_cycle,f.animation_length,f.source_path,f.name_source,f.motion_path,f.raw_cells,u.max_level,u.plus_level,u.is_spirit,f.icon_path FROM form f JOIN unit u ON u.region=f.region AND u.id=f.unit_id WHERE f.region=? AND f.unit_id=? AND f.form_index=?", params![region,id,index as i64], |row| Ok(Form {
+        let (mut form, cells): (Form, String) = self.connection.prepare_cached("SELECT f.name,f.description,u.rarity,f.hp,f.speed,f.range,f.cost,f.respawn_raw,f.knockbacks,f.interval_raw,f.area,f.attack_cycle,f.animation_length,f.source_path,f.name_source,f.motion_path,f.raw_cells,u.max_level,u.plus_level,u.is_spirit,f.icon_path FROM form f JOIN unit u ON u.region=f.region AND u.id=f.unit_id WHERE f.region=? AND f.unit_id=? AND f.form_index=?")?.query_row(params![region,id,index as i64], |row| Ok((Form {
             region: region.into(), unit_id: id, index, name: row.get(0)?, description: row.get(1)?, rarity: row.get(2)?, max_level: row.get(17)?, plus_level: row.get(18)?, is_spirit: row.get(19)?, icon_path: row.get(20)?, hp: row.get(3)?, speed: row.get(4)?, range: row.get(5)?, cost: row.get(6)?, respawn_raw: row.get(7)?, knockbacks: row.get(8)?, interval_raw: row.get(9)?, area: row.get(10)?, attack_cycle: row.get(11)?, animation_length: row.get(12)?, source_path: row.get(13)?, name_source: row.get(14)?, motion_path: row.get(15)?, raw_cells: Vec::new(), raw: Vec::new(), attacks: Vec::new(), properties: Vec::new(), growth: Vec::new(),
-        }))?;
-        let cells: String = self.connection.query_row(
-            "SELECT raw_cells FROM form WHERE region=? AND unit_id=? AND form_index=?",
-            params![region, id, index as i64],
-            |row| row.get(0),
-        )?;
+        }, row.get(16)?)))?;
         form.raw_cells = serde_json::from_str(&cells)?;
         form.raw = form
             .raw_cells
             .iter()
             .map(|cell| cell.trim().parse::<i64>().ok())
             .collect();
-        form.attacks = self.connection.prepare("SELECT damage,foreswing,ability_enabled,range_start,range_end FROM attack WHERE region=? AND unit_id=? AND form_index=? ORDER BY hit")?.query_map(params![region,id,index as i64], |row| {
+        form.attacks = self.connection.prepare_cached("SELECT damage,foreswing,ability_enabled,range_start,range_end FROM attack WHERE region=? AND unit_id=? AND form_index=? ORDER BY hit")?.query_map(params![region,id,index as i64], |row| {
             let start: Option<i64> = row.get(3)?;
             let end: Option<i64> = row.get(4)?;
             Ok(Attack { damage: row.get(0)?, foreswing: row.get(1)?, ability_enabled: row.get(2)?, range: start.zip(end).map(|(a,b)| [a,b]) })
         })?.collect::<rusqlite::Result<_>>()?;
         form.growth = self
             .connection
-            .prepare("SELECT rate FROM growth WHERE region=? AND unit_id=? ORDER BY position")?
+            .prepare_cached(
+                "SELECT rate FROM growth WHERE region=? AND unit_id=? ORDER BY position",
+            )?
             .query_map(params![region, id], |row| row.get(0))?
             .collect::<rusqlite::Result<_>>()?;
-        let properties: Vec<(String, String)> = self.connection.prepare("SELECT key,label FROM property WHERE region=? AND unit_id=? AND form_index=? ORDER BY key")?.query_map(params![region,id,index as i64], |row| Ok((row.get(0)?,row.get(1)?)))?.collect::<rusqlite::Result<_>>()?;
+        let properties: Vec<(String, String)> = self.connection.prepare_cached("SELECT key,label FROM property WHERE region=? AND unit_id=? AND form_index=? ORDER BY key")?.query_map(params![region,id,index as i64], |row| Ok((row.get(0)?,row.get(1)?)))?.collect::<rusqlite::Result<_>>()?;
         for (key, label) in properties {
-            let values: Vec<(u32, Option<i64>)> = self.connection.prepare("SELECT source_column,value FROM property_parameter WHERE region=? AND unit_id=? AND form_index=? AND key=? ORDER BY position")?.query_map(params![region,id,index as i64,&key], |row| Ok((row.get(0)?,row.get(1)?)))?.collect::<rusqlite::Result<_>>()?;
+            let values: Vec<(u32, Option<i64>)> = self.connection.prepare_cached("SELECT source_column,value FROM property_parameter WHERE region=? AND unit_id=? AND form_index=? AND key=? ORDER BY position")?.query_map(params![region,id,index as i64,&key], |row| Ok((row.get(0)?,row.get(1)?)))?.collect::<rusqlite::Result<_>>()?;
             form.properties.push(Property {
                 key,
                 label,

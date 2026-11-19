@@ -97,6 +97,7 @@ export async function loadStageMap(database,key){return database.stages.filter(s
     if name=='src/features/stages/search.js':
         text=text.replace("stageGimmicks.map(([key,label])=>", "stageGimmicks.filter(([key])=>database.stages.some(stage=>stage.flags.includes(key))).map(([key,label])=>")
         text=text.replace("+'マップ';element('stage-empty')", "+'マップ / '+rows.reduce((count,entry)=>count+entry.stages.length,0)+'ステージ';element('stage-empty')")
+        text=replace_once(text, '''<td title="ゲーム内マップID '+map.nativeId+'">'+map.nativeId+'<small class="db-meta">'+map.key+'</small></td>''', '''<td class="stage-map-id">'+escapeHtml(map.key)+'<small>('+map.nativeId+')</small></td>''')
     if name=='src/shared/game/unit-view.js':text=text.replace("import unitImages from 'virtual:kbc-unit-images';","const unitImages = {};")
     if name=='src/shared/game/enemies.js':
         text=text.replace("import url from 'virtual:kbc-enemy-data';",'const url="/api/enemies";')
@@ -167,6 +168,7 @@ export async function loadStageMap(database,key){return database.stages.filter(s
         text+="\nwindow.addEventListener('kbcs:simulation-change',event=>{Object.assign(state,event.detail);for(const key of ['alien','starred'])element('enemy-'+key).value=state[key];if(database)update();});\n"
     if name=='src/features/enemies/detail.js':
         text=replace_once(text,"settings:{...defaultEnemySettings}","settings:readEnemySettings(new URLSearchParams(),readGameSettings())")
+        text=replace_once(text,"  for(const key of ['health','attack'])element('enemy-'+key).value=settings[key];", "  for(const key of ['health','attack'])element('enemy-'+key).value=settings[key];\n  if(settings.nativeCrown!==100){const rate=document.createElement('span');rate.className='db-meta';rate.textContent='冠倍率 '+settings.nativeCrown+'%';element('enemy-attack').closest('.db-toolbar').append(rate);}")
         text=replace_once(text,'readEnemySettings(new URLSearchParams(value.settings||{}))','readEnemySettings(new URLSearchParams(value.settings||{}),readGameSettings())')
         text=text.replace("element('enemy-content').addEventListener(","element('workspace-body').addEventListener(")
         text=text.replace("  if(event.target.id==='enemy-compare-query')return;","  if(event.target.id==='enemy-compare-query'||event.target.closest('.simulation-settings'))return;")

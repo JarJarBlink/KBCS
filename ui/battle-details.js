@@ -57,7 +57,7 @@ export function createBattleDetails(root,assets,images,onChange){
   heading.textContent=selected==null?'サイドバーから個体を選択':'個体 #'+selected;
   hint.textContent=selected==null?'戦闘中の姿勢を表示します':'読み込み中';
  }
- open('actor');reset();
+ open(buttons[0].dataset.detailTab);reset();
  return {
   select(id){if(selected!==id){selected=id;reset();}if(shelf)shelf.open=true;open('actor');},
   focus(){return tab==='actor'&&(!shelf||shelf.open)?selected:null;},

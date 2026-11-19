@@ -1,4 +1,4 @@
-﻿import {comboAvailable,partialCalculation} from './effect-support.js';
+﻿import {comboAvailable,partialCalculation,battlePrecisionReasons} from './effect-support.js';
 import {nativeFont,loadNativeFonts} from './native-font.js';
 import {readBattleKeys,battleKeyAction,editableKeyTarget} from './keyboard.js';
 import {createSessionId} from './src/shared/browser/session-id.js';
@@ -31,12 +31,12 @@ export function battleScreenConfiguration(database,snapshot){
 export async function prepareBattleScreen(database,snapshot,assets,signal,report,enemies){
  await loadNativeFonts();
  const [atlas,options]=await Promise.all([readBattleJson('/images/native-battle/manifest.json',{signal}),readBattleJson('/api/battle-options',{signal})]);
- let referencePresentation=false;
+ let presentationDifferences=[];
  if(atlas.buildId!==snapshot.buildId||atlas.version!==snapshot.version){
   const sources=Object.values(atlas.atlases).flatMap(value=>Object.entries(value.sources)),paths=[...new Set([...sources.map(([path])=>path),atlas.soundSource.path])];
   const hashes=await readBattleJson('/api/asset-hashes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(paths),signal});
   if(hashes[atlas.soundSource.path]!==atlas.soundSource.sha256)throw Error('戦闘音声の設定とDBの原本が異なります');
-  referencePresentation=sources.some(([path,source])=>hashes[path]!==source.sha256);
+  presentationDifferences=[...new Map(sources)].flatMap(([path,source])=>hashes[path]===source.sha256?[]:[{path,missing:hashes[path]==null}]);
  }
  const forms=snapshot.formation.slots.map(member=>member&&database.units.find(v=>v.id===member.unitId)?.forms.find(v=>v.index===member.form));
  const atlasUrls=new Map(Object.values(atlas.atlases).map(v=>[v.image,v.url]));
@@ -60,7 +60,7 @@ export async function prepareBattleScreen(database,snapshot,assets,signal,report
  catch(error){dispose();signal.removeEventListener('abort',dispose);throw error;}
  // 後の曲の取得は開始を待たせない。将来の切替入口は読込完了を確認する。
  Promise.all(tracks.slice(1).map(async track=>{try{await loadAudio(track);}catch(error){if(error.name!=='AbortError')audioErrors.set(track.id,error.message);}}));
- return {database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,referencePresentation,dispose:()=>{signal.removeEventListener('abort',dispose);dispose();},...values};
+ return {database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,presentationDifferences,dispose:()=>{signal.removeEventListener('abort',dispose);dispose();},...values};
 }
 
 export async function startBattleScreen(root,canvas,scene,snapshot,resources,onReturn,recording,signal,largeAtStart=false){
@@ -96,9 +96,16 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
  const context=canvas.getContext('2d'),message=root.querySelector('[data-battle-message]'),menu=root.querySelector('[data-battle-menu]');
  const messageHome=message.parentElement;detailsRoot.querySelector('.battle-status-line').prepend(message);
  message.textContent='';
- const precisionWarning=document.createElement('span');precisionWarning.setAttribute('role','status');message.after(precisionWarning);
- const presentationWarning=resources.referencePresentation?'参照版の戦闘UI素材で表示しています。':'';
- precisionWarning.textContent=presentationWarning;precisionWarning.hidden=!presentationWarning;
+ const notices=document.createElement('div');notices.className='battle-precision-notices';
+ const precisionWarning=document.createElement('div');precisionWarning.hidden=true;
+ notices.append(precisionWarning);message.after(notices);
+ const differences=resources.presentationDifferences;
+ if(differences.length){
+  const details=document.createElement('details'),summary=document.createElement('summary'),list=document.createElement('ul');
+  summary.textContent='JPデータ v'+snapshot.version+' の戦闘UI素材 '+differences.length+'件が参照版と一致しないため、v'+resources.atlas.version+' の素材で表示しています。';
+  for(const {path,missing} of differences){const item=document.createElement('li');item.textContent=path+'（'+(missing?'DBに未収録':'内容が異なる')+'）';list.append(item);}
+  details.append(summary,list);notices.append(details);
+ }
  const keyBindings=readBattleKeys();
  let state={frame:0,intro:12,rows:2,page:0,page_frame:0,page_direction:1,paused:0,money:resources.money,worker:resources.worker,cannon:0,holding:-1,hold_frames:0,hold_wait:0,pointer_down:0,pointer_x:0,pointer_y:0,guard:0,pending_control:-1,items_on:resources.config.items,request_slot:-1,request_cannon:0,ui_frame:0,speed_mode:resources.speedMode,wallet_flash:0,description_item:-1,description_wait:0,start_x:0,start_y:0,gesture:0,page_step:1,request_action:0,bgm_level:3,se_level:3,vibration_on:0,info_mode:0,info_slot:0,saved_rows:2,hud_frame:0};
  let runtime={wait:Array(10).fill(0),maximum:Array(10).fill(0)},sessionCreated=false,skipCombos=false,returnPending=false,inspector,details,inspectionDirty=false;
@@ -198,7 +205,13 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   accrueClock(performance.now());
   // 0tickキーの後に届いた同一Fの古い描画応答で、押下状態を巻き戻さない。
   if(sentKeys===keySerial||next.state.ui_frame>state.ui_frame||next.state.frame>state.frame){state=next.state;view=next.layout;}runtime=next.runtime;
-  if(runtime.precision?.status==='partial'&&!precisionWarning.title){precisionWarning.textContent=[partialCalculation,presentationWarning].filter(Boolean).join(' ');precisionWarning.title=runtime.precision.issues.map(issue=>issue.domain+' '+issue.id).join(' / ');precisionWarning.hidden=false;}
+  if(runtime.precision?.status==='partial'&&precisionWarning.hidden){
+   const heading=document.createElement('p'),list=document.createElement('ul');heading.textContent=partialCalculation;
+   for(const reason of battlePrecisionReasons(runtime.precision.issues,{dataVersion:snapshot.version,calculationVersion:catalog.version,rules:snapshot.map.rules,combos:resources.database.combos})){
+    const item=document.createElement('li');item.textContent=reason;list.append(item);
+   }
+   precisionWarning.append(heading,list);precisionWarning.hidden=false;
+  }
   persistOptions();
   results.update(runtime,screenWidth,resources.atlas);
   inspector?.update(runtime.inspection,state.frame);
@@ -464,7 +477,7 @@ function fail(e){if(!stopped){error=true;failure={frame:state.frame,message:e.me
   document.body.classList.remove('battle-large');largeHint.hidden=true;clearTimeout(largeHintTimer);
   detailsRoot.removeEventListener('click',command);results.stop();window.removeEventListener('pagehide',stop);
   signal?.removeEventListener('abort',stop);recording?.detach();if(sessionCreated)fetch('/api/battle-session?'+new URLSearchParams({session}),{method:'DELETE',keepalive:true}).catch(()=>{});
-  actorsInfo.remove();resultInfo.remove();limitInfo.remove();precisionWarning.remove();message.removeAttribute('title');message.setAttribute('role','status');messageHome.append(message);
+  actorsInfo.remove();resultInfo.remove();limitInfo.remove();notices.remove();message.removeAttribute('title');message.setAttribute('role','status');messageHome.append(message);
   cancelAnimationFrame(raf);clearTimeout(presentationTimer);clearTimeout(updateTimer);requestController.abort();observer.disconnect();
   aspect.removeEventListener('change',changeAspect);controls.removeEventListener('change',changeSettings);painter.dispose();monitor.stop();controls.removeEventListener('click',command);
   gestures.dispose();sounds.stop();tints.clear();cameraPointers.clear();canvas.removeEventListener('wheel',wheel);if(audio){audio.pause();audio.removeAttribute('src');}resources.dispose();

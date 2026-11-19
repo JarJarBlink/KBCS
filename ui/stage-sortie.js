@@ -1,7 +1,6 @@
 ﻿import {loadStageDatabase,loadStageVariant} from './src/shared/game/stages.js';
 import {loadEnemyDatabase} from './src/shared/game/enemies.js';
 import {loadUnitDatabase} from './src/shared/game/units.js';
-import {enemyImageHtml} from './src/shared/game/enemy-view.js';
 import {escapeHtml as esc,formatNumber,formatTime} from './src/shared/game/database-view.js';
 import {resolveStageRoute,applicableLimits} from './src/features/stages/model.js';
 import {loadStageScene,stageMediaHtml,initializeStageMedia} from './src/features/stages/native-media.js';
@@ -9,7 +8,7 @@ import {prepareBattleScreen,startBattleScreen} from './battle-screen.js';
 import {createBattleRecording} from './battle-recording.js';
 import {createFormationView,fitFormationName} from './formation-view.js';
 import {createFormationReorder} from './formation-reorder.js';
-import {readSortiePreferences,sortieItemsHtml,toggleSortieItem,sortieLaunchHtml,sortieFixedMoney} from './sortie-view.js';
+import {readSortiePreferences,sortieItemsHtml,toggleSortieItem,sortieLaunchHtml,sortieFixedMoney,sortieEnemyLinksHtml} from './sortie-view.js';
 import {formationDisplayName} from './formation-model.js';
 import {stageRulesHtml,stageFormationHtml} from './src/features/stages/view.js';
 import {readBattleJson,battleFormation,castleHealth,prepareBattleAssets,effectiveStageLimit,stageDeployment} from './battle-support.js';
@@ -23,6 +22,10 @@ let saved={items:{},speed:2};try{saved=readSortiePreferences(localStorage,sessio
 largeStart.checked=saved.large===true;
 let crown=Math.max(1,Number(route.get('crown'))||1),items={...saved.items},speed=saved.speed;
 const stageMedia=initializeStageMedia(node('media'),id=>stages.find(value=>value.id===id));
+node('enemies').addEventListener('error',event=>{
+  const icon=event.target.closest?.('.enemy-icon');
+  if(icon){icon.nextElementSibling.hidden=false;icon.remove();}
+},true);
 function status(message,error=false){node('message').textContent=message;node('message').classList.toggle('sortie-status-error',error);}
 function store(){saved={...saved,formation:entry?.id??saved.formation,items,speed};try{for(const storage of [localStorage,sessionStorage])storage.setItem('kbcs:sortie',JSON.stringify(saved));}catch{}}
 largeStart.onchange=()=>{saved.large=largeStart.checked;store();};
@@ -91,18 +94,19 @@ async function chooseFormation(id){
 }
 function renderStage(){
   const fixed=sortieFixedMoney(map,saved.fixedMoney?.[map.key]);moneyControls.hidden=fixed===null;moneyInput.value=fixed??'';moneyInput.setCustomValidity('');
-  node('title').textContent=stage.name;document.title=stage.name+' 出撃準備 | KBCS';node('map').textContent=map.name;
+  node('title').textContent=stage.name;document.title=stage.name+' 出撃準備 | KBCS';node('map').textContent=map.key+'-'+stage.index+' '+map.name;
   node('stages').innerHTML=stages.map(value=>'<button type="button" data-stage="'+value.index+'" aria-current="'+(value.index===stage.index)+'">'+(value.index+1)+'. '+esc(value.name)+'</button>').join('');
-  node('crowns').innerHTML=map.stars.map((_,index)=>'<button type="button" data-crown="'+(index+1)+'" aria-pressed="'+(crown===index+1)+'"><img src="/icons/stages/crown-'+(index<crown?'on':'off')+'.png" alt="" width="25" height="24">'+(index+1)+'</button>').join('');
-  node('crown-rate').textContent=formatNumber(map.stars[crown-1])+'%';
+  node('crowns').innerHTML=map.stars.map((_,index)=>'<button type="button" data-crown="'+(index+1)+'" aria-label="'+(index+1)+'冠" title="'+(index+1)+'冠" aria-pressed="'+(crown===index+1)+'"><img src="/icons/stages/crown-'+(index<crown?'on':'off')+'.png" alt="" width="25" height="24"></button>').join('');
+  const continueStatus=stage.width==null?'未収録':stage.noContinue?'不可':'可';
+  node('crown-rate').textContent='倍率'+formatNumber(map.stars[crown-1])+'%';
+  node('continue-status').textContent='コンテニュー'+continueStatus;
   node('pattern').innerHTML=stage.variants?.length?'<label>'+esc(stage.patternLabel||'出現パターン')+'<select data-pattern><option value="" disabled '+(!stage.patternSource?'selected':'')+'>選択してください</option>'+stage.variants.map(value=>'<option value="'+esc(value.source)+'" '+(value.source===stage.patternSource?'selected':'')+'>'+esc(value.name)+'</option>').join('')+'</select></label>':'';
-  const ids=[...new Set([...(stage.enemies||[]),...stage.spawns.map(spawn=>spawn.enemy)])];
-  node('enemies').innerHTML=ids.map(id=>{const enemy=enemies.enemies.find(enemy=>enemy.id===id);return '<div class="sortie-enemy">'+(enemy?enemyImageHtml(enemies,enemy,36):'')+'<span>'+esc(enemy?.name??'敵ID '+id)+'</span></div>';}).join('')||'<span>出現情報なし</span>';
+  node('enemies').innerHTML=sortieEnemyLinksHtml(stage,map,crown,enemies);
   const limit=effectiveStageLimit(map,stage,crown),hasLimit=Object.keys(limit).length>0;
   node('limit-summary').textContent=hasLimit||map.rules.length||stage.formation?'出撃制限・特殊条件あり':'';
   node('limits').innerHTML=stageRulesHtml(database,stage,map,crown,units,true,{selectedLimits:hasLimit?[limit]:[],showOtherCrowns:false})+stageFormationHtml(stage,units);
   const enemyCastle=enemies.enemies.find(enemy=>enemy.id===stage.enemyCastle);
-  node('stage-facts').innerHTML=[['統率力',stage.energy],['敵最大数',stage.maxEnemies],['ステージ幅',stage.width],['難易度',stage.difficulty==null?'—':'★'+stage.difficulty],['敵城',stage.timeLimit?'スコア制':stage.enemyCastle!=null?(enemyCastle?.name??'敵ID '+stage.enemyCastle):stage.castleHealth],['コンテニュー',stage.noContinue?'不可':'可'],['制限時間',stage.timeLimit?formatTime(stage.timeLimit,true):'なし']].map(([label,value])=>'<dt>'+label+'</dt><dd>'+esc(typeof value==='number'?formatNumber(value):value??'—')+'</dd>').join('');
+  node('stage-facts').innerHTML=[['統率力',stage.energy],['敵最大数',stage.maxEnemies],['ステージ幅',stage.width],['難易度',stage.difficulty==null?'—':'★'+stage.difficulty],['敵城',stage.timeLimit?'スコア制':stage.enemyCastle!=null?(enemyCastle?.name??'敵ID '+stage.enemyCastle):stage.castleHealth],['城バリア',stage.width==null?'未収録':stage.bossGuard?'あり':'なし'],['コンテニュー',continueStatus],['制限時間',stage.timeLimit?formatTime(stage.timeLimit,true):'なし']].map(([label,value])=>'<dt>'+label+'</dt><dd>'+esc(typeof value==='number'?formatNumber(value):value??'—')+'</dd>').join('');
   stageMedia.clear();node('media').innerHTML=stageMediaHtml(database,stage,enemies);stageMedia.refresh();
   node('database-link').href='/pages/stage-detail/?'+new URLSearchParams({map:map.key,stage:stage.index,crown});
   history.replaceState(null,'','/pages/stage-sortie/?'+new URLSearchParams({map:map.key,stage:stage.index,crown}));drawFormation();refreshDeployment();ready();

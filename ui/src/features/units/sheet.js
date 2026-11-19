@@ -2,6 +2,14 @@
 const cells=(label,value)=>'<th scope="row">'+label+'</th><td class="unit-value">'+escapeHtml(value)+'</td>';
 export const unitInformationRow=(label,html,extra=false)=>'<tr'+(extra?' class="unit-extra"':'')+'><th scope="row">'+label+'</th><td colspan="5" class="unit-information">'+html+'</td></tr>';
 const information=unitInformationRow;
+function attackDetails(form,stats,time){
+  const entries=stats.attacks.map((damage,index)=>{
+    const range=form.hitRanges?.[index],ability=form.abilityHits?.[index];
+    const fields=[formatNumber(damage),'発生 '+time(form.foreswings[index]),...(range?['範囲 '+range.join('〜')]:[]),...(ability==null?[]:['攻撃時の特性 '+(ability?'有効':'無効')])];
+    return '<li>'+escapeHtml(fields.join(' / '))+'</li>';
+  });
+  return '<ol class="unit-hit-details">'+entries.join('')+'</ol>';
+}
 // 表の構造・画像・特性の描画は詳細ページと編成で共用する。
 export function unitSheetHtml(database,unit,profile,settings,extraRows=''){
   const form=profile.form;
@@ -19,5 +27,5 @@ export function unitSheetHtml(database,unit,profile,settings,extraRows=''){
     information('攻撃特性','<ul class="unit-abilities"><li>'+propertyIconHtml(database,form.attackType==='範囲'?'area':'single',form.attackType)+'</li>'+abilitiesHtml(database,form.abilities.filter(ability=>traits.has(ability.key)),settings.seconds)+(stats.attacks.length>1?'<li>連続攻撃 '+stats.attacks.length+'回</li>':'')+'</ul>')+
     information('特性',abilities?'<ul class="unit-abilities">'+abilities+'</ul>':'なし')+
     (form.ranges.length?information('攻撃範囲',escapeHtml(form.ranges.map(range=>range.join('〜')).join(' / '))):'')+
-    (stats.attacks.length>1?information('連続攻撃',stats.attacks.map((attack,index)=>escapeHtml(formatNumber(attack)+'（発生 '+time(form.foreswings[index])+'）')).join(' / ')):'')+extraRows+'</tbody></table>';
+    (stats.attacks.length>1?information('連続攻撃',attackDetails(form,stats,time)):'')+extraRows+'</tbody></table>';
 }

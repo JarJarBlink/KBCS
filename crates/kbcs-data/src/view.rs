@@ -1,4 +1,4 @@
-﻿use crate::{
+use crate::{
     model::{Form, Property},
     store::Database,
 };
@@ -70,7 +70,7 @@ fn ability(property: &Property) -> Value {
     value
 }
 
-fn form_value(form: &Form) -> Value {
+fn form_value(form: &Form, search: bool) -> Value {
     let pre = form
         .attacks
         .iter()
@@ -90,17 +90,52 @@ fn form_value(form: &Form) -> Value {
         .chain(crate::support::extension_abilities(&form.raw, 119))
         .collect();
     let raw = |index| form.raw.get(index).copied().flatten();
-    json!({"name":form.name,"description":form.description,"index":form.index,"code":(["f","c","s","u"][form.index]),"hp":form.hp,"knockbacks":form.knockbacks,"speed":form.speed,"attacks":form.attacks.iter().map(|a|a.damage).collect::<Vec<_>>(),"foreswings":form.attacks.iter().map(|a|a.foreswing).collect::<Vec<_>>(),"attackCycle":form.attack_cycle,"backswing":form.animation_length.zip(pre).map(|(length,pre)|(length-pre).max(0)),"range":form.range,"castleRange":if raw(45).is_some_and(|v|v!=0){raw(44)}else{Some(form.range)},"cost":form.cost,"respawn":form.respawn_raw*2,"attackInterval":form.interval_raw,"attackType":if form.area{"範囲"}else{"単体"},"targets":targets,"abilities":abilities,"icon":form.icon_path,"ranges":form.attacks.iter().filter_map(|a|a.range).filter(|[a,b]|a!=b).map(|[a,b]|[a.min(b),a.max(b)]).collect::<Vec<_>>(),"width":raw(9),"layers":[raw(14),raw(15)]})
+    let mut value = json!({"name":form.name,"index":form.index,"code":(["f","c","s","u"][form.index]),"hp":form.hp,"knockbacks":form.knockbacks,"speed":form.speed,"attacks":form.attacks.iter().map(|a|a.damage).collect::<Vec<_>>(),"foreswings":form.attacks.iter().map(|a|a.foreswing).collect::<Vec<_>>(),"attackCycle":form.attack_cycle,"backswing":form.animation_length.zip(pre).map(|(length,pre)|(length-pre).max(0)),"range":form.range,"castleRange":if raw(45).is_some_and(|v|v!=0){raw(44)}else{Some(form.range)},"cost":form.cost,"respawn":form.respawn_raw*2,"attackInterval":form.interval_raw,"attackType":if form.area{"範囲"}else{"単体"},"targets":targets,"abilities":abilities,"icon":form.icon_path,"ranges":form.attacks.iter().filter_map(|a|a.range).filter(|[a,b]|a!=b).map(|[a,b]|[a.min(b),a.max(b)]).collect::<Vec<_>>(),"width":raw(9),"layers":[raw(14),raw(15)]});
+    if !search {
+        value["description"] = json!(form.description);
+        value["abilityHits"] = json!(
+            form.attacks
+                .iter()
+                .map(|a| a.ability_enabled)
+                .collect::<Vec<_>>()
+        );
+        value["hitRanges"] = json!(
+            form.attacks
+                .iter()
+                .map(|a| a
+                    .range
+                    .map(|[start, end]| [start.min(end), start.max(end)])
+                    .filter(|[a, b]| a != b))
+                .collect::<Vec<_>>()
+        );
+    }
+    value
 }
 
 pub fn catalog(database: &Database, region: &str) -> Result<Value> {
+    catalog_view(database, region, false)
+}
+
+pub fn search_index(database: &Database, region: &str) -> Result<Value> {
+    catalog_view(database, region, true)
+}
+
+fn catalog_view(database: &Database, region: &str, search: bool) -> Result<Value> {
     let metadata = database.metadata()?;
-    let equipment = crate::equipment::capacities(database)?;
+    let equipment = if search {
+        BTreeMap::new()
+    } else {
+        crate::equipment::capacities(database)?
+    };
     let mut units = Vec::new();
     let mut growth = Vec::new();
+    let mut curve_indices = BTreeMap::new();
     let mut abilities = BTreeMap::new();
-    let combos = crate::combos::read(&database.connection, region)?;
-    let combo_effects = crate::combos::effects(&database.connection, region)?;
+    let combos = if search {
+        Vec::new()
+    } else {
+        crate::combos::read(&database.connection, region)?
+    };
     for summary in database.search(region, "", false)? {
         let mut forms = Vec::new();
         let mut original = None;
@@ -111,7 +146,7 @@ pub fn catalog(database: &Database, region: &str) -> Result<Value> {
             if (form.icon_path.is_none() && !form.is_spirit) || form.animation_length.is_none() {
                 continue;
             }
-            let value = form_value(&form);
+            let value = form_value(&form, search);
             for ability in value["abilities"].as_array().into_iter().flatten() {
                 abilities.insert(
                     ability["key"].as_str().unwrap_or_default().to_owned(),
@@ -126,17 +161,27 @@ pub fn catalog(database: &Database, region: &str) -> Result<Value> {
         let Some(original) = original else {
             continue;
         };
-        growth.push(
-            (0..=200)
-                .map(|level| {
-                    if level == 0 {
-                        Some(0)
-                    } else {
-                        original.growth_percent(level)
-                    }
-                })
-                .collect::<Vec<_>>(),
-        );
+        let next_curve = growth.len();
+        let curve = if search {
+            *curve_indices
+                .entry(original.growth.clone())
+                .or_insert(next_curve)
+        } else {
+            next_curve
+        };
+        if curve == next_curve {
+            growth.push(
+                (0..=200)
+                    .map(|level| {
+                        if level == 0 {
+                            Some(0)
+                        } else {
+                            original.growth_percent(level)
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            );
+        }
         let (aliases, kind): (String, String) = database.connection.query_row(
             "SELECT aliases,kind FROM unit WHERE region=? AND id=?",
             rusqlite::params![region, summary.id],
@@ -150,27 +195,35 @@ pub fn catalog(database: &Database, region: &str) -> Result<Value> {
                     .or_insert_with(|| json!({"key":talent.effect.key,"label":label}));
             }
         }
-        let progression = crate::progression::read(&database.connection, region, summary.id)?;
-        let acquisition = progression
-            .iter()
-            .find(|value| value.form == 0)
-            .map(|value| json!({"description":value.description,"stages":value.stages}))
-            .unwrap_or_else(|| json!({"description":"","stages":[]}));
-        let evolution: Vec<_> = progression
-            .into_iter()
-            .filter(|value| value.form > 0)
-            .collect();
-        let unit_combos: Vec<_> = combos
-            .iter()
-            .filter(|combo| {
-                combo
-                    .members
+        let mut unit = json!({"id":summary.id,"aliases":[aliases],"rarity":summary.rarity,"maxLevel":original.max_level,"plusLevel":original.plus_level,"growth":curve,"forms":forms,"talents":talents,"isSpirit":original.is_spirit,"kind":if original.is_spirit{"spirit"}else{&kind}});
+        if !search {
+            let progression = crate::progression::read(&database.connection, region, summary.id)?;
+            unit["acquisition"] = progression
+                .iter()
+                .find(|value| value.form == 0)
+                .map(|value| json!({"description":value.description,"stages":value.stages}))
+                .unwrap_or_else(|| json!({"description":"","stages":[]}));
+            unit["evolution"] = json!(
+                progression
+                    .into_iter()
+                    .filter(|value| value.form > 0)
+                    .collect::<Vec<_>>()
+            );
+            unit["combos"] = json!(
+                combos
                     .iter()
-                    .any(|member| member.id == summary.id as i64)
-            })
-            .map(|combo| combo.id)
-            .collect();
-        units.push(json!({"id":summary.id,"aliases":[aliases],"rarity":summary.rarity,"orbSlots":equipment.get(&summary.id).copied().unwrap_or(0),"maxLevel":original.max_level,"plusLevel":original.plus_level,"growth":growth.len()-1,"forms":forms,"talents":talents,"combos":unit_combos,"evolution":evolution,"acquisition":acquisition,"isSpirit":original.is_spirit,"kind":if original.is_spirit{"spirit"}else{&kind}}));
+                    .filter(|combo| {
+                        combo
+                            .members
+                            .iter()
+                            .any(|member| member.id == summary.id as i64)
+                    })
+                    .map(|combo| combo.id)
+                    .collect::<Vec<_>>()
+            );
+            unit["orbSlots"] = json!(equipment.get(&summary.id).copied().unwrap_or(0));
+        }
+        units.push(unit);
     }
     let mut summoners: BTreeMap<u32, Vec<(u32, usize, String)>> = BTreeMap::new();
     for unit in &units {
@@ -229,9 +282,13 @@ pub fn catalog(database: &Database, region: &str) -> Result<Value> {
     .iter()
     .map(|(key, label)| json!({"key":key,"label":label}))
     .collect();
-    Ok(
-        json!({"schemaVersion":9,"gameVersion":metadata.get("version"),"calculationVersion":crate::compatibility::calculation_version(database)?,"revision":metadata.get("revision"),"datasetId":metadata.get("dataset_id"),"buildId":metadata.get("build_id"),"imageBase":"/api/asset/","propertyAtlas":atlas,"targets":targets,"abilities":abilities.into_values().collect::<Vec<_>>(),"growth":growth,"units":units,"combos":combos,"comboEffects":combo_effects,"pictureBookExtensions":crate::support::picture_book_extensions(database)?,"native":{"talents":true}}),
-    )
+    let mut value = json!({"schemaVersion":9,"gameVersion":metadata.get("version"),"calculationVersion":crate::compatibility::calculation_version(database)?,"revision":metadata.get("revision"),"datasetId":metadata.get("dataset_id"),"buildId":metadata.get("build_id"),"imageBase":"/api/asset/","propertyAtlas":atlas,"targets":targets,"abilities":abilities.into_values().collect::<Vec<_>>(),"growth":growth,"units":units,"native":{"talents":true}});
+    if !search {
+        value["combos"] = json!(combos);
+        value["comboEffects"] = json!(crate::combos::effects(&database.connection, region)?);
+        value["pictureBookExtensions"] = json!(crate::support::picture_book_extensions(database)?);
+    }
+    Ok(value)
 }
 
 pub(crate) fn property_atlas(

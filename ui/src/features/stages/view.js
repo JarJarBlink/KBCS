@@ -1,8 +1,8 @@
-﻿import {calculateEnemyStats,stageEnemySettings} from '/native-enemy-statistics.js';
+﻿import {calculateEnemyStats,stageEnemySettings,stageEnemyDetailUrl} from '/native-enemy-statistics.js';
 import {escapeHtml,formatNumber,formatTime} from '../../shared/game/database-view.js';
 import {enemyImageHtml,enemyAttributesHtml} from '../../shared/game/enemy-view.js';
 import {imageHtml} from '../../shared/game/unit-view.js';
-import {enemyDetailUrl} from '../../shared/game/enemy-stats.js';
+
 import {rarityNames} from '../../shared/game/unit-stats.js';
 import {applicableLimits,effectiveSpawn,stageDetailUrl} from './model.js';
 
@@ -12,7 +12,7 @@ const row=(label,value)=>'<tr><th scope="row">'+label+'</th><td>'+value+'</td></
 const table=body=>'<table class="stage-sheet"><tbody>'+body+'</tbody></table>';
 export function stageSummaryHtml(stage,map,crown=1,settings={seconds:true},enemies){
   const seconds=settings.seconds,spawn=stage.spawns.find(spawn=>spawn.enemy===stage.enemyCastle),enemy=spawn&&enemies?.enemies[spawn.enemy],options=spawn?stageEnemySettings(spawn,map,crown,settings):settings;
-  const castle=enemy?formatNumber(calculateEnemyStats(enemy,options).hp)+'<small> <a href="'+escapeHtml(enemyDetailUrl(enemy,options))+'">敵ID '+enemy.id+'</a></small>':(stage.castleHealth==null?'—':formatNumber(stage.castleHealth));
+  const castle=enemy?formatNumber(calculateEnemyStats(enemy,options).hp)+'<small> <a href="'+escapeHtml(stageEnemyDetailUrl(enemy,spawn,map,crown))+'">敵ID '+enemy.id+'</a></small>':(stage.castleHealth==null?'—':formatNumber(stage.castleHealth));
   const wideRow=(label,value)=>'<tr><th scope="row">'+label+'</th><td colspan="3">'+value+'</td></tr>';
   return '<table class="stage-sheet" aria-label="'+escapeHtml(stage.name)+'"><tbody><tr><th>統率力</th><td class="stage-number">'+formatNumber(stage.energy)+'</td><th>敵最大数</th><td class="stage-number">'+(stage.maxEnemies==null?'—':formatNumber(stage.maxEnemies))+'</td></tr><tr><th>城体力</th><td class="stage-number">'+(stage.timeLimit?'スコア制':castle)+'</td><th>ステージ幅</th><td class="stage-number">'+(stage.width==null?'—':formatNumber(stage.width))+'</td></tr><tr><th>難易度</th><td>'+(stage.difficulty==null?'—':'★'+stage.difficulty)+'</td><th>コンテニュー</th><td>'+(stage.width==null?'—':stage.noContinue?'不可':'可')+'</td></tr>'+
     '<tr><th>城バリア</th><td>'+(stage.width==null?'—':stage.bossGuard?'あり':'なし')+'</td><th>制限時間</th><td>'+(stage.width==null?'—':stage.timeLimit?formatTime(stage.timeLimit,seconds):'なし')+'</td></tr>'+wideRow('敵生産間隔',stage.spawnInterval?.every(Number.isFinite)?[...new Set(stage.spawnInterval)].map(value=>formatTime(value,seconds)).join('〜'):'—')+wideRow('XP','<span data-stage-experience="'+stage.id+'"></span>')+
@@ -101,22 +101,25 @@ export function stageFormationHtml(stage,units){
 export function stageSpawnsHtml(stage,map,crown,enemyDatabase,settings,{details=false,stats=false}={}){
   if(stage.missing)return '<p>このステージの固定の敵出現データは収録されていません。</p>';
   const seconds=settings.seconds;
-  const cells=stage.spawns.map((original,index)=>{
-    const spawn=effectiveSpawn(original,map,crown),enemy=enemyDatabase.enemies[spawn.enemy],options={...settings,health:spawn.health,attack:spawn.attack};
-    const status=stats&&enemy?calculateEnemyStats(enemy,stageEnemySettings(original,map,crown,settings)):null,url=enemy?enemyDetailUrl(enemy,options):'';
+  const cells=stage.spawns.map(original=>{
+    const spawn=effectiveSpawn(original,map,crown),enemy=enemyDatabase.enemies[spawn.enemy];
+    const status=stats&&enemy?calculateEnemyStats(enemy,stageEnemySettings(original,map,crown,settings)):null,url=enemy?stageEnemyDetailUrl(enemy,original,map,crown):'';
     const range=values=>values[0]===values[1]?formatTime(values[0],seconds):values.map(value=>formatTime(value,seconds)).join('〜');
     const gate=stage.damageCondition?formatNumber(spawn.castle)+'以上':percent(spawn.castle)+'以下';
-    return '<tr data-stage-spawn="'+index+'"><td class="stage-enemy-icon">'+(enemy?'<a href="'+escapeHtml(url)+'" aria-label="'+escapeHtml(enemy.name)+'の詳細">'+enemyImageHtml(enemyDatabase,enemy,28)+'</a>':'—')+'</td><td class="stage-enemy-cell">'+(enemy?'<a href="'+escapeHtml(url)+'">'+escapeHtml(enemy.name)+'</a>':'敵ID '+spawn.enemy)+(spawn.boss?'<small>ボス'+(spawn.boss===2?' / 指定2':'')+'</small>':'')+'</td><td><div class="enemy-properties">'+(enemy?enemyAttributesHtml(enemyDatabase,enemy):'')+'</div></td><td>'+percent(spawn.health)+(spawn.health!==spawn.attack?'<small>攻撃 '+percent(spawn.attack)+'</small>':'')+'</td><td>'+(spawn.count===0?'無制限':spawn.count)+'</td><td>'+gate+'</td><td>'+formatTime(spawn.first,seconds)+(spawn.afterCastle?'<small>城条件達成後</small>':'')+'</td><td>'+(spawn.count===1?'—':range(spawn.interval))+'</td>'+
+    return '<tr><td class="stage-enemy-icon">'+(enemy?'<a href="'+escapeHtml(url)+'" aria-label="'+escapeHtml(enemy.name)+'の詳細">'+enemyImageHtml(enemyDatabase,enemy,28)+'</a>':'—')+'</td><td class="stage-enemy-cell">'+(enemy?'<a href="'+escapeHtml(url)+'">'+escapeHtml(enemy.name)+'</a>':'敵ID '+spawn.enemy)+(spawn.boss?'<small>ボス'+(spawn.boss===2?' / 指定2':'')+'</small>':'')+'</td><td><div class="enemy-properties">'+(enemy?enemyAttributesHtml(enemyDatabase,enemy):'')+'</div></td><td>'+percent(spawn.health)+(spawn.health!==spawn.attack?'<small>攻撃 '+percent(spawn.attack)+'</small>':'')+'</td><td>'+(spawn.count===0?'無制限':spawn.count)+'</td><td>'+gate+'</td><td>'+formatTime(spawn.first,seconds)+(spawn.afterCastle?'<small>城条件達成後</small>':'')+'</td><td>'+(spawn.count===1?'—':range(spawn.interval))+'</td>'+
       (stats?'<td>'+formatNumber(status?.hp)+'</td><td>'+formatNumber(status?.attack)+'</td><td>'+formatNumber(status?.dps)+'</td>':'')+
       '<td class="stage-spawn-detail">'+spawn.layers.join('〜')+'</td><td class="stage-spawn-detail">'+formatNumber(spawn.score)+'</td><td class="stage-spawn-detail">'+(spawn.kills?spawn.kills+'体':'なし')+'</td></tr>';
   }).join('');
-  return '<div class="db-table-wrap"><table class="db-table db-search-table stage-spawns'+(details?' show-detail':'')+'"><thead><tr>'+['アイコン','敵名','属性・種族','倍率（体力／攻撃）','出現数',stage.scoreMode||stage.timeLimit?'累積ダメージ条件':'敵城体力','初登場','再出現',...(stats?['体力','攻撃力','DPS']:[])].map(label=>'<th>'+label+'</th>').join('')+'<th class="stage-spawn-detail">レイヤー</th><th class="stage-spawn-detail">基礎点</th><th class="stage-spawn-detail">撃破条件</th></tr></thead><tbody>'+cells+'</tbody></table></div>';
+  return '<div class="db-table-wrap"><table class="db-table db-search-table stage-spawns'+(details?' show-detail':'')+'"><thead><tr>'+['アイコン','敵名','属性・種族','倍率（体力／攻撃）','出現数',stage.damageCondition?'累積ダメージ条件':'敵城体力','初登場','再出現',...(stats?['体力','攻撃力','DPS']:[])].map(label=>'<th>'+label+'</th>').join('')+'<th class="stage-spawn-detail">レイヤー</th><th class="stage-spawn-detail">基礎点</th><th class="stage-spawn-detail">撃破条件</th></tr></thead><tbody>'+cells+'</tbody></table></div>';
 }
-export function stageMapInfoHtml(map,seconds){
+export function stageMapInfoHtml(map){
   const pair=(label,value)=>'<th scope="row">'+label+'</th><td>'+value+'</td>';
-  return table('<tr>'+pair('ステージ数',map.stages.length)+pair('冠倍率',map.stars.map((value,index)=>(index+1)+'冠 '+percent(value)).join(' / '))+'</tr><tr>'+pair('クリア可能回数',map.clearLimit?map.clearLimit+'回':'制限なし')+pair('インターバル',map.interval?formatTime(map.interval*60*30,seconds):'なし')+'</tr><tr>'+pair('クリア後の表示',map.hiddenAfterClear?'非表示':'表示')+pair('アビス',map.abyss?'あり':'なし')+'</tr>');
+  const reset=map.rewardResetType==null?'—':(['なし','報酬のみ','報酬とクリア状況'][map.rewardResetType]??'方式 '+map.rewardResetType+'（詳細未確認）');
+  const hours=Math.floor(map.interval/60),minutes=map.interval%60;
+  const interval=(hours?hours+'時間':'')+(minutes?minutes+'分':'');
+  return table('<tr>'+pair('ステージ数',map.stages.length)+pair('冠倍率',map.stars.map((value,index)=>(index+1)+'冠 '+percent(value)).join(' / '))+'</tr><tr>'+pair('クリア可能回数',map.clearLimit?map.clearLimit+'回':'制限なし')+pair('インターバル',interval||'なし')+'</tr><tr>'+pair('クリア後の表示',map.hiddenAfterClear?'非表示':'表示')+pair('報酬リセット',reset)+'</tr>'+(map.abyss?row('アビス','あり'):''));
 }
 
 export function stageMapOverviewHtml(database,map,crown,units,seconds){
-  return stageMapInfoHtml(map,seconds)+stageRulesHtml(database,{index:-1},map,crown,units,seconds);
+  return stageMapInfoHtml(map)+stageRulesHtml(database,{index:-1},map,crown,units,seconds);
 }

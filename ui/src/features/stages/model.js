@@ -1,4 +1,4 @@
-﻿export const stageGimmicks=[['restriction','出撃制限'],['formation','固定編成'],['ex','連戦・EX'],['specialRule','特殊ルール'],['pointRule','イベントPt'],['levelSeal','Lv封印'],['noContinue','コンテ不可'],['bossGuard','城バリア'],['timeLimit','時間制限'],['splitMultiplier','体力・攻撃の倍率差'],['kills','味方の撃破数条件'],['afterCastle','城連動後の待機'],['enemyCastle','敵キャラの城'],['musicChange','BGM切替'],['animatedBackground','背景が動く'],['abyss','アビス'],['randomPattern','抽選ステージ'],['missing','敵データ未収録'],['unlisted','一覧外']];
+﻿export const stageGimmicks=[['restriction','出撃制限'],['formation','固定編成'],['ex','連戦・EX'],['specialRule','特殊ルール'],['pointRule','イベントPt'],['levelSeal','Lv封印'],['noContinue','コンテ不可'],['bossGuard','城バリア'],['timeLimit','時間制限'],['splitMultiplier','体力・攻撃の倍率差'],['kills','味方の撃破数条件'],['afterCastle','城連動後の待機'],['enemyCastle','敵キャラの城'],['musicChange','BGM切替'],['animatedBackground','背景が動く'],['abyss','アビス'],['randomPattern','抽選ステージ'],['clearLimit','クリア回数制限'],['mapInterval','インターバルあり'],['hiddenAfterClear','クリア後非表示'],['rewardReset','リセット設定あり'],['missing','敵データ未収録'],['unlisted','一覧外']];
 export const stageRanges=[['energy','統率力'],['difficulty','難易度'],['width','ステージ幅']];
 export function normalizeStageQuery(value){return String(value).normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g,char=>String.fromCharCode(char.charCodeAt(0)-0x60)).trim();}
 export const queryTerms=value=>normalizeStageQuery(value).split(/[\s,、]+/).filter(Boolean);
@@ -31,25 +31,30 @@ export function selectStageRows(database,enemyDatabase,state){
     const map=maps.get(stage.map);
     if(state.series&&state.series!==map.series)return false;
     if(state.crown>map.stars.length)return false;
-    const name=normalizeStageQuery([stage.name,map.name,stage.id,map.key,series.get(map.series)].join(' '));
-    if(!terms.every(term=>/^\d+$/.test(term)?map.nativeId===Number(term):/^\d+-\d+$/.test(term)?map.nativeId===Number(term.split('-')[0])&&stage.index===Number(term.split('-')[1]):name.includes(term.replace('_','-'))))return false;
+    if(terms.length){
+      const name=normalizeStageQuery([stage.name,map.name,stage.id,map.key,series.get(map.series)].join(' '));
+      if(!terms.every(term=>/^\d+$/.test(term)?map.nativeId===Number(term):/^\d+-\d+$/.test(term)?map.nativeId===Number(term.split('-')[0])&&stage.index===Number(term.split('-')[1]):name.includes(term.replace('_','-'))))return false;
+    }
     if(!matches(state.gimmicks,stage.flags,true))return false;
     if(state.excludeEnemies&&enemyTerms.length&&(stage.patterns||[stage]).some(pattern=>{
       const found=enemyTerms.map(term=>pattern.enemies.some(id=>/^\d+$/.test(term)?id===Number(term):normalizeStageQuery((enemies.get(id)?.name||'')+' '+(enemies.get(id)?.aliases||[]).join(' ')).includes(term)));
       return state.enemyMode==='any'?found.some(Boolean):found.every(Boolean);
     }))return false;
     if(!((stage.patterns||[stage]).some(pattern=>{
-    const present=pattern.enemies.map(id=>enemies.get(id)).filter(Boolean);
+    const present=(enemyTerms.length&&!state.excludeEnemies||state.attributes.length)?pattern.enemies.map(id=>enemies.get(id)).filter(Boolean):[];
     if(enemyTerms.length&&!state.excludeEnemies){
       const found=enemyTerms.map(term=>present.some(enemy=>/^\d+$/.test(term)?enemy.id===Number(term):normalizeStageQuery(enemy.name+' '+(enemy.aliases||[]).join(' ')).includes(term)));
       const matched=state.enemyMode==='any'?found.some(Boolean):found.every(Boolean);
       if(!matched)return false;
     }
-    const attributes=[...new Set(present.flatMap(enemy=>[...enemy.attributes,...enemy.species]))];
-    if(!matches(state.attributes,attributes,state.attributeMode==='all'))return false;
-    if(state.attributesOnly&&state.attributes.length&&attributes.some(key=>!state.attributes.includes(key)))return false;
-    const flags=state.crown?[...pattern.flags.filter(flag=>flag!=='restriction'),...(applicableLimits(map,stage,state.crown).length?['restriction']:[])]:pattern.flags;
-    if(!matches(state.gimmicks,flags,true))return false;
+    if(state.attributes.length){
+      const attributes=[...new Set(present.flatMap(enemy=>[...enemy.attributes,...enemy.species]))];
+      if(!matches(state.attributes,attributes,state.attributeMode==='all')||state.attributesOnly&&attributes.some(key=>!state.attributes.includes(key)))return false;
+    }
+    if(state.gimmicks.length){
+      const flags=state.crown?[...pattern.flags.filter(flag=>flag!=='restriction'),...(applicableLimits(map,stage,state.crown).length?['restriction']:[])]:pattern.flags;
+      if(!matches(state.gimmicks,flags,true))return false;
+    }
     if(background.length&&!background.includes(pattern.background))return false;
     const width=state.ranges.width||[];if(width.some((value,index)=>value!==''&&value!=null&&(pattern.width==null||(index===0?pattern.width<Number(value):pattern.width>Number(value)))))return false;
     return true;

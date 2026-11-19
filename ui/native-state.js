@@ -12,6 +12,12 @@ export function readPageParams(page){
   const navigation=new URLSearchParams();
   if(page==='stage-search'){params.delete('play');if(route.get('play')==='1'){params.set('play','1');navigation.set('play','1');}}
   if(page==='stage-detail'&&route.has('crown'))params.set('crown',route.get('crown'));
+  const enemyRates=['health','attack','nativeCrown'];
+  if(page==='enemy-detail'&&enemyRates.every(key=>route.has(key))){
+    for(const key of enemyRates)params.set(key,route.get(key));
+    if(params.get('health')!==params.get('attack'))params.set('same','false');
+    writePageParams(page,params);
+  }
   if(isDetail(page))for(const key of (page==='stage-detail'?['map','stage']:['id','form']))if(route.has(key)){
     params.set(key,route.get(key));navigation.set(key,route.get(key));
   }

@@ -1,19 +1,21 @@
 ﻿import {stageMediaHtml,initializeStageMedia} from './src/features/stages/native-media.js';
 import {prepareEnemyStatistics,stageEnemySettings} from './native-enemy-statistics.js';
-import {loadStageDatabase,loadStageVariant} from './src/shared/game/stages.js';
+import {loadStageSearchIndex} from './search-index.js';
+import {loadStageVariant} from './src/shared/game/stages.js';
 import {loadEnemyDatabase} from './src/shared/game/enemies.js';
-import {loadUnitDatabase} from './src/shared/game/units.js';
-import {stageSummaryHtml,stageRulesHtml,stageRewardsHtml,stageSpawnsHtml,stageFormationHtml} from './src/features/stages/view.js';
+import {loadUnitSearchIndex} from './native-unit-search.js';
+import {stageMapOverviewHtml,stageSummaryHtml,stageRulesHtml,stageRewardsHtml,stageSpawnsHtml,stageFormationHtml} from './src/features/stages/view.js';
 import {stageMapUrl,resolveStageRoute} from './src/features/stages/model.js';
 import {escapeHtml,formatNumber} from './src/shared/game/database-view.js';
 import {readGameSettings} from './src/shared/browser/game-settings.js';
-import {readPageParams,writePageParams,bindDetailNavigation} from './native-state.js';
+import {readPageParams,writePageParams} from './native-state.js';
 import {saveElementImage} from './src/shared/browser/capture.js';
 import {calculateNative} from './native-calculation.js';
 import {catalog} from './simulation-profile.js';
 
 const element=id=>document.getElementById(id),params=readPageParams('stage-detail');
 const settings=readGameSettings();
+const rewardTracking={crown:'先頭報酬を冠ごとに記録',shared:'先頭報酬の記録を全冠で共有',ownership:'先頭報酬の所持・解放状態を参照',history:'初回の重み抽選履歴を記録',none:'取得済み記録による制限なし'};
 let database,enemies,units,map,bases=[],selected=params.get('stage')??'',crown=1;
 let calculationRevision=0;
 const stageMedia=initializeStageMedia(element('stage-output'),id=>bases.find(stage=>stage.id===id));
@@ -64,10 +66,15 @@ async function renderRewardPolicies(visible,revision){
       const result=await calculateNative({rewardPolicies:chunk.map(stage=>({mode:stage.rewardMode,saveId:map.acquisitionId??-1,rewardId:Number(stage.rawRewards?.[6]??-1),crown}))});
       if(revision!==renderRevision)return;
       for(const [index,policy]of result.rewardPolicies.entries()){
-        const target=element('stage-reward-policy-'+chunk[index].id);if(!target)continue;
-        const labels={crown:'冠ごとに記録',shared:'全冠で共有',ownership:'報酬の所持・解放状態を参照',history:'初回の重み抽選履歴を記録',none:'取得済み記録による制限なし'};
+        const stage=chunk[index],target=element('stage-reward-policy-'+stage.id);if(!target)continue;
+        if(!stage.drops.length){target.innerHTML='<table class="stage-sheet"><tbody><tr><th>抽選設定</th><td>通常報酬の抽選なし</td></tr></tbody></table>';continue;}
+        const first=stage.drops[0].weight,single='先頭の報酬1件を'+(Number.isFinite(first)?formatNumber(first)+'%の確率':'設定された確率')+'で抽選';
+        const ordered='先頭から順に抽選し、最初の当選を採用';
+        const modes={'-4':'重みに応じて報酬1件を抽選','-3':'初回のみ重みに応じて報酬1件を付与','-2':single,'-1':single,0:ordered,1:ordered,2:ordered};
+        const tracking=rewardTracking[policy.tracking]+(policy.tracking==='crown'?'（'+crown+'冠）':'');
         const table=policy.probes.map(probe=>{const r=probe.result,selected=r.winner!=null?r.winner>=0:r.grantColumn>=0;return '<tr><td>'+(probe.acquired?'取得済み':'未取得')+'</td><td>'+(probe.radar?'使用':'なし')+'</td><td>'+(selected?'採用':'採用なし')+'</td><td>'+((r.markAcquired||r.markHistory)?'あり':'なし')+'</td><td>'+(r.radarBlocked?'あり':'なし')+'</td></tr>';}).join('');
-        target.innerHTML='<table class="stage-sheet"><tbody><tr><th>抽選設定</th><td>rand = '+policy.mode+'</td><th>取得記録</th><td>'+labels[policy.tracking]+(policy.tracking==='crown'?'（'+crown+'冠）':'')+'</td></tr></tbody></table><details><summary>報酬の判定条件</summary><div>保存番号 '+policy.saveId+' / ステージ '+(chunk[index].index+1)+(policy.tracking==='crown'||policy.tracking==='shared'?' / 記録枠 '+policy.slot:'')+'</div>'+(table?'<div>先頭候補の比較が成功した場合</div><table class="stage-sheet"><thead><tr><th>取得状況</th><th>レーダー</th><th>先頭報酬</th><th>記録要求</th><th>打切り</th></tr></thead><tbody>'+table+'</tbody></table>':'<div>この抽選形式は通常比較の対象外です。</div>')+'</details>';
+        const weighted=policy.mode===-3||policy.mode===-4;
+        target.innerHTML='<table class="stage-sheet"><tbody><tr><th>抽選設定</th><td>'+(modes[policy.mode]??'未対応の抽選方式')+'</td><th>取得記録</th><td>'+tracking+'</td></tr></tbody></table><details><summary>報酬の判定条件</summary><div>保存番号 '+policy.saveId+' / ステージ '+(stage.index+1)+(policy.tracking==='crown'||policy.tracking==='shared'?' / 記録枠 '+policy.slot:'')+'</div>'+(table?'<div>'+(weighted?'重み抽選で候補を選んだ場合':'先頭候補の比較が成功した場合')+'</div><table class="stage-sheet"><thead><tr><th>取得状況</th><th>レーダー</th><th>'+(weighted?'選んだ報酬':'先頭報酬')+'</th><th>記録要求</th><th>打切り</th></tr></thead><tbody>'+table+'</tbody></table>':'<div>この抽選形式は通常比較の対象外です。</div>')+'</details>';
       }
     }catch(error){if(revision===renderRevision)for(const stage of chunk){const node=element('stage-reward-policy-'+stage.id);if(node)node.textContent=error.message;}}
   }
@@ -89,7 +96,7 @@ async function render(){
   element('stage-crown-rate').textContent=formatNumber(map.stars[crown-1])+'%';
   const visible=selected===''?bases:bases.filter(stage=>String(stage.index)===selected);
   element('stage-visible-count').textContent=map.key+' / '+visible.length+'ステージ / '+crown+'冠';
-  element('stage-map-info').innerHTML=stageRulesHtml(database,{index:-1},map,crown,units,settings.seconds);
+  element('stage-map-info').innerHTML=stageMapOverviewHtml(database,map,crown,units,settings.seconds);
   try{await prepareEnemyStatistics(visible.flatMap(stage=>stage.spawns.filter(spawn=>element('stage-enemy-stats').checked||spawn.enemy===stage.enemyCastle).map(spawn=>({enemy:enemies.enemies[spawn.enemy],settings:stageEnemySettings(spawn,map,crown,settings)}))));if(revision!==renderRevision)return;}catch(error){if(revision===renderRevision)element('stage-output').textContent=error.message;return;}
   element('stage-output').innerHTML=visible.map(stage=>'<section class="stage-entry" id="stage-sheet-'+stage.id+'"><div class="stage-heading"><h2>'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</h2><button type="button" data-stage-capture="'+stage.id+'">画像保存</button></div>'+patternHtml(stage)+stageMediaHtml(database,stage,enemies)+stageSummaryHtml(stage,map,crown,settings,enemies)+stageRulesHtml(database,stage,map,crown,units,settings.seconds,{includeMap:false})+stageFormationHtml(stage,units)+(stage.variants?.length&&!stage.patternSource?'<div class="stage-pattern-placeholder">出現パターンを選択してください。</div>':stageSpawnsHtml(stage,map,crown,enemies,settings,{details:element('stage-spawn-details').checked,stats:element('stage-enemy-stats').checked}))+'<div id="stage-rewards-'+stage.id+'">'+stageRewardsHtml(database,stage,units,map,crown)+'</div><div id="stage-reward-policy-'+stage.id+'"></div>'+sourceHtml(stage)+'</section>').join('');
   stageMedia.refresh();
@@ -103,12 +110,6 @@ element('stage-navigation').addEventListener('click',event=>{const button=event.
 element('stage-crown').addEventListener('click',event=>{const button=event.target.closest('[data-crown]');if(button){crown=Number(button.dataset.crown);render();}});
 for(const id of ['stage-time','stage-spawn-details','stage-enemy-stats','stage-xp-clears','stage-xp-combo','stage-xp-okame'])element(id).addEventListener('change',()=>{if(map)render();});
 window.addEventListener('kbcs:simulation-change',event=>{Object.assign(settings,event.detail);if(map)render();});
-bindDetailNavigation('enemy-detail','/pages/tunit-detail/',(target,link)=>{
-  const section=link.closest('.stage-entry'),row=link.closest('[data-stage-spawn]');
-  const spawn=section&&row?bases.find(stage=>'stage-sheet-'+stage.id===section.id)?.spawns[Number(row.dataset.stageSpawn)]:null;
-  const factor=(map?.stars[crown-1]??100)/100;
-  return new URLSearchParams(spawn?{health:spawn.health,attack:spawn.attack,nativeCrown:factor*100}:{});
-});
 element('stage-output').addEventListener('change',async event=>{
   const select=event.target.closest('[data-stage-pattern]');if(!select||!select.value)return;
   const index=Number(select.dataset.stagePattern);select.disabled=true;
@@ -125,11 +126,17 @@ element('stage-output').addEventListener('click',async event=>{
 async function load(){
   element('stage-retry').hidden=true;
   try{
-    [database,enemies,units]=await Promise.all([loadStageDatabase(),loadEnemyDatabase(),loadUnitDatabase()]);
-    const route=resolveStageRoute(database,params);map=route.map;
-    const detail=await fetch('/api/stages?'+new URLSearchParams({map:map.key})).then(response=>{if(!response.ok)throw Error('マップ詳細の読込に失敗しました。');return response.json();});
+    const routeRequest=loadStageSearchIndex().then(index=>({index,route:resolveStageRoute(index,params)}));
+    const detailRequest=(params.get('map')?Promise.resolve(params.get('map')):routeRequest.then(({route})=>route.map.key))
+      .then(key=>fetch('/api/stages?'+new URLSearchParams({map:key}))).then(response=>{
+        if(!response.ok)throw Error('マップ詳細の読込に失敗しました。');
+        return response.json();
+      });
+    const [{index,route},detail,enemyIndex,unitIndex]=await Promise.all([routeRequest,detailRequest,loadEnemyDatabase(),loadUnitSearchIndex()]);
+    database={...index,musicCatalog:detail.musicCatalog,rewards:{...index.rewards,...detail.rewards}};
+    enemies=enemyIndex;units=unitIndex;
     if(detail.buildId!==database.buildId||detail.revision!==database.revision)throw Error('DBが更新されています。ページを再読み込みしてください。');
-    map=detail.maps.find(value=>value.key===map.key);
+    map=detail.maps.find(value=>value.key===route.map.key);
     bases=detail.stages;
     selected=route.selected?String(bases.find(stage=>stage.id===route.selected).index):'';
     crown=Math.max(1,Math.min(map.stars.length,Math.trunc(Number(params.get('crown')))||1));

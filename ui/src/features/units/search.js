@@ -1,9 +1,7 @@
 ﻿import {mountUnitSearchForm,createUnitSearchState,createUnitFilterControls} from './search-controls.js';
-import {prepareUnitSearch,unitSearchProfile} from '/native-unit-search.js';
+import {loadUnitSearchIndex,resolveUnitSearchRows,searchUnitPage} from '/native-unit-search.js';
 import {readPageParams,writePageParams,clearPageParams,bindDetailNavigation} from "/native-state.js";
-import { loadUnitDatabase } from "../../shared/game/units.js";
 import { defaultUnitSettings, readUnitSettings, unitDetailUrl } from "../../shared/game/unit-stats.js";
-import { selectUnitRows } from "./model.js";
 import { escapeHtml, formatNumber, formatTime, imageHtml, comparisonHtml, rarityName, handleUnitImages,propertyIconHtml,abilityIconHtml } from "./view.js";
 import {unitKinds,rangeFields} from './filters.js';
 import {rarityIconHtml} from './view.js';
@@ -16,7 +14,7 @@ const element = id => document.getElementById(id);
 const rangeKeys = rangeFields.map(([key])=>key);
 const selected = new Map();
 let database, rows = [], page = 1, queued = false;
-let nativeProfiles=new Map(),nativeRevision=0;
+let renderedSettings,nativeRevision=0;
 const pagination=createPagination(element('unit-prev').parentElement,value=>{page=value;render();});
 const params = readPageParams("unit-search");
 const state=createUnitSearchState(params);
@@ -45,8 +43,6 @@ function updateSelection() {
   element("unit-open-compare").disabled = selected.size < 2;
   element("unit-clear-compare").hidden = selected.size === 0;
 }
-const getSearchProfile=(unit,form,settings=state)=>unitSearchProfile(database,unit,form,settings,nativeProfiles);
-
 function searchDetailUrl(unit,form) {return unitDetailUrl(unit,form);}
 bindDetailNavigation('unit-detail','/pages/unit-detail/',()=>{
   const params=new URLSearchParams({setup:'1'});
@@ -61,13 +57,14 @@ function propertiesHtml(form) {
 
 async function render() {
   if (!database) return;
-  const revision=++nativeRevision;try{const values=await prepareUnitSearch(database,{...state});if(revision!==nativeRevision)return;nativeProfiles=values;}catch(error){if(revision===nativeRevision){element('unit-message').textContent=error.message;element('unit-message').hidden=false;}return;}
-  rows = selectUnitRows(database, state,getSearchProfile);
+  const revision=++nativeRevision,settings=structuredClone(state),pageSize=Number(element('unit-page-size').value);
+  let result;
+  try{result=await searchUnitPage(database,settings,page,pageSize);}
+  catch(error){if(revision===nativeRevision)showCalculationError(error);return;}
+  if(revision!==nativeRevision)return;
+  ({rows,page}=result);renderedSettings=settings;
   element('unit-include-talent-resistance').closest('label').hidden=state.includeTalents;
-  const pageSize = Number(element("unit-page-size").value);
-  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
-  page = Math.min(page, pageCount);
-  const visible = rows.slice((page - 1) * pageSize, page * pageSize);
+  const {visible,pageCount}=result;
   element("unit-results").innerHTML = visible.map(row => '<tr data-key="' + row.key + '"><td><input type="checkbox" data-compare="' + row.key + '" aria-label="' + escapeHtml(row.form.name) + 'を比較"' + (selected.has(row.key) ? " checked" : "") + '></td><td>' + String(row.unit.id).padStart(3, "0") + '</td><td class="db-icon">' + imageHtml(database, row.form) + '</td><td class="db-name"><a href="' + escapeHtml(searchDetailUrl(row.unit,row.form)) + '" title="' + escapeHtml(row.unit.forms.map(form => form.name).join(" / ")) + '">' + escapeHtml(row.form.name) + '</a>'+(row.unit.kind!=='normal'?'<span class="db-meta"> '+unitKinds[row.unit.kind]+'</span>':'')+'</td><td>' + rarityIconHtml(database,row.unit) + '</td>'+propertiesHtml(row.form)+'<td>' + formatNumber(row.stats.hp) + '</td><td>' + formatNumber(row.stats.attack) + '</td><td>' + formatNumber(row.stats.dps) + '</td><td>' + formatNumber(row.stats.range) + '</td><td>' + formatNumber(row.stats.cost) + '</td><td>' + formatNumber(row.stats.speed) + '</td><td>' + formatTime(row.stats.respawn, state.seconds) + '</td></tr>').join("");
   const unitCount = new Set(rows.map(row => row.unit.id)).size;
   element("unit-result-count").textContent = unitCount + "キャラ / " + rows.length + "形態";
@@ -127,10 +124,22 @@ element('unit-page-size').value=readGameSettings().pageSize;
 element("unit-page-size").addEventListener("change", () => { page = 1; render(); });
 element('unit-show-properties').addEventListener('change',render);
 element("unit-clear-compare").addEventListener("click", () => { selected.clear(); render(); });
-element("unit-open-compare").addEventListener("click", () => { element("unit-compare-table").innerHTML = comparisonHtml(database, [...selected.values()].map(row=>({...row,...getSearchProfile(row.unit,row.unit.forms.find(form=>form.code===row.form.code)),detailUrl:searchDetailUrl(row.unit,row.form)})), state); element("unit-compare-dialog").showModal(); });
+function showCalculationError(error){element('unit-message').textContent=error.message;element('unit-message').hidden=false;}
+element("unit-open-compare").addEventListener("click", async () => {
+  const settings=renderedSettings;
+  try{
+    const entries=await resolveUnitSearchRows(database,settings,[...selected.values()],{refreshForm:true});
+    const dialog=element('unit-compare-dialog');
+    element('unit-compare-table').innerHTML=comparisonHtml(database,entries.map(row=>({...row,detailUrl:searchDetailUrl(row.unit,row.form)})),settings);
+    if(!dialog.open)dialog.showModal();
+  }catch(error){showCalculationError(error);}
+});
 element("unit-close-compare").addEventListener("click", () => element("unit-compare-dialog").close());
-element("unit-export").addEventListener("click", () => {
-  const values = [["ID", "キャラ名", "形態", "レアリティ", "合計Lv", "体力", "攻撃力", "DPS", "射程", "コスト", "速度", "再生産F"], ...rows.map(row => [row.unit.id, row.form.name, row.form.index + 1, rarityName(row.unit), row.stats.level, row.stats.hp, row.stats.attack, row.stats.dps == null ? "" : Math.round(row.stats.dps), row.stats.range, row.stats.cost, row.stats.speed, row.stats.respawn])];
+element("unit-export").addEventListener("click", async () => {
+  let entries;
+  try{entries=await resolveUnitSearchRows(database,renderedSettings,rows);}
+  catch(error){showCalculationError(error);return;}
+  const values = [["ID", "キャラ名", "形態", "レアリティ", "合計Lv", "体力", "攻撃力", "DPS", "射程", "コスト", "速度", "再生産F"], ...entries.map(row => [row.unit.id, row.form.name, row.form.index + 1, rarityName(row.unit), row.stats.level, row.stats.hp, row.stats.attack, row.stats.dps == null ? "" : Math.round(row.stats.dps), row.stats.range, row.stats.cost, row.stats.speed, row.stats.respawn])];
   const csv = values.map(row => row.map(value => '"' + String(typeof value === "string" && /^[=+@-]/.test(value) ? "'" + value : value ?? "").replaceAll('"', '""') + '"').join(",")).join("\r\n");
   const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a"); link.href = url; link.download = "kbc-units-v" + database.gameVersion + ".csv"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -141,7 +150,7 @@ handleUnitImages();
 
 async function start() {
   try {
-    database = await loadUnitDatabase();
+    database = await loadUnitSearchIndex();
     initializeControls();
     if(state.exclude||state.talentMode||state.minForms||state.guaranteed||state.exactTargets||state.negateAbilities||Object.values(state.ranges).some(bounds=>bounds.some(value=>value!=='')))element('unit-filter-panel').open=true;
     element("unit-data-version").textContent = "JP データv" + database.gameVersion;

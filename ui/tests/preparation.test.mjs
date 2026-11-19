@@ -1,15 +1,22 @@
-﻿import {bindDetailNavigation} from '../native-state.js';
+﻿import {bindDetailNavigation,readPageParams} from '../native-state.js';
 import {createSessionId} from '../src/shared/browser/session-id.js';
 // BGMのシーク・取得待ちの取消、編成設定の復元、速度と表示比率の回帰。
 import assert from 'node:assert/strict';
 import {createAudioPreview} from '../src/shared/browser/audio-preview.js';
-import {readSortiePreferences,toggleSortieItem} from '../sortie-view.js';
+import {readSortiePreferences,toggleSortieItem,sortieEnemyLinksHtml,sortieItemsHtml} from '../sortie-view.js';
+import {readFileSync} from 'node:fs';
 import {battleViewportWidth,battlePlaybackRate} from '../battle-view.js';
 
 const local={getItem:()=>JSON.stringify({formation:7,items:{speedup:true},speed:3})},session={getItem:()=>JSON.stringify({formation:1,speed:2})};
 assert.equal(readSortiePreferences(local,session).formation,7);assert.equal(readSortiePreferences(local,session).speed,3);
 assert.equal(readSortiePreferences({getItem(){throw Error('blocked');}},session).formation,1);
 const items={};let speed=2;speed=toggleSortieItem(items,speed,'speedup');assert.equal(speed,2);assert.equal(items.speedup,true);speed=toggleSortieItem(items,speed,'speedup');assert.equal(speed,3);speed=toggleSortieItem(items,speed,'speedup');assert.equal(items.speedup,false);
+const manifest=JSON.parse(readFileSync(new URL('../images/native-battle/manifest.json',import.meta.url),'utf8').replace(/^\uFEFF/,''));
+for(const [on,speed,cut] of [[false,2,6],[true,2,0],[true,3,16]]){
+ const rect=manifest.atlases.mapicon.rects[cut],markup=sortieItemsHtml(manifest,{speedup:on},speed).split('</button>')[0];
+ assert.ok(markup.includes('viewBox="0 0 '+rect.slice(2).join(' ')+'"'));
+ assert.ok(markup.includes('viewBox="'+rect.join(' ')+'" overflow="hidden"'));
+}
 for(const [ratio,expected]of [['20:9',1422],['16:9',1138],['18:9',1280],['21:9',1493]]){assert.equal(battleViewportWidth(ratio,300,600),expected);assert.equal(battleViewportWidth(ratio,1600,600),expected);}
 assert.equal(battleViewportWidth('auto',960,640),960);assert.equal(battleViewportWidth('unknown',960,640),1422);
 class AudioMock{
@@ -51,10 +58,20 @@ globalThis.sessionStorage={setItem:(key,value)=>saved.set(key,value)};
 bindDetailNavigation('unit-detail','/pages/unit-detail/',()=>new URLSearchParams('id=42'));
 handlers[0]({target:{closest:()=>({href:'kbcs://localhost/pages/unit-detail/?id=42'})}});
 assert.equal(saved.get('kbcs:view:unit-detail:42'),'id=42');
+const spawn={enemy:61,health:200,attack:225};
+const sortieEnemies=sortieEnemyLinksHtml({enemies:[61],spawns:[spawn,spawn,{...spawn,attack:250}]},{stars:[100,150]},2,{imageBase:'/api/asset/',enemies:[{id:61,name:'敵',icon:'enemy.png'}]});
+const links=[...sortieEnemies.matchAll(/href="([^"]+)"/g)].map(([,href])=>href.replaceAll('&amp;','&'));
+assert.equal(links.length,2);
+const oldHistory=globalThis.history;
+globalThis.history={replaceState(){}};
+globalThis.location=new URL(links[0],'kbcs://localhost/');
+globalThis.sessionStorage.getItem=()=>'?health=100&attack=100&nativeCrown=100&same=true';
+const rates=readPageParams('enemy-detail');
+assert.deepEqual(['health','attack','nativeCrown','same'].map(key=>rates.get(key)),['200','225','150','false']);
+globalThis.history=oldHistory;
 globalThis.location=oldLocation;globalThis.document=oldDocument;globalThis.sessionStorage=oldSession;
 
 // 円単位の価格を桁落ちさせず、編集と準備で同じ値引き済み結果を描く。
-const {readFileSync}=await import('node:fs');
 const {createFormationView}=await import('../formation-view.js');
 const {resolveFormationMember}=await import('../formation-model.js');
 const {stageDeployment}=await import('../battle-support.js');
