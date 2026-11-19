@@ -26,7 +26,9 @@ Cargo registry/git/targetをOS・CPU・Rust/LLVM・lock・ソースSHA・run_att
 
 共通チェックと各OSのビルドではsparse checkoutで生成済みの `research/reference/` と `research/comparisons/` を除外する。Intel Macでcheckoutにかかった時間は、全ファイルを取得した回が112秒、上記の除外を適用した比較実行が10秒だった。[通常ビルド](https://github.com/sinsuirakv0/KBCS/actions/runs/44514185194/job/135526369380) · [比較実行](https://github.com/sinsuirakv0/KBCS/actions/runs/44514066952)
 
-2026-11-16から11-18の成功6回では、Intel Macのreleaseテスト工程が約3分40秒〜6分40秒。実行ログ上のテスト実行は約10秒で、大半がテストバイナリのコンパイルとリンクだった。テスト専用プロファイルを試す際は `release` を継承し、`lto = "off"` の効果を同じソースとIntel runnerで測る。依存ライブラリの再構築を含めて判断できるよう、キャッシュあり・なしそれぞれでジョブ全体を比較する。配布物はThin LTOのrelease設定でビルドし、単独起動まで検証する。[実行ログ](https://github.com/sinsuirakv0/KBCS/actions/runs/44310737153/job/134824322876)
+2026-11-16から11-18の成功6回では、Intel Macのreleaseテスト工程が約3分40秒〜6分40秒。実行ログ上のテスト実行は約10秒で、大半がテストバイナリのコンパイルとリンクだった。[実験前のログ](https://github.com/sinsuirakv0/KBCS/actions/runs/44310737153/job/134824322876)
+
+同じソース・Intel機種で、テスト専用プロファイルが `release` を継承し `lto = "off"` とした場合を比較した。計測にはClippy・全テスト・配布用releaseバイナリのビルドを含む。取得と配布前起動検査は区間外とした。初回は通常449秒、テスト専用763秒。依存だけを再利用した計測では通常239秒、テスト専用314秒だった。テスト専用では依存成果物を配布ビルドと共有できず、計測後のtarget容量も637 MBから約1 GBに増えた。通常CIでは同じreleaseプロファイルを使う。[比較ログ](https://github.com/sinsuirakv0/KBCS/actions/runs/44514066952)
 
 ## 部分公開と再実行
 
