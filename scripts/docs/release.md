@@ -24,6 +24,8 @@ Cargo registry/git/targetをOS・CPU・Rust/LLVM・lock・ソースSHA・run_att
 
 ### 所要時間の比較
 
+共通チェックと各OSのビルドではsparse checkoutで生成済みの `research/reference/` と `research/comparisons/` を除外する。Intel Macでcheckoutにかかった時間は、全ファイルを取得した回が112秒、上記の除外を適用した比較実行が10秒だった。[通常ビルド](https://github.com/sinsuirakv0/KBCS/actions/runs/44514185194/job/135526369380) · [比較実行](https://github.com/sinsuirakv0/KBCS/actions/runs/44514066952)
+
 2026-11-16から11-18の成功6回では、Intel Macのreleaseテスト工程が約3分40秒〜6分40秒。実行ログ上のテスト実行は約10秒で、大半がテストバイナリのコンパイルとリンクだった。テスト専用プロファイルを試す際は `release` を継承し、`lto = "off"` の効果を同じソースとIntel runnerで測る。依存ライブラリの再構築を含めて判断できるよう、キャッシュあり・なしそれぞれでジョブ全体を比較する。配布物はThin LTOのrelease設定でビルドし、単独起動まで検証する。[実行ログ](https://github.com/sinsuirakv0/KBCS/actions/runs/44310737153/job/134824322876)
 
 ## 部分公開と再実行
