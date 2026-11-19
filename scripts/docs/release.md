@@ -14,9 +14,17 @@ GITHUB_TOKENのpushは新たなpush workflowを起動しないため、同じrun
 
 ## ビルド時間と失敗対策
 
-Rust 1.98.1、LLVM-MinGW 20260922、macOS 14.0 deployment targetを維持する。workspaceのreleaseテスト → 全ターゲットのrelease clippy → releaseビルド → 単独起動検査を行う。先にテスト依存をコード生成し、clippyでもその成果物を再利用する。型エラーのためだけの別プロファイルや重複したcargo checkは追加しない。C++のcc parallel機能はCargoのjobserverに従い、同じ最適化・浮動小数点・整数フラグのまま翻訳単位を並列にコンパイルする。配布物のthin LTOを省略して速くする変更はしていない。[ccの仕様](https://docs.rs/cc/latest/cc/#parallel)。
+Rust 1.98.1、LLVM-MinGW 20260922、macOS 14.0 deployment targetを維持する。全ターゲットのrelease Clippy → workspaceのreleaseテスト → releaseビルド → 単独起動検査の順に実行する。Clippyで警告を先に検出し、テスト用のリンクを後に回す。C++のcc parallel機能はCargoのjobserverに従い、同じ最適化・浮動小数点・整数フラグのまま翻訳単位を並列にコンパイルする。配布物のthin LTOを省略して速くする変更はしていない。[ccの仕様](https://docs.rs/cc/latest/cc/#parallel)。
 
 Cargo registry/git/targetをOS・CPU・Rust/LLVM・lock・ソースSHA・run_attemptでキャッシュする。過去の同OS/CPUキャッシュも復元し、Cargoが必要な差分を再構築する。restore/saveを分け、コンパイル失敗後にも有効な途中成果物を保存する。キャンセル時は保存しない。run_attemptを含め、失敗した同じrunの再実行でも新しいキャッシュを保存できる。キー世代をv2へ変更した最初の実行はコールドビルドになる。Cargo --timingsのHTMLを7日保存し、以降の時間改善を実測できるようにする。インストーラは14日保存。
+
+### Clippyの修正パッチ
+
+通常のClippyが失敗したOSに限り、キャッシュ保存の後で、同じtargetとlockfileを指定して `cargo clippy --fix` を実行する。追跡済みRustファイルに差分があり、元の厳格なClippyとworkspaceテストが通った場合に `clippy-fix-<platform>-<attempt>` を7日間保存する。Actionsの実行概要に表示される基準SHAに対する差分で、採番を伴う場合は採番コミットが基準になる。基準SHAの作業ツリーで、展開した `kbcs-clippy.patch` を `git apply --check` で確認してから `git apply` で取り込む。元の検査結果は失敗のまま残る。取り込み後は通常の3環境CIで確認する。
+
+### 所要時間の比較
+
+2026-11-16から11-18の成功6回では、Intel Macのreleaseテスト工程が約3分40秒〜6分40秒。実行ログ上のテスト実行は約10秒で、大半がテストバイナリのコンパイルとリンクだった。テスト専用プロファイルを試す際は `release` を継承し、`lto = "off"` の効果を同じソースとIntel runnerで測る。依存ライブラリの再構築を含めて判断できるよう、キャッシュあり・なしそれぞれでジョブ全体を比較する。配布物はThin LTOのrelease設定でビルドし、単独起動まで検証する。[実行ログ](https://github.com/sinsuirakv0/KBCS/actions/runs/44310737153/job/134824322876)
 
 ## 部分公開と再実行
 
