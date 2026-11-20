@@ -14,7 +14,6 @@ export function readPageParams(page){
     params.delete('play');if(route.get('play')==='1'){params.set('play','1');navigation.set('play','1');}
     if(route.has('q')){params.set('q',route.get('q'));params.delete('page');}
   }
-  if(page==='stage-detail'&&route.has('map')&&!route.has('stage'))params.delete('stage');
   const enemyRates=['health','attack','nativeCrown'];
   if(page==='enemy-detail'&&enemyRates.every(key=>route.has(key))){
     for(const key of enemyRates)params.set(key,route.get(key));

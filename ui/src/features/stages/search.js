@@ -1,12 +1,12 @@
-﻿import {readPageParams,writePageParams,clearPageParams} from "/native-state.js";
+﻿import {readPageParams,writePageParams,clearPageParams,bindDetailNavigation} from "/native-state.js";
 import {loadStageSearchIndex} from '/search-index.js';
 import {loadEnemyDatabase} from '../../shared/game/enemies.js';
+import {enemyImageHtml} from '../../shared/game/enemy-view.js';
 import {escapeHtml,formatNumber,iconChoiceHtml,bindIconHints} from '../../shared/game/database-view.js';
 import {enemyDetailUrl} from '../../shared/game/enemy-stats.js';
 import {readGameSettings,initializeGameSettings} from '../../shared/browser/game-settings.js';
 import {initializeRewardPicker} from './rewards.js';
 import {createPagination} from '../../shared/browser/pagination.js';
-import {stageTags,stageEnemyStrip} from './catalog-view.js';
 import {stageGimmicks,stageRanges,selectStageMaps,selectStageRows,stageDetailUrl,stageMapUrl,selectStageSeries} from './model.js';
 
 const element=id=>document.getElementById(id),params=readPageParams("stage-search"),defaults=readGameSettings();
@@ -16,8 +16,7 @@ const state={crown:Math.max(0,Math.min(4,Number(params.get("crown"))||0)),...Obj
 let database,enemyDatabase,rows=[],page=Math.max(1,Math.trunc(Number(params.get('page')))||1);
 let byStage=params.get('view')==='stage';
 const pagination=[element('stage-pagination-top'),element('stage-pagination')].map(root=>createPagination(root,value=>{page=value;render();saveState();}));
-const labels=new Map(stageGimmicks),viewButtons=[...document.querySelectorAll('[data-stage-view]')];
-let queryTimer;
+const labels=new Map(stageGimmicks),columns=[['id','ID'],['name','マップ'],['count','ステージ数'],['enemies','出現する敵'],['energy','統率力'],['difficulty','難易度'],['flags','ギミック']];
 const formatRange=(value,format)=>{
   const values=Array.isArray(value)?value:[value];
   return [...new Set(values)].filter(Number.isFinite).map(format).join('〜')||'—';
@@ -35,42 +34,24 @@ function saveState(){
   if(state.crown)query.set('crown',state.crown);
   writePageParams("stage-search",query);
 }
-function activeFilters(){
-  const summary=element('stage-filter-summary');
-  const selected=Object.keys(state).filter(key=>['enemy','reward','background','music'].includes(key)&&state[key]);
-  const text=[database.series.find(series=>series.id===state.series)?.label,state.crown?state.crown+'冠':null,
-    ...selected.map(key=>({enemy:state.excludeEnemies?'除外する敵 ':'出現する敵 ',reward:'報酬 ',background:'背景 ',music:'BGM '})[key]+(key==='reward'?state.reward.split(/\s+/).filter(Boolean).map(id=>database.rewards[id]?.name||id).join('、'):state[key])),
-    ...(state.attributes.length?['属性・種族 '+state.attributes.length+'件']:[]),...state.gimmicks.map(key=>labels.get(key)),
-    ...stageRanges.flatMap(([key,label])=>state.ranges[key].some(value=>value!=='')?[label+' '+state.ranges[key].join('〜')]:[])].filter(Boolean);
-  summary.hidden=!text.length;summary.innerHTML=text.map(value=>'<span class="stage-tag">'+escapeHtml(value)+'</span>').join('');
-}
 function render(){
   const size=Number(element('stage-page-size').value),pages=Math.max(1,Math.ceil(rows.length/size));page=Math.min(page,pages);
   for(const item of pagination)item.update(page,pages);
   const mapCount=byStage?new Set(rows.map(entry=>entry.map.key)).size:rows.length;
   const stageCount=byStage?rows.length:rows.reduce((count,entry)=>count+entry.stages.length,0);
-  element('stage-count').textContent=formatNumber(mapCount)+'マップ / '+formatNumber(stageCount)+'ステージ';
-  element('stage-empty').hidden=!!rows.length;element('stage-table').parentElement.hidden=!rows.length;
-  for(const button of viewButtons)button.setAttribute('aria-pressed',String(button.dataset.stageView===(byStage?'stage':'map')));
-  activeFilters();
-  const showEnemies=element('stage-show-enemies').checked,route=selectionMode?'/stage-sortie/':'/stage-detail/';
-  const order=(key,label)=>'<button type="button" data-sort="'+key+'"'+(state.sort===key?' class="is-current"':'')+'>'+label+(state.sort===key?(state.direction==='asc'?' ▲':' ▼'):'')+'</button>';
-  const sortAttr=key=>state.sort===key?' aria-sort="'+(state.direction==='asc'?'ascending':'descending')+'"':'';
-  const table=element('stage-table');
-  table.tHead.innerHTML='<tr><th scope="col" class="stage-identity-head"'+(['id','name','map'].includes(state.sort)?sortAttr(state.sort):'')+'>'+order('name',byStage?'ステージ名':'マップ名')+order('id','ID')+(byStage?order('map','マップ'):'')+'</th>'+
-    (byStage?'':'<th scope="col"'+sortAttr('count')+'>'+order('count','ステージ数')+'</th>')+'<th scope="col"'+sortAttr('energy')+'>'+order('energy','統率力')+'</th><th scope="col"'+sortAttr('difficulty')+'>'+order('difficulty','難易度')+'</th>'+(showEnemies?'<th scope="col">出現する敵</th>':'')+'<th scope="col">制限・特殊条件</th></tr>';
-  const series=new Map(database.series.map(entry=>[entry.id,entry.label]));
-  table.tBodies[0].innerHTML=rows.slice((page-1)*size,page*size).map(entry=>{
+  element('stage-count').textContent=mapCount.toLocaleString('ja-JP')+'マップ / '+stageCount.toLocaleString('ja-JP')+'ステージ';element('stage-empty').hidden=!!rows.length;
+  const displayed=byStage?columns.map(([key,label])=>key==='count'?['map','マップ']:[key,key==='name'?'ステージ':label]):columns;
+  const showEnemies=element('stage-show-enemies').checked;
+  const route=selectionMode?'/stage-sortie/':'/stage-detail/';
+  element('stage-table').querySelector('thead').innerHTML='<tr>'+displayed.map(([key,label])=>'<th'+(key==='enemies'?' class="stage-enemies-column"':'')+(key===state.sort?' aria-sort="'+(state.direction==='asc'?'ascending':'descending')+'"':'')+'>'+(['enemies','flags'].includes(key)?label:'<button type="button" data-sort="'+key+'">'+label+(state.sort===key?(state.direction==='asc'?' ▲':' ▼'):'')+'</button>')+'</th>').join('')+'</tr>';
+  element('stage-table').querySelector('tbody').innerHTML=rows.slice((page-1)*size,page*size).map(entry=>{
     const {map,stage,stages}=entry,{enemies,flags,energy,difficulty}=stage||entry,crown=state.crown||1;
     const mapUrl=stageMapUrl(map,crown).replace('/stage-detail/',route);
     const url=stage?stageDetailUrl(stage,crown).replace('/stage-detail/',route):mapUrl;
-    const code=stage?escapeHtml(stage.id):escapeHtml(map.key)+' <span>('+map.nativeId+')</span>';
-    const subtitle=stage?'<a href="'+mapUrl+'">'+escapeHtml(map.name)+'</a>':escapeHtml(series.get(map.series)||map.series);
-    const matched=!stage&&stages.length<map.stages.length?'<div class="stage-search-matches">'+stages.slice(0,3).map(value=>'<a href="'+stageDetailUrl(value,crown).replace('/stage-detail/',route)+'">'+escapeHtml(value.name)+'</a>').join('')+'</div>':'';
-    const icons=showEnemies?'<td>'+stageEnemyStrip(enemies,enemyDatabase,8,(enemy,icon)=>'<a href="'+escapeHtml(enemyDetailUrl(enemy))+'" title="'+escapeHtml(enemy.name)+'" aria-label="'+escapeHtml(enemy.name)+'">'+icon+'</a>')+'</td>':'';
-    const count=!stage?'<td class="stage-search-count">'+(stages.length===map.stages.length?stages.length:stages.length+' / '+map.stages.length)+'</td>':'';
-    return '<tr><th scope="row" class="stage-result-name"><a class="stage-result-title" href="'+url+'">'+escapeHtml(stage?.name||map.name)+'</a><div class="stage-result-meta"><span class="stage-map-id">'+code+'</span><span>'+subtitle+'</span></div>'+matched+'</th>'+count+
-      '<td>'+formatRange(energy,formatNumber)+'</td><td class="stage-search-difficulty">'+formatRange(difficulty,value=>'★'+value)+'</td>'+icons+'<td>'+(flags.length?'<div class="stage-result-tags" tabindex="0" aria-label="制限・特殊条件">'+stageTags(flags)+'</div>':'<span class="db-meta">—</span>')+'</td></tr>';
+    const icons=showEnemies?enemies.slice(0,12).map(id=>{const enemy=enemyDatabase.enemies[id];return enemy?'<a href="'+escapeHtml(enemyDetailUrl(enemy))+'" title="'+escapeHtml(enemy.name)+'（ID '+id+'）" aria-label="'+escapeHtml(enemy.name)+'の詳細">'+enemyImageHtml(enemyDatabase,enemy,24)+'</a>':'<span title="敵ID '+id+'">#'+id+'</span>';}).join(''):'';
+    const number=stage?escapeHtml(stage.id):escapeHtml(map.key)+'<small>('+map.nativeId+')</small>';
+    const group=stage?'<a href="'+mapUrl+'">'+escapeHtml(map.name)+'</a>':(stages.length===map.stages.length?stages.length:stages.length+' / '+map.stages.length);
+    return '<tr><td class="stage-map-id">'+number+'</td><td class="stage-names"><a href="'+url+'">'+escapeHtml(stage?.name||map.name)+'</a></td><td>'+group+'</td><td class="stage-enemies-column"><div class="stage-enemy-icons">'+icons+(showEnemies&&enemies.length>12?'<a href="'+url+'">+'+(enemies.length-12)+'</a>':'')+'</div></td><td>'+formatRange(energy,formatNumber)+'</td><td>'+formatRange(difficulty,value=>'★'+value)+'</td><td class="stage-tags">'+flags.map(key=>'<span>'+labels.get(key)+'</span>').join('')+'</td></tr>';
   }).join('');
 }
 function readControls(){
@@ -82,15 +63,10 @@ function readControls(){
   for(const [key]of stageRanges)state.ranges[key]=['min','max'].map(suffix=>element('stage-'+key+'-'+suffix).value);
 }
 function filterRows(){return (byStage?selectStageRows:selectStageMaps)(database,enemyDatabase,state);}
-function update(commit=true){clearTimeout(queryTimer);readControls();page=1;rows=filterRows();render();if(commit)saveState();}
+function update(commit=true){readControls();page=1;rows=filterRows();render();if(commit)saveState();}
 function initialize(){
   element('stage-crown-filter').value=state.crown;
-  const groups=[['日本編・未来編・宇宙編・魔界編',/^(EOC|ITF|COTC|DM)/],['レジェンド',/^(N|NA|ND|D)$/],['イベント・コラボ',/^(S|A|C|CA|Q|PR|SR)$/],['道場・塔・地底迷宮',/^(R|T|G|V|L)$/],['その他',/.*/]];
-  const series=selectStageSeries(database);
-  element('stage-series').innerHTML='<option value="">すべて</option>'+groups.map(([group],index)=>{
-    const options=series.filter(value=>groups.findIndex(([,pattern])=>pattern.test(value.id))===index).map(value=>'<option value="'+escapeHtml(value.id)+'">'+escapeHtml(value.label+' ('+value.id+')')+'</option>').join('');
-    return options?'<optgroup label="'+group+'">'+options+'</optgroup>':'';
-  }).join('');
+  element('stage-series').innerHTML='<option value="">すべて</option>'+selectStageSeries(database).map(series=>'<option value="'+series.id+'">'+escapeHtml(series.id+' '+series.label)+'</option>').join('');
   state.series=database.series.some(series=>series.id===state.series)?state.series:'';
   const attributes=[...enemyDatabase.attributes,...enemyDatabase.species];
   state.attributes=state.attributes.filter(key=>attributes.some(item=>item.key===key));state.gimmicks=state.gimmicks.filter(key=>labels.has(key));
@@ -112,19 +88,20 @@ function initialize(){
 initializeGameSettings(element('stage-version').parentElement,()=>defaults,values=>{Object.assign(defaults,values);element('stage-page-size').value=values.pageSize;if(database){page=1;render();saveState();}});
 element('stage-page-size').value=[25,50,100].includes(Number(params.get('size')))?params.get('size'):defaults.pageSize;
 element('stage-page-size').addEventListener('change',()=>{page=1;render();saveState();});
-for(const button of viewButtons)button.addEventListener('click',()=>{
-  const next=button.dataset.stageView==='stage';if(next===byStage)return;
-  byStage=next;if(byStage&&state.sort==='count')state.sort='id';if(!byStage&&state.sort==='map')state.sort='name';if(database)update();
+element('stage-result-view').value=byStage?'stage':'map';
+element('stage-result-view').addEventListener('change',event=>{
+  byStage=event.target.value==='stage';
+  if(byStage&&state.sort==='count')state.sort='id';
+  if(!byStage&&state.sort==='map')state.sort='name';
+  if(database)update();
 });
-element('stage-query').addEventListener('input',event=>{if(!database||event.isComposing)return;clearTimeout(queryTimer);queryTimer=setTimeout(update,100);});
-element('stage-query').addEventListener('compositionend',()=>{if(database)update();});
-element('stage-show-enemies').checked=params.get('showEnemies')==='true';
-element('stage-show-enemies').addEventListener('change',()=>{if(database)render();saveState();});
-element('stage-filters').addEventListener('submit',event=>{event.preventDefault();if(database)update();});
+element('stage-show-enemies').checked=params.get('showEnemies')==='true';element('stage-table').classList.toggle('hide-stage-enemies',!element('stage-show-enemies').checked);
+element('stage-show-enemies').addEventListener('change',event=>{element('stage-table').classList.toggle('hide-stage-enemies',!event.target.checked);if(database)render();saveState();});
+element('stage-filters').addEventListener('submit',event=>{event.preventDefault();if(database)saveState();});
 element('stage-filters').addEventListener('input',event=>{if(database)update(!event.target.matches('input[type=search],input[type=text],input[type=number]'));});
 element('stage-filters').addEventListener('change',()=>{if(database)saveState();});
 element('stage-filters').addEventListener('keyup',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches('input[type=search],input[type=text],input[type=number]')&&database)saveState();});
 element('stage-reset').addEventListener('click',()=>{clearPageParams('stage-search');location.href='/pages/stage-search/'+(selectionMode?'?play=1':'');});
-element('stage-table').addEventListener('click',event=>{const button=event.target.closest('[data-sort]');if(!button)return;state.direction=state.sort===button.dataset.sort&&state.direction==='asc'?'desc':'asc';state.sort=button.dataset.sort;update();element('stage-table').querySelector('[data-sort='+state.sort+']')?.focus({preventScroll:true});});
+element('stage-table').addEventListener('click',event=>{const button=event.target.closest('[data-sort]');if(!button)return;state.direction=state.sort===button.dataset.sort&&state.direction==='asc'?'desc':'asc';state.sort=button.dataset.sort;update();});
 async function load(){element('stage-retry').hidden=true;try{[database,enemyDatabase]=await Promise.all([loadStageSearchIndex(),loadEnemyDatabase()]);initialize();}catch(error){element('stage-status').textContent=error.message;element('stage-status').hidden=false;element('stage-retry').hidden=false;}}
 element('stage-retry').addEventListener('click',load);load();

@@ -10,17 +10,13 @@ const decimal=new Intl.NumberFormat('ja-JP',{maximumFractionDigits:3});
 const percent=value=>decimal.format(value)+'%';
 const row=(label,value)=>'<tr><th scope="row">'+label+'</th><td>'+value+'</td></tr>';
 const table=body=>'<table class="stage-sheet"><tbody>'+body+'</tbody></table>';
-export function stageSummaryHtml(stage,map,crown=1,settings={seconds:true},enemies,statsReady=false){
+export function stageSummaryHtml(stage,map,crown=1,settings={seconds:true},enemies){
   const seconds=settings.seconds,spawn=stage.spawns.find(spawn=>spawn.enemy===stage.enemyCastle),enemy=spawn&&enemies?.enemies[spawn.enemy],options=spawn?stageEnemySettings(spawn,map,crown,settings):settings;
-  const castle=enemy?(statsReady?formatNumber(calculateEnemyStats(enemy,options).hp):'—')+'<small><a href="'+escapeHtml(stageEnemyDetailUrl(enemy,spawn,map,crown))+'">'+escapeHtml(enemy.name)+'</a></small>':formatNumber(stage.castleHealth);
-  const facts=[['必要統率力',formatNumber(stage.energy)],['難易度',stage.difficulty==null?'—':'★'+stage.difficulty],
-    ['敵城の体力',stage.scoreMode?'スコア制':castle],['獲得XP','<span data-stage-experience="'+stage.id+'">—</span>'],
-    ['同時出現上限',stage.maxEnemies==null?'—':formatNumber(stage.maxEnemies)+'体'],['ステージ幅',formatNumber(stage.width)],
-    ['敵の生産間隔',stage.spawnInterval?.every(Number.isFinite)?[...new Set(stage.spawnInterval)].map(value=>formatTime(value,seconds)).join('〜'):'—'],
-    ['制限時間',stage.width==null?'—':stage.timeLimit?formatTime(stage.timeLimit,seconds):'なし']];
-  return '<dl class="stage-facts" aria-label="基本情報">'+facts.map(([label,value])=>'<div><dt>'+label+'</dt><dd>'+value+'</dd></div>').join('')+'</dl>'+
-    (stage.width!=null?'<ul class="stage-fact-notes"><li>コンテニュー'+(stage.noContinue?'不可':'可')+'</li><li>城バリア'+(stage.bossGuard?'あり':'なし')+'</li></ul>':'')+
-    (stage.energy==null?'<p class="db-meta">統率力・報酬など一部のデータが未収録です。</p>':'');
+  const castle=enemy?formatNumber(calculateEnemyStats(enemy,options).hp)+'<small> <a href="'+escapeHtml(stageEnemyDetailUrl(enemy,spawn,map,crown))+'">敵ID '+enemy.id+'</a></small>':(stage.castleHealth==null?'—':formatNumber(stage.castleHealth));
+  const wideRow=(label,value)=>'<tr><th scope="row">'+label+'</th><td colspan="3">'+value+'</td></tr>';
+  return '<table class="stage-sheet" aria-label="'+escapeHtml(stage.name)+'"><tbody><tr><th>統率力</th><td class="stage-number">'+formatNumber(stage.energy)+'</td><th>敵最大数</th><td class="stage-number">'+(stage.maxEnemies==null?'—':formatNumber(stage.maxEnemies))+'</td></tr><tr><th>城体力</th><td class="stage-number">'+(stage.scoreMode?'スコア制':castle)+'</td><th>ステージ幅</th><td class="stage-number">'+(stage.width==null?'—':formatNumber(stage.width))+'</td></tr><tr><th>難易度</th><td>'+(stage.difficulty==null?'—':'★'+stage.difficulty)+'</td><th>コンテニュー</th><td>'+(stage.width==null?'—':stage.noContinue?'不可':'可')+'</td></tr>'+
+    '<tr><th>城バリア</th><td>'+(stage.width==null?'—':stage.bossGuard?'あり':'なし')+'</td><th>制限時間</th><td>'+(stage.width==null?'—':stage.timeLimit?formatTime(stage.timeLimit,seconds):'なし')+'</td></tr>'+wideRow('敵生産間隔',stage.spawnInterval?.every(Number.isFinite)?[...new Set(stage.spawnInterval)].map(value=>formatTime(value,seconds)).join('〜'):'—')+wideRow('XP','<span data-stage-experience="'+stage.id+'"></span>')+
+    (stage.variants?wideRow('抽選候補',stage.variants.length+'パターン / '+escapeHtml(stage.patternLabel||'')):'')+(stage.energy==null?wideRow('未収録の項目','敵出現の定義だけが残っているステージです。統率力・報酬などは推測せず未収録として表示します。'):'')+'</tbody></table>';
 }
 function unitLink(units,id,formIndex){
   const unit=units.units.find(unit=>unit.id===id),form=unit?.forms.find(form=>form.index===formIndex)||unit?.forms[0];
@@ -86,18 +82,15 @@ export function stageRewardsHtml(database,stage,units,map,crown=1,materials){
   const rewardHtml=reward=>{
     const item=database.rewards[reward.id],name=item?.name||'報酬 '+reward.id;
     const image=item?.layers?.length?orbHtml(item):item?.unit!=null?unitLink(units,item.unit,item.form):item?.icon?'<img src="'+escapeHtml(database.imageBase+item.icon)+'" alt="" loading="lazy">':'';
-    return '<span class="stage-reward" title="報酬ID '+reward.id+'">'+image+(item?.unit!=null?'':escapeHtml(name))+' <span>×'+formatNumber(reward.count)+'</span>'+(item?.evolution?'<span>進化権</span>':'')+'</span>';
+    return '<span class="stage-reward" title="報酬ID '+reward.id+'">'+image+(item?.unit!=null?'':escapeHtml(name))+' ×'+formatNumber(reward.count)+(item?.evolution?'<span>進化権</span>':'')+'</span>';
   };
   const orbHtml=item=>'<span class="unit-orb-image" role="img" aria-label="'+escapeHtml(item.name)+'" style="width:32px;height:32px">'+item.layers.map(layer=>{const [x,y,width,height]=layer.rect,scale=32/width;return '<span class="unit-property-image" style="width:32px;height:'+height*scale+'px"><img src="'+escapeHtml(database.imageBase+layer.path)+'" alt="" loading="lazy" style="width:'+layer.width*scale+'px;height:'+layer.height*scale+'px;left:'+(-x*scale)+'px;top:'+(-y*scale)+'px"></span>';}).join('')+'</span>';
-  const group=(title,rewards,condition,note='')=>rewards.length?'<section class="stage-reward-group"><h3>'+title+'</h3><ul>'+rewards.map(reward=>{
-    const label=condition(reward);
-    return '<li>'+rewardHtml(reward)+(label?'<span class="stage-reward-condition">'+label+'</span>':'')+'</li>';
-  }).join('')+'</ul>'+(note?'<p class="db-meta">'+note+'</p>':'')+'</section>':'';
-  const groups=group(map?.series==='D'?'初回クリア報酬':'クリア報酬',stage.drops,reward=>reward.chance==null?'':percent(reward.chance),stage.orderedRewards?'抽選順によって結果が変わる報酬候補です。':'')+
-    group('スコア報酬',stage.scoreRewards,reward=>formatNumber(reward.score)+'点以上')+
-    group('クリア回数報酬',stage.clearRewards,reward=>reward.clear+'回目');
-  const development=materials?.items.length?'<details class="stage-reward-materials"><summary>城の開発素材</summary><div>抽選 '+materials.draws+'回 / '+crown+'冠</div><div class="db-table-wrap"><table class="stage-sheet"><thead><tr><th>素材</th><th>抽選1回</th><th>1クリアで1個以上</th><th>期待数</th></tr></thead><tbody>'+materials.items.map(item=>'<tr><td>'+rewardHtml({...item,count:1})+'</td><td>'+percent(item.chance*100)+'</td><td>'+percent(item.atLeastOne*100)+'</td><td>'+decimal.format(item.expected)+'個</td></tr>').join('')+'</tbody></table></div><div class="db-meta">ハズレ：抽選1回 '+percent(materials.miss*100)+' / 全抽選で素材なし '+percent(materials.none*100)+'。トレジャーレーダーの対象外です。</div></details>':'';
-  return (groups?'<div class="stage-reward-groups">'+groups+'</div>':'<p class="db-meta">クリア報酬の指定はありません。</p>')+development;
+  const drops=stage.drops.map(reward=>'<div>'+(reward.chance==null?'':percent(reward.chance)+' ')+rewardHtml(reward)+'</div>').join('');
+  return table(row(map?.series==='D'?'初回クリア報酬':'クリア報酬',drops||'データ内の指定なし')+(stage.orderedRewards?row('報酬の抽選','この形式は確率を数値化していません。表示はデータ内の報酬候補です。'):'')+
+    (stage.scoreRewards.length?row('スコア報酬',stage.scoreRewards.map(reward=>'<div>'+formatNumber(reward.score)+'点以上 '+rewardHtml(reward)+'</div>').join('')):'')+
+    (stage.clearRewards.length?row('クリア回数報酬',stage.clearRewards.map(reward=>'<div>'+reward.clear+'回目 '+rewardHtml(reward)+'</div>').join('')):'')+
+    (materials?.items.length?row('城の開発素材','<details><summary>素材候補と確率</summary><div>抽選 '+materials.draws+'回 / '+crown+'冠</div><table class="stage-sheet"><thead><tr><th>素材</th><th>抽選1回</th><th>1クリアで1個以上</th><th>期待数</th></tr></thead><tbody>'+materials.items.map(item=>'<tr><td>'+rewardHtml({...item,count:1})+'</td><td>'+percent(item.chance*100)+'</td><td>'+percent(item.atLeastOne*100)+'</td><td>'+decimal.format(item.expected)+'個</td></tr>').join('')+'</tbody></table><div class="db-meta">ハズレ：抽選1回 '+percent(materials.miss*100)+' / 全抽選で素材なし '+percent(materials.none*100)+'。トレジャーレーダーの対象外です。</div></details>'):'')
+  );
 }
 export function stageFormationHtml(stage,units){
   if(!stage.formation)return '';
@@ -107,21 +100,17 @@ export function stageFormationHtml(stage,units){
 }
 export function stageSpawnsHtml(stage,map,crown,enemyDatabase,settings,{details=false,stats=false}={}){
   if(stage.missing)return '<p>このステージの固定の敵出現データは収録されていません。</p>';
-  if(!stage.spawns.length)return '<p class="db-meta">敵の出現行はありません。</p>';
   const seconds=settings.seconds;
   const cells=stage.spawns.map(original=>{
     const spawn=effectiveSpawn(original,map,crown),enemy=enemyDatabase.enemies[spawn.enemy];
     const status=stats&&enemy?calculateEnemyStats(enemy,stageEnemySettings(original,map,crown,settings)):null,url=enemy?stageEnemyDetailUrl(enemy,original,map,crown):'';
     const range=values=>values[0]===values[1]?formatTime(values[0],seconds):values.map(value=>formatTime(value,seconds)).join('〜');
     const gate=stage.damageCondition?formatNumber(spawn.castle)+'以上':percent(spawn.castle)+'以下';
-    const boss=spawn.boss?'<small class="stage-boss-label">ボス'+(spawn.boss===2?' / 指定2':'')+'</small>':'';
-    const target=enemy?'<a href="'+escapeHtml(url)+'">'+enemyImageHtml(enemyDatabase,enemy,32)+'<span>'+escapeHtml(enemy.name)+boss+'</span></a>':'敵ID '+spawn.enemy+boss;
-    const rates=spawn.health===spawn.attack?percent(spawn.health):'<span class="stage-rate-pair"><span>体力 '+percent(spawn.health)+'</span><span>攻撃 '+percent(spawn.attack)+'</span></span>';
-    return '<tr><td class="stage-enemy-cell">'+target+'</td><td><div class="enemy-properties">'+(enemy?enemyAttributesHtml(enemyDatabase,enemy):'')+'</div></td><td>'+rates+'</td><td>'+(spawn.count===0?'無制限':spawn.count+'体')+'</td><td>'+gate+'</td><td>'+formatTime(spawn.first,seconds)+(spawn.afterCastle?'<small>敵城条件の達成後</small>':'')+'</td><td>'+(spawn.count===1?'—':range(spawn.interval))+'</td>'+
+    return '<tr><td class="stage-enemy-icon">'+(enemy?'<a href="'+escapeHtml(url)+'" aria-label="'+escapeHtml(enemy.name)+'の詳細">'+enemyImageHtml(enemyDatabase,enemy,28)+'</a>':'—')+'</td><td class="stage-enemy-cell">'+(enemy?'<a href="'+escapeHtml(url)+'">'+escapeHtml(enemy.name)+'</a>':'敵ID '+spawn.enemy)+(spawn.boss?'<small>ボス'+(spawn.boss===2?' / 指定2':'')+'</small>':'')+'</td><td><div class="enemy-properties">'+(enemy?enemyAttributesHtml(enemyDatabase,enemy):'')+'</div></td><td>'+percent(spawn.health)+(spawn.health!==spawn.attack?'<small>攻撃 '+percent(spawn.attack)+'</small>':'')+'</td><td>'+(spawn.count===0?'無制限':spawn.count)+'</td><td>'+gate+'</td><td>'+formatTime(spawn.first,seconds)+(spawn.afterCastle?'<small>城条件達成後</small>':'')+'</td><td>'+(spawn.count===1?'—':range(spawn.interval))+'</td>'+
       (stats?'<td>'+formatNumber(status?.hp)+'</td><td>'+formatNumber(status?.attack)+'</td><td>'+formatNumber(status?.dps)+'</td>':'')+
       '<td class="stage-spawn-detail">'+spawn.layers.join('〜')+'</td><td class="stage-spawn-detail">'+formatNumber(spawn.score)+'</td><td class="stage-spawn-detail">'+(spawn.kills?spawn.kills+'体':'なし')+'</td></tr>';
   }).join('');
-  return '<div class="db-table-wrap stage-spawn-wrap" tabindex="0" role="region" aria-label="敵の出現一覧"><table class="db-table db-search-table stage-spawns'+(details?' show-detail':'')+'"><thead><tr>'+['敵キャラ','属性・種族','倍率','出現数',stage.damageCondition?'累積ダメージ条件':'敵城の残り体力','初回出現','再出現間隔',...(stats?['体力','攻撃力','DPS']:[])].map(label=>'<th scope="col">'+label+'</th>').join('')+'<th class="stage-spawn-detail">レイヤー</th><th class="stage-spawn-detail">基礎点</th><th class="stage-spawn-detail">味方撃破数</th></tr></thead><tbody>'+cells+'</tbody></table></div>';
+  return '<div class="db-table-wrap"><table class="db-table db-search-table stage-spawns'+(details?' show-detail':'')+'"><thead><tr>'+['アイコン','敵名','属性・種族','倍率（体力／攻撃）','出現数',stage.damageCondition?'累積ダメージ条件':'敵城体力','初登場','再出現',...(stats?['体力','攻撃力','DPS']:[])].map(label=>'<th>'+label+'</th>').join('')+'<th class="stage-spawn-detail">レイヤー</th><th class="stage-spawn-detail">基礎点</th><th class="stage-spawn-detail">撃破条件</th></tr></thead><tbody>'+cells+'</tbody></table></div>';
 }
 export function stageMapInfoHtml(map){
   const pair=(label,value)=>'<th scope="row">'+label+'</th><td>'+value+'</td>';
