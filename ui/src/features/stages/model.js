@@ -17,7 +17,7 @@ export function resolveStageRoute(database,params){
   const legacy=database.stages.find(stage=>stage.id===params.get('id'));
   const key=params.get('map')||legacy?.map||(!params.has('id')?'N000':null),map=database.maps.find(map=>map.key===key);
   if(!map)throw Error('マップIDが見つかりません。');
-  const choice=params.get('stage');
+  const choice=params.get('stage')??(legacy?.map===map.key?String(legacy.index):null);
   const selected=choice==null||choice===''||choice==='all'?null:database.stages.find(stage=>stage.map===map.key&&String(stage.index)===choice);
   if(choice&&choice!=='all'&&!selected)throw Error('このマップのステージが見つかりません。');
   return {map,selected:selected?.id||'',legacy:legacy?.id||null};
@@ -33,7 +33,13 @@ export function selectStageRows(database,enemyDatabase,state){
     if(state.crown>map.stars.length)return false;
     if(terms.length){
       const name=normalizeStageQuery([stage.name,map.name,stage.id,map.key,series.get(map.series)].join(' '));
-      if(!terms.every(term=>/^\d+$/.test(term)?map.nativeId===Number(term):/^\d+-\d+$/.test(term)?map.nativeId===Number(term.split('-')[0])&&stage.index===Number(term.split('-')[1]):name.includes(term.replace('_','-'))))return false;
+      if(!terms.every(term=>{
+        const combined=term.match(/^([a-z][a-z0-9-]*)\((\d+)\)$/);
+        if(combined)return map.key.toLowerCase()===combined[1]&&map.nativeId===Number(combined[2]);
+        const numeric=term.match(/^(\d+)(?:-(\d+))?$/);
+        if(numeric)return map.nativeId===Number(numeric[1])&&(numeric[2]==null||stage.index===Number(numeric[2]));
+        return name.includes(term.replace('_','-'));
+      }))return false;
     }
     if(!matches(state.gimmicks,stage.flags,true))return false;
     if(state.excludeEnemies&&enemyTerms.length&&(stage.patterns||[stage]).some(pattern=>{

@@ -15,6 +15,9 @@ for name,key in [('compile.mjs','compilerSha256'),('castles.mjs','castlesSha256'
 if hashlib.sha256((lab/'icons.mjs').read_bytes()).hexdigest()!=enemy_definitions['iconsSha256']:
     raise SystemExit('特性アイコンの対応元が変更されています。property-icons.jsonを確認してください。')
 queue=['src/app/main.js','src/features/units/search.js','src/features/units/growth.js','src/features/units/combo-builder.js','src/features/enemies/search.js','src/features/enemies/detail.js','src/features/enemies/style.css','src/shared/ui/site.css','src/features/units/style.css','src/features/stages/search.js','src/features/stages/view.js','src/features/stages/style.css']
+# ステージDBのページと表示モデルはKBCS側で保守し、共通の依存だけ同期する。
+stage_modules={'src/features/stages/'+name+'.js' for name in ['search','view','model','catalog-view']}
+local_dependencies={'simulation-profile.js','simulation-store.js','effect-support.js'}
 seen=set();manifest={}
 def save(path,text):
     target=output/path;target.parent.mkdir(parents=True,exist_ok=True)
@@ -25,7 +28,7 @@ def replace_once(text,old,new):
     return text.replace(old,new,1)
 
 def adapt_page_state(name,text):
-    pages={'src/features/units/search.js':'unit-search','src/features/enemies/search.js':'enemy-search','src/features/enemies/detail.js':'enemy-detail','src/features/stages/search.js':'stage-search'}
+    pages={'src/features/units/search.js':'unit-search','src/features/enemies/search.js':'enemy-search','src/features/enemies/detail.js':'enemy-detail'}
     page=pages.get(name)
     if not page:return text
     text='import {readPageParams,writePageParams,clearPageParams,bindDetailNavigation} from "/native-state.js";\n'+text
@@ -46,9 +49,6 @@ bindDetailNavigation('unit-detail','/pages/unit-detail/',()=>{
         text=replace_once(text,"  const url=location.pathname+(query.size?'?'+query:'');history.replaceState(null,'',url);\n  try{sessionStorage.setItem('kbc-enemy-search-url',url);}catch{}",'  writePageParams("enemy-search",query);')
         text=replace_once(text,"element('enemy-reset').addEventListener('click',()=>{location.href='/pages/tunit-search/';});","element('enemy-reset').addEventListener('click',()=>{clearPageParams('enemy-search');location.href='/pages/tunit-search/';});")
         text+="\nbindDetailNavigation('enemy-detail','/pages/tunit-detail/',()=>writeEnemySettings(new URLSearchParams(),state));\n"
-    elif page=='stage-search':
-        text=replace_once(text,"  const url=location.pathname+(query.size?'?'+query:'');history.replaceState(null,'',url);\n  try{sessionStorage.setItem('kbc-stage-search-url',url);}catch{}",'  writePageParams("stage-search",query);')
-        text=text.replace("element('stage-reset').addEventListener('click',()=>{location.href='/pages/stage-search/';});","element('stage-reset').addEventListener('click',()=>{clearPageParams('stage-search');location.href='/pages/stage-search/';});")
     else:
         text=replace_once(text,"import {copyText} from '../../shared/browser/clipboard.js';\n",'')
         text=replace_once(text,"  history.replaceState(null,'',location.pathname+'?'+query);",'  writePageParams("enemy-detail",query);')
@@ -60,10 +60,19 @@ bindDetailNavigation('unit-detail','/pages/unit-detail/',()=>{
         text+="\nbindDetailNavigation('enemy-detail','/pages/tunit-detail/',target=>writeEnemySettings(new URLSearchParams(),!comparison.same&&Number(target.searchParams.get('id'))===comparison.id?comparison.settings:settings));\n"
     return text
 
+def relative_dependencies(text):
+    dependencies=re.findall(r'(?:from\s*|import\s*|@import\s*)["\']([^"\']+)["\']',text)
+    return (dependency for dependency in dependencies if dependency.startswith('.'))
+
 while queue:
     name=queue.pop()
     if name in seen:continue
     seen.add(name)
+    if name in stage_modules:
+        path=output/name
+        for dependency in relative_dependencies(path.read_text(encoding='utf-8-sig')):
+            queue.append((path.parent/dependency).resolve().relative_to(output.resolve()).as_posix())
+        continue
     path=source/name
     original=path.read_text(encoding='utf-8-sig')
     manifest[name]=hashlib.sha256(path.read_bytes()).hexdigest()
@@ -85,19 +94,6 @@ while queue:
 export async function loadStageMap(database,key){return database.stages.filter(stage=>stage.map===key);}
 '''
         text=text.replace('const chunks=new Map();\n','')
-    if name=='src/features/stages/model.js':
-        text=text.replace("?'EOC1':null)","?'N000':null)")
-    if name=='src/features/stages/view.js':
-        text=text.replace("spawn.enemy===stage.enemyCastle?'敵城':stage.scoreMode||stage.timeLimit?", "stage.damageCondition?")
-        text=text.replace("(spawn.boss?'<small>ボス（衝撃波あり）</small>':'')", "(spawn.boss?'<small>ボス'+(spawn.boss===2?' / 指定2':'')+'</small>':'')")
-        text=text.replace("'味方 '+spawn.kills+'体'", "spawn.kills+'体'")
-        text=text.replace("spawn.castle?percent(spawn.castle)+'以下':'条件なし'", "percent(spawn.castle)+'以下'")
-        text=text.replace('stage.spawns.map(original=>','stage.spawns.map((original,index)=>')
-        text=text.replace("return '<tr><td class=\"stage-enemy-icon\">'", "return '<tr data-stage-spawn=\"'+index+'\"><td class=\"stage-enemy-icon\">'")
-    if name=='src/features/stages/search.js':
-        text=text.replace("stageGimmicks.map(([key,label])=>", "stageGimmicks.filter(([key])=>database.stages.some(stage=>stage.flags.includes(key))).map(([key,label])=>")
-        text=text.replace("+'マップ';element('stage-empty')", "+'マップ / '+rows.reduce((count,entry)=>count+entry.stages.length,0)+'ステージ';element('stage-empty')")
-        text=replace_once(text, '''<td title="ゲーム内マップID '+map.nativeId+'">'+map.nativeId+'<small class="db-meta">'+map.key+'</small></td>''', '''<td class="stage-map-id">'+escapeHtml(map.key)+'<small>('+map.nativeId+')</small></td>''')
     if name=='src/shared/game/unit-view.js':text=text.replace("import unitImages from 'virtual:kbc-unit-images';","const unitImages = {};")
     if name=='src/shared/game/enemies.js':
         text=text.replace("import url from 'virtual:kbc-enemy-data';",'const url="/api/enemies";')
@@ -133,8 +129,6 @@ export async function loadStageMap(database,key){return database.stages.filter(s
         text=replace_once(text,'talent.values.at(-1)[0]','talent.values.at(-1)?.[0]')
     if name=='src/shared/game/database-view.js':
         text=replace_once(text,'export function abilityText(ability, seconds) {',"export function abilityText(ability, seconds) {\n  if(ability.support==='unsupported')return `${ability.label} ／ 原本値 ${ability.value}`;")
-    if name=='src/features/stages/view.js':
-        text=replace_once(text,'function ruleValueHtml(rule,seconds){',"function ruleValueHtml(rule,seconds){\n  if(rule.support==='unsupported')return '<pre>'+escapeHtml(JSON.stringify(rule.raw,null,2))+'</pre>';")
     if name=='src/features/units/growth.js':
         text=replace_once(text,'current.settings.attackTreasure,current.options.talents','current.settings.attackTreasure,current.settings.healthTreasureBonus,current.settings.attackTreasureBonus,current.options.combos,current.options.talents')
         text=replace_once(text,'属性倍率・コンボ・本能玉は含みません。','発動中の体力・攻撃力コンボを含みます。属性倍率・本能玉は含みません。')
@@ -175,12 +169,9 @@ export async function loadStageMap(database,key){return database.stages.filter(s
         text+="\nwindow.addEventListener('kbcs:simulation-change',event=>{Object.assign(settings,event.detail);Object.assign(comparison.settings,event.detail);if(enemy){element('enemy-condition-controls').innerHTML=enemyConditionControls(enemy,settings,'enemy-current-');renderPeerControls();render();}});\n"
     # ブラウザのネイティブES modulesで扱えるようCSSはHTML側から読む。
     if name.endswith('.js'):text=re.sub(r'import\s+["\'][^"\']+\.css["\'];?\s*','',text)
-    dependencies=re.findall(r'(?:from\s*|import\s*|@import\s*)["\']([^"\']+)["\']',text)
-    for dependency in dependencies:
-        if dependency.startswith('.'):
-            resolved=(path.parent/dependency).resolve()
-            if resolved.relative_to(source).as_posix() in ['simulation-profile.js','simulation-store.js']:continue
-            queue.append(resolved.relative_to(source).as_posix())
+    for dependency in relative_dependencies(text):
+        name_in_source=(path.parent/dependency).resolve().relative_to(source).as_posix()
+        if name_in_source not in local_dependencies:queue.append(name_in_source)
     save(name,text)
 logo=output/'images/kbc-logo.png';logo.parent.mkdir(parents=True,exist_ok=True);logo.write_bytes((source/'images/kbc-logo.png').read_bytes())
 head='''<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>KBCS</title><link rel="icon" href="/images/kbc-logo.png"><link rel="stylesheet" href="/src/shared/ui/site.css"><link rel="stylesheet" href="/src/features/units/style.css"><link rel="stylesheet" href="/native.css"><script type="module" src="/src/app/main.js"></script>'''
@@ -196,21 +187,6 @@ for page,title in [('tunit-search','敵検索'),('tunit-detail','敵詳細')]:
     html=re.sub(r'\s*<div class="unit-source">.*?</div>','',html)
     html=html.replace('お宝・施設は共通設定を使い、共有リンクの条件を優先します。','お宝・施設は共通設定を使います。')
     save('pages/'+page+'/index.html',html)
-stage_head=head.replace('<link rel="stylesheet" href="/native.css">','<link rel="stylesheet" href="/src/features/stages/style.css"><link rel="stylesheet" href="/native.css">')
-html=(source/'pages/stage-search/index.html').read_text(encoding='utf-8-sig').replace('<!-- site:head -->',stage_head).replace('<!-- site:header -->',header).replace('<!-- site:title-hidden -->','<h1 class="visually-hidden">ステージ検索</h1>').replace('<!-- site:footer -->','')
-html=html.replace('条件に一致するステージを含むマップを表示します。ステージ数は一致数 / 全数。詳細は全ステージの表示から始まります。','0番台：レジェンドストーリー')
-html=html.replace('id="stage-show-enemies" type="checkbox"','id="stage-show-enemies" type="checkbox" checked').replace('stage-search-table hide-stage-enemies','stage-search-table')
-save('pages/stage-search/index.html',html)
-save('pages/stage-detail/index.html','''<!doctype html>
-<html lang="ja"><head>'''+stage_head+'''<script type="module" src="/stage-detail.js"></script></head>
-<body data-page="stage-detail"><div class="site-shell">'''+header+'''<main id="main" class="page-main stage-page">
-<div class="db-toolbar"><a href="/pages/stage-search/">ステージ検索へ</a><span id="stage-version" class="db-meta"></span></div>
-<div class="stage-heading"><h1 id="stage-title">ステージ詳細</h1></div>
-<p id="stage-status" role="status">ステージデータを読み込んでいます。</p><button id="stage-retry" type="button" hidden>再読み込み</button>
-<nav id="stage-navigation" aria-label="このマップのステージ"></nav>
-<div id="stage-detail-controls"><div class="stage-crown-control"><span>冠</span><div id="stage-crown" role="group" aria-label="冠を選択"></div><span id="stage-crown-rate"></span></div><label>単位<select id="stage-time"><option value="seconds">秒</option><option value="frames">F</option></select></label><label><input id="stage-spawn-details" type="checkbox">レイヤー・基礎点・撃破数</label><details><summary>XP計算</summary><label>クリア済み回数<input id="stage-xp-clears" type="number" min="0" max="2147483647" value="0"></label><label>XPコンボ合計（%）<input id="stage-xp-combo" type="number" min="0" max="100" value="0"></label><label><input id="stage-xp-okame" type="checkbox">おかめはちもく</label><div id="stage-xp-profile" class="db-meta"></div></details></div>
-<section id="stage-content" hidden><p id="stage-visible-count" class="db-meta"></p><div id="stage-map-info"></div><div id="stage-output"></div></section>
-<output id="stage-message" role="status"></output></main></div></body></html>''')
 for name in ['crown-on.png','crown-off.png']:
     path=source/'icons/stages'/name
     target=output/'icons/stages'/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(path.read_bytes())

@@ -5,7 +5,8 @@ import {loadStageVariant} from './src/shared/game/stages.js';
 import {loadEnemyDatabase} from './src/shared/game/enemies.js';
 import {loadUnitSearchIndex} from './native-unit-search.js';
 import {stageMapOverviewHtml,stageSummaryHtml,stageRulesHtml,stageRewardsHtml,stageSpawnsHtml,stageFormationHtml} from './src/features/stages/view.js';
-import {stageMapUrl,resolveStageRoute} from './src/features/stages/model.js';
+import {stageMapUrl,stageDetailUrl,resolveStageRoute} from './src/features/stages/model.js';
+import {stageMapCards,stageTags} from './src/features/stages/catalog-view.js';
 import {escapeHtml,formatNumber} from './src/shared/game/database-view.js';
 import {readGameSettings} from './src/shared/browser/game-settings.js';
 import {readPageParams,writePageParams} from './native-state.js';
@@ -88,26 +89,82 @@ function patternHtml(stage){
   return '<label class="stage-pattern-choice">'+escapeHtml(stage.patternLabel||'出現パターン')+' <select data-stage-pattern="'+stage.index+'"><option value="" disabled'+(!stage.patternSource?' selected':'')+'>選択してください（'+stage.variants.length+'候補）</option>'+stage.variants.map(value=>'<option value="'+escapeHtml(value.source)+'"'+(stage.patternSource===value.source?' selected':'')+'>'+escapeHtml(value.name)+'</option>').join('')+'</select></label>';
 }
 let renderRevision=0;
-async function render(){
-  const revision=++renderRevision;
-  stageMedia.clear();
-  settings.seconds=element('stage-time').value==='seconds';
-  element('stage-crown').innerHTML=map.stars.map((_,index)=>'<button type="button" data-crown="'+(index+1)+'" aria-label="'+(index+1)+'冠" aria-pressed="'+(crown===index+1)+'"><img src="/icons/stages/crown-'+(index<crown?'on':'off')+'.png" alt="" width="25" height="24"><span>'+(index+1)+'</span></button>').join('');
-  element('stage-crown-rate').textContent=formatNumber(map.stars[crown-1])+'%';
-  const visible=selected===''?bases:bases.filter(stage=>String(stage.index)===selected);
-  element('stage-visible-count').textContent=map.key+' / '+visible.length+'ステージ / '+crown+'冠';
-  element('stage-map-info').innerHTML=stageMapOverviewHtml(database,map,crown,units,settings.seconds);
-  try{await prepareEnemyStatistics(visible.flatMap(stage=>stage.spawns.filter(spawn=>element('stage-enemy-stats').checked||spawn.enemy===stage.enemyCastle).map(spawn=>({enemy:enemies.enemies[spawn.enemy],settings:stageEnemySettings(spawn,map,crown,settings)}))));if(revision!==renderRevision)return;}catch(error){if(revision===renderRevision)element('stage-output').textContent=error.message;return;}
-  element('stage-output').innerHTML=visible.map(stage=>'<section class="stage-entry" id="stage-sheet-'+stage.id+'"><div class="stage-heading"><h2>'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</h2><button type="button" data-stage-capture="'+stage.id+'">画像保存</button></div>'+patternHtml(stage)+stageMediaHtml(database,stage,enemies)+stageSummaryHtml(stage,map,crown,settings,enemies)+stageRulesHtml(database,stage,map,crown,units,settings.seconds,{includeMap:false})+stageFormationHtml(stage,units)+(stage.variants?.length&&!stage.patternSource?'<div class="stage-pattern-placeholder">出現パターンを選択してください。</div>':stageSpawnsHtml(stage,map,crown,enemies,settings,{details:element('stage-spawn-details').checked,stats:element('stage-enemy-stats').checked}))+'<div id="stage-rewards-'+stage.id+'">'+stageRewardsHtml(database,stage,units,map,crown)+'</div><div id="stage-reward-policy-'+stage.id+'"></div>'+sourceHtml(stage)+'</section>').join('');
-  stageMedia.refresh();
-  renderCalculations(visible);
-  renderRewardPolicies(visible,revision);
-  for(const button of element('stage-navigation').querySelectorAll('[data-stage-choice]'))button.setAttribute('aria-current',button.dataset.stageChoice===selected?'page':'false');
-  saveState();
+const sectionNames=[['spawns','敵の出現'],['rewards','報酬'],['rules','出撃制限・特殊ルール'],['media','背景・BGM']];
+function stageChoice(stage,label){
+  return '<a href="'+(stage?stageDetailUrl(stage,crown):stageMapUrl(map,crown))+'" data-stage-choice="'+(stage?.index??'')+'">'+escapeHtml(label)+'</a>';
 }
-function selectStage(value){selected=value;render();element('main').scrollTop=0;if(!document.querySelector('.workspace'))window.scrollTo(0,0);}
-element('stage-navigation').addEventListener('click',event=>{const button=event.target.closest('[data-stage-choice]');if(button)selectStage(button.dataset.stageChoice);});
-element('stage-crown').addEventListener('click',event=>{const button=event.target.closest('[data-crown]');if(button){crown=Number(button.dataset.crown);render();}});
+function navigation(stage){
+  const number=stage?bases.findIndex(value=>value.id===stage.id):-1;
+  element('stage-breadcrumb').innerHTML=stage?stageChoice(null,map.key+' '+map.name):'<span class="stage-tag">'+escapeHtml(map.key)+'</span>';
+  element('stage-title').textContent=stage?.name??map.name;
+  document.title=element('stage-title').textContent+' | KBCS';
+  element('stage-visible-count').textContent=stage?stage.id+' · '+(number+1)+' / '+bases.length+'ステージ':bases.length+'ステージ';
+  element('stage-context').innerHTML=stage?'<nav class="stage-local-nav" aria-label="同じマップのステージ">'+
+    (bases[number-1]?stageChoice(bases[number-1],'‹ 前のステージ'):'')+stageChoice(null,'一覧へ')+
+    (bases[number+1]?stageChoice(bases[number+1],'次のステージ ›'):'')+'</nav>'+
+    (stage.width>0||stage.variants?.length?'<a class="stage-play-link" href="'+stageDetailUrl(stage,crown).replace('/stage-detail/','/stage-sortie/')+'">出撃準備へ</a>':''):'';
+  const mapIndex=database.maps.findIndex(value=>value.key===map.key);
+  const nav=element('stage-navigation');
+  nav.innerHTML='<div class="db-toolbar">'+[[database.maps[mapIndex-1],'‹ 前のマップ'],[database.maps[mapIndex+1],'次のマップ ›']].map(([value,label])=>value?'<a href="'+stageMapUrl(value,crown)+'" title="'+escapeHtml(value.name)+'">'+label+'</a>':'').join('')+'</div><div class="workspace-stage-list">'+stageChoice(null,'マップの概要')+bases.map(value=>stageChoice(value,(value.index+1)+'. '+value.name)).join('')+'</div>';
+  for(const link of document.querySelectorAll('[data-stage-choice]')){
+    if(link.closest('.workspace-stage-list'))link.setAttribute('aria-current',link.dataset.stageChoice===selected?'page':'false');
+  }
+}
+function stageArticle(stage){
+  const section=(id,html)=>'<section class="stage-detail-section" id="stage-panel-'+id+'"><h2>'+sectionNames.find(([key])=>key===id)[1]+'</h2>'+html+'</section>';
+  const unknownPattern=stage.variants?.length&&!stage.patternSource;
+  return '<article class="stage-entry stage-detail-entry" id="stage-sheet-'+stage.id+'"><div class="stage-detail-banner"><div class="stage-card-tags">'+stageTags(stage.flags)+'</div><button type="button" data-stage-capture="'+stage.id+'">画像保存</button></div>'+
+    '<div id="stage-basic-info">'+stageSummaryHtml(stage,map,crown,settings,enemies)+'</div>'+patternHtml(stage)+
+    '<nav class="stage-section-nav" aria-label="ステージ詳細の項目">'+sectionNames.map(([id,label])=>'<a href="#stage-panel-'+id+'">'+label+'</a>').join('')+'</nav>'+
+    section('spawns','<div id="stage-spawn-list">'+(unknownPattern?'<p class="stage-pattern-placeholder">出現パターンを選択すると、敵を確認できます。</p>':stageSpawnsHtml(stage,map,crown,enemies,settings,{details:element('stage-spawn-details').checked}))+'</div>')+
+    section('rewards','<div id="stage-rewards-'+stage.id+'">'+stageRewardsHtml(database,stage,units,map,crown)+'</div><div id="stage-reward-policy-'+stage.id+'"></div>')+
+    section('rules',stageRulesHtml(database,stage,map,crown,units,settings.seconds)+stageFormationHtml(stage,units))+
+    section('media',stageMediaHtml(database,stage,enemies))+sourceHtml(stage)+'</article>';
+}
+async function render(){
+  const revision=++renderRevision;++calculationRevision;
+  stageMedia.clear();settings.seconds=element('stage-time').value==='seconds';
+  element('stage-crown').innerHTML=map.stars.map((_,index)=>'<button type="button" data-crown="'+(index+1)+'" title="'+(index+1)+'冠・倍率'+formatNumber(map.stars[index])+'%" aria-label="'+(index+1)+'冠" aria-pressed="'+(crown===index+1)+'"><img src="/icons/stages/crown-'+(index<crown?'on':'off')+'.png" alt="" width="20" height="19"><span>'+(index+1)+'</span></button>').join('');
+  element('stage-crown-rate').textContent='敵倍率 '+formatNumber(map.stars[crown-1])+'%';
+  const stage=bases.find(value=>String(value.index)===selected);
+  navigation(stage);element('stage-message').textContent='';
+  const overview=element('stage-map-info'),output=element('stage-output');
+  const overviewOpen=overview.querySelector('details')?.open;
+  overview.hidden=!!stage;
+  overview.innerHTML=stage?'':'<details class="stage-map-rules"'+(overviewOpen?' open':'')+'><summary>マップ情報・共通ルール</summary>'+stageMapOverviewHtml(database,map,crown,units,settings.seconds)+'</details>';
+  output.innerHTML=stage?stageArticle(stage):'<h2 class="stage-overview-heading">ステージ一覧</h2>'+stageMapCards(bases,crown,database,enemies);
+  saveState();if(!stage)return;
+  stageMedia.refresh();void renderCalculations([stage]);void renderRewardPolicies([stage],revision);
+  const details=element('stage-spawn-details').checked,stats=element('stage-enemy-stats').checked;
+  const needed=stage.spawns.filter(spawn=>stats||!stage.scoreMode&&spawn.enemy===stage.enemyCastle);
+  if(!needed.length)return;
+  try{
+    await prepareEnemyStatistics(needed.map(spawn=>({enemy:enemies.enemies[spawn.enemy],settings:stageEnemySettings(spawn,map,crown,settings)})));
+    if(revision!==renderRevision)return;
+    const experience=output.querySelector('[data-stage-experience]');
+    const basic=element('stage-basic-info');basic.innerHTML=stageSummaryHtml(stage,map,crown,settings,enemies,true);basic.querySelector('[data-stage-experience]').replaceWith(experience);
+    if(stats)element('stage-spawn-list').innerHTML=stageSpawnsHtml(stage,map,crown,enemies,settings,{details,stats});
+  }catch(error){if(revision===renderRevision)element('stage-message').textContent='敵ステータスを計算できませんでした。'+error.message;}
+}
+function selectStage(value){
+  selected=value;
+  const stage=bases.find(value=>String(value.index)===selected);
+  history.replaceState(null,'',stage?stageDetailUrl(stage,crown):stageMapUrl(map,crown));
+  void render();element('main').scrollTop=0;if(!document.querySelector('.workspace'))window.scrollTo(0,0);
+}
+document.addEventListener('click',event=>{
+  const link=event.target.closest('a[data-stage-choice]');
+  if(!link||event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();selectStage(link.dataset.stageChoice);
+  if(event.detail===0)element('stage-title').focus({preventScroll:true});
+});
+element('stage-crown').addEventListener('click',event=>{
+  const button=event.target.closest('[data-crown]');if(!button||!map)return;
+  crown=Number(button.dataset.crown);
+  const stage=bases.find(value=>String(value.index)===selected);
+  history.replaceState(null,'',stage?stageDetailUrl(stage,crown):stageMapUrl(map,crown));
+  void render();element('stage-crown').querySelector('[aria-pressed=true]')?.focus({preventScroll:true});
+});
 for(const id of ['stage-time','stage-spawn-details','stage-enemy-stats','stage-xp-clears','stage-xp-combo','stage-xp-okame'])element(id).addEventListener('change',()=>{if(map)render();});
 window.addEventListener('kbcs:simulation-change',event=>{Object.assign(settings,event.detail);if(map)render();});
 element('stage-output').addEventListener('change',async event=>{
@@ -140,11 +197,8 @@ async function load(){
     bases=detail.stages;
     selected=route.selected?String(bases.find(stage=>stage.id===route.selected).index):'';
     crown=Math.max(1,Math.min(map.stars.length,Math.trunc(Number(params.get('crown')))||1));
-    document.title=map.name+' | KBCS';element('stage-title').textContent=map.key+' '+map.name;
     element('stage-version').textContent='JP データv'+database.gameVersion;
-    const mapIndex=database.maps.findIndex(value=>value.key===map.key);
-    element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[database.maps[mapIndex-1],'前'],[database.maps[mapIndex+1],'次']].map(([value,label])=>value?'<a href="'+stageMapUrl(value,crown)+'">'+label+'のマップ</a>':'').join('')+'</div><div class="workspace-stage-list"><button type="button" data-stage-choice="">すべて（'+bases.length+'）</button>'+bases.map(stage=>'<button type="button" data-stage-choice="'+stage.index+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</button>').join('')+'</div>';
-    element('stage-content').hidden=false;await render();element('stage-status').hidden=true;
+    element('stage-content').hidden=false;element('stage-status').hidden=true;await render();
   }catch(error){element('stage-content').hidden=true;element('stage-status').hidden=false;element('stage-status').textContent=error.message;element('stage-retry').hidden=false;}
 }
 element('stage-retry').addEventListener('click',load);load();

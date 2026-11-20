@@ -3,6 +3,7 @@ import test from 'node:test';
 import settingsCatalog from '../settings-catalog.js';
 import {createUnitSearchState} from '../src/features/units/search-controls.js';
 import {resolveUnitSearchRows,searchUnitPage} from '../native-unit-search.js';
+import {resolveStageRoute,selectStageMaps,selectStageRows} from '../src/features/stages/model.js';
 
 test('キャラ検索は表示ページを計算し、数値条件とCSVは全候補を処理する',async()=>{
   const requests=[],growth=Array(201).fill(100);
@@ -26,4 +27,15 @@ test('キャラ検索は表示ページを計算し、数値条件とCSVは全�
     assert.deepEqual(sorted.visible.map(row=>row.unit.id),[2,1]);
     assert.deepEqual(requests,[2,4]);
   }finally{globalThis.fetch=fetchBefore;}
+});
+
+test('一覧に出るマップIDとステージIDから個別の画面を解決する',()=>{
+  const map={key:'N000',nativeId:0,name:'伝説のはじまり',series:'N',stars:[100,150],limits:[],stages:[0,1]};
+  const stages=[0,1].map(index=>({id:'N000-'+index,index,map:map.key,name:'ステージ'+index,flags:[],enemies:[]}));
+  const database={maps:[map],stages,series:[],rewards:{}},enemies={enemies:[]};
+  const filters={query:'Ｎ０００（０）',enemy:'',reward:'',background:'',music:'',attributes:[],gimmicks:[],ranges:{},sort:'id'};
+  assert.deepEqual(selectStageMaps(database,enemies,filters)[0].stages,stages);
+  assert.deepEqual(selectStageRows(database,enemies,{...filters,query:'0-1'}).map(row=>row.stage.id),['N000-1']);
+  assert.equal(resolveStageRoute(database,new URLSearchParams('map=N000&crown=2')).selected,'');
+  assert.equal(resolveStageRoute(database,new URLSearchParams('id=N000-1')).selected,'N000-1');
 });

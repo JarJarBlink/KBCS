@@ -1,6 +1,6 @@
 ﻿# Web UIの再利用
 
-ユーザー指定により既存kbc-webのHTML/CSS・検索UIをそのまま基準にする。元Webのcheckoutは読取専用。`scripts/sync-ui.py` が必要な依存41ファイルと検索HTMLを同期し、元ファイルのSHAをupstream.jsonへ記録する。UI全体のNode/Viteビルドは不要。
+ユーザー指定により既存kbc-webのHTML/CSS・検索UIをそのまま基準にする。元Webのcheckoutは読取専用。`scripts/sync-ui.py` が必要な共通モジュールと検索HTMLを同期し、元ファイルのSHAをupstream.jsonへ記録する。UI全体のNode/Viteビルドは不要。
 
 ## 編集箇所
 
@@ -80,9 +80,9 @@ HP/攻撃は各章の最大加算50へ取得率を掛け、章ごとに整数化
 
 ## ステージ閲覧とXP（0.1.7）
 
-sync-ui.pyがWebのstages/search・model・view・rewards・CSSと冠画像を同期する。上流のSHAをupstream.jsonで保持する。loaderは/api/stagesからオフラインのDBを読み、未検証の抽選・シーン再生モジュールは読み込まない。元Webの報酬確率推定は使用せず、比較値を元データの折りたたみへ置く。
+sync-ui.pyはWebのstages/rewards・共通CSSと冠画像を同期する。SHAはupstream.jsonに記録する。ステージDBは/api/stagesからオフラインのDBを読み、抽選条件はネイティブ計算を使う。元の比較値は「計算内訳・元データ」に表示する。
 
-stage-detail.jsはマップとステージの選択・冠・時間・詳細列・画像保存を制御し、Webの表とアイコンを再利用する。workspace.jsは検索フィルターを左、詳細の同一マップ内一覧を左、冠/時間/XP条件を右へ移動する。native-state.jsは詳細をmapキーごとに保存し、元の出現行と冠の倍率を敵詳細へ引き継ぐ。通常は全ステージ、左の一覧で1面にも絞れる。
+stage-detail.jsはマップとステージの選択・冠・時間・詳細列・画像保存を制御する。workspace.jsは検索の絞り込みと詳細の同一マップ内一覧を左、時間・XPなどの計算条件を右へ移動する。冠は中央のステージ情報に表示する。詳細の出現行から敵詳細へは、体力と攻撃力の倍率を冠とともに引き継ぐ。
 
 XPは共通calculateNative→Rust→C++のlegend_experienceを使う。クリア済み回数、XPコンボ合計、おかめを右で設定し、勉強力Lvと6章のお宝設定は共通プロファイルから導出する。UIは計算式を重複実装せず、返された5段階を折りたたみに記す。非同期の古い応答は破棄する。DB・定義・コアの版が異なると計算しない。
 
@@ -156,3 +156,5 @@ workspaceの左右を閉じても各24pxの縦ボタンを残す。ヘッダー�
 Androidへの出力とタッチ操作は[スマホ接続](phone-display.md)を参照。
 
 ステージ詳細は`loadStageSearchIndex`でリンク先と前後マップを解決し、指定マップの詳細を取得する。`stage-detail.js`は初回の詳細描画に失敗するとエラーと再読み込みを表示する。
+
+画面構成とデータの取得順は[ステージDBの表示](stage-database.md)を参照。
