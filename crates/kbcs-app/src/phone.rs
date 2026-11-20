@@ -14,6 +14,8 @@ use std::{
 };
 use tiny_http::{Header, Request, Response, Server};
 use url::Url;
+#[path = "phone_battle.rs"]
+pub mod battle;
 
 const DISPLAY: &str = "/pages/phone-display/";
 const COOKIE: &str = "kbcs_phone";
@@ -23,6 +25,7 @@ const MAX_BODY: u64 = 1_000_000;
 pub struct Phone {
     link: Mutex<Option<Link>>,
     screen: Arc<Mutex<Option<String>>>,
+    pub battle: Arc<battle::Exchange>,
 }
 
 struct Link {
@@ -36,9 +39,21 @@ struct Link {
 }
 
 impl Phone {
+    pub fn companion(&self) -> Self {
+        Self {
+            battle: self.battle.clone(),
+            ..Self::default()
+        }
+    }
+
     #[cfg(any(windows, target_os = "macos", test))]
     pub fn navigate(&self, url: &str) {
-        *self.screen.lock().unwrap() = sortie_route(url);
+        let next = sortie_route(url);
+        let mut screen = self.screen.lock().unwrap();
+        if *screen != next {
+            self.battle.reset();
+            *screen = next;
+        }
     }
 
     pub fn start(&self, service: &Service) -> Result<()> {
@@ -48,6 +63,7 @@ impl Phone {
         }
         if let Some(previous) = link.take() {
             previous.disconnect();
+            self.battle.reset();
         }
         let adb = adb_path();
         let device = adb_command(&adb, &["-d", "get-serialno"])
@@ -77,6 +93,8 @@ impl Phone {
             active: active.clone(),
             paired: paired.clone(),
             screen: self.screen.clone(),
+            battle: self.battle.clone(),
+            polling: Arc::default(),
         };
         let phone = service.phone_service();
         if let Err(error) = std::thread::Builder::new()
@@ -120,6 +138,7 @@ impl Phone {
         if let Some(link) = connection.take() {
             link.disconnect();
         }
+        self.battle.reset();
     }
 
     pub fn status(&self) -> Value {
@@ -174,6 +193,8 @@ struct DisplaySession {
     active: Arc<AtomicBool>,
     paired: Arc<AtomicBool>,
     screen: Arc<Mutex<Option<String>>>,
+    battle: Arc<battle::Exchange>,
+    polling: Arc<AtomicBool>,
 }
 
 impl DisplaySession {
@@ -244,12 +265,44 @@ impl DisplaySession {
             respond(request, 200, body, &[("Content-Type", "application/json")]);
             return;
         }
+        if method == "GET" && path == "/api/phone/commands" {
+            // 操作待機は戦闘や素材用のワーカーを占有しない。
+            if self.polling.swap(true, Ordering::AcqRel) {
+                respond(request, 429, Vec::new(), &[]);
+                return;
+            }
+            let (battle, active, polling) = (
+                self.battle.clone(),
+                self.active.clone(),
+                self.polling.clone(),
+            );
+            std::thread::spawn(move || {
+                let commands = battle.commands(&active);
+                let body = serde_json::to_vec(&commands).unwrap_or_default();
+                polling.store(false, Ordering::Release);
+                respond(
+                    request,
+                    200,
+                    body,
+                    &[
+                        ("Content-Type", "application/json"),
+                        ("Cache-Control", "no-store"),
+                    ],
+                );
+            });
+            return;
+        }
         if !phone_route(&method, path) {
             respond(request, 404, Vec::new(), &[]);
             return;
         }
         let active = self.active.clone();
-        let cache = method == "GET" && !path.starts_with("/api/") && !path.starts_with("/pages/");
+        let media = (path.starts_with("/api/asset/") || path.starts_with("/api/stage-audio/"))
+            && url
+                .query_pairs()
+                .any(|(key, value)| key == "build" && !value.is_empty());
+        let cache = method == "GET"
+            && (media || !path.starts_with("/api/") && !path.starts_with("/pages/"));
         dispatch(service, path, move |service, accepted| {
             if !active.load(Ordering::Acquire) {
                 respond(request, 410, Vec::new(), &[]);
@@ -313,6 +366,7 @@ fn phone_route(method: &str, path: &str) -> bool {
                 | "/api/battle-session"
                 | "/api/battle-session/frame"
                 | "/api/battle-session/input"
+                | "/api/phone/failure"
         ),
         "PUT" => path == "/api/battle-options",
         "DELETE" => path == "/api/battle-session",
@@ -343,6 +397,7 @@ fn respond(request: Request, status: u16, body: Vec<u8>, headers: &[(&str, &str)
 }
 
 fn service_reply(request: Request, reply: Reply, cache: bool) {
+    let cache = cache && reply.status == 200;
     respond(
         request,
         reply.status,
@@ -433,6 +488,8 @@ fn usb_session_pairs_once_and_exposes_only_battle_pages() {
         active: active.clone(),
         paired: Arc::default(),
         screen: phone.screen.clone(),
+        battle: phone.battle.clone(),
+        polling: Arc::default(),
     };
     let task = std::thread::spawn(move || {
         session.serve(

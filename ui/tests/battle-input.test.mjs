@@ -38,7 +38,7 @@ const screen=readFileSync(new URL('../battle-screen.js',import.meta.url),'utf8')
 const sortie=readFileSync(new URL('../pages/stage-sortie/index.html',import.meta.url),'utf8');
 assert.match(sortie,/class="sortie-launch-options"><button[^>]*data-recording>録画<\/button><label><input type="checkbox" id="sortie-large-start"/);
 assert.match(sortie,/data-debug="large"/);
-assert.match(screen,/large&&event\.code==='Escape'/);
+assert.match(screen,/large&&!phone&&event\.code==='Escape'/);
 assert.ok(!screen.includes('keyQueue'));
 assert.ok(screen.includes("readBattleJson('/api/battle-session/input'"));
 const live={...state,intro:24},camera={center:1000,zoom:2.5,minimum:.49};
@@ -53,7 +53,7 @@ for(const speed of [2,3]){
  assert.equal(config.speed,speed);assert.equal(config.items,1);assert.equal(speedMode,speed-1);
 }
 const noSpeed=battleScreenConfiguration({combos:[]},{...snapshot,items:{speedup:false},speed:3});
-assert.equal(noSpeed.config.items,0);assert.equal(noSpeed.speedMode,0);
+assert.equal(noSpeed.config.items&1,1);assert.equal(noSpeed.itemsOn&1,0);assert.equal(noSpeed.speedMode,0);
 
 const beforeDocument=globalThis.document,beforeFetch=globalThis.fetch;
 const calls=[],draws=[],errors=[];

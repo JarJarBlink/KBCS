@@ -193,7 +193,7 @@ impl Service {
     pub fn phone_service(&self) -> Self {
         let mut service = self.clone();
         service.desktop = false;
-        service.phone = Arc::default();
+        service.phone = Arc::new(self.phone.companion());
         service.phone_surface = true;
         service.battles = Arc::default();
         service
@@ -254,6 +254,54 @@ impl Service {
                 _ => anyhow::bail!("スマホ接続の操作が不正です"),
             }
             return Ok(Reply::json(self.phone.status()));
+        }
+        if path == "/api/phone/battle" {
+            ensure!(
+                self.desktop && method == "GET",
+                "PCの戦闘表示から確認してください"
+            );
+            let known = url
+                .query_pairs()
+                .find(|(key, _)| key == "known")
+                .map(|(_, id)| id);
+            return Ok(Reply::json(self.phone.battle.status(known.as_deref())));
+        }
+        if path == "/api/phone/control" {
+            ensure!(
+                self.desktop && method == "POST" && body.len() <= 1_000_000,
+                "スマホへの操作が不正です"
+            );
+            ensure!(
+                self.phone.status()["paired"] == true,
+                "スマホが接続されていません"
+            );
+            self.phone.battle.command(serde_json::from_slice(body)?)?;
+            return Ok(Reply::json(json!({"accepted":true})));
+        }
+        if path == "/api/phone/inspect" {
+            ensure!(
+                self.desktop && method == "POST" && body.len() <= 4096,
+                "スマホの戦闘表示要求が不正です"
+            );
+            let id = url
+                .query_pairs()
+                .find(|(key, _)| key == "session")
+                .context("戦闘IDなし")?
+                .1;
+            return Ok(Reply::json(
+                self.phone
+                    .battle
+                    .observe(&id, serde_json::from_slice(body)?),
+            ));
+        }
+        if path == "/api/phone/failure" {
+            ensure!(
+                self.phone_surface && method == "POST" && body.len() <= 4096,
+                "スマホの戦闘通知が不正です"
+            );
+            let value: String = serde_json::from_slice(body)?;
+            self.phone.battle.fail(&value);
+            return Ok(Reply::json(json!({"accepted":true})));
         }
         if path == "/api/battle-recording" {
             return Ok(Reply::json(self.recordings.handle(method, &url, body)?));
@@ -461,6 +509,9 @@ impl Service {
                     .lock()
                     .map_err(|_| anyhow::anyhow!("戦闘ロック失敗"))?
                     .remove(&id);
+                if self.phone_surface {
+                    self.phone.battle.close(&id);
+                }
                 return Ok(Reply::json(json!({"closed":true})));
             }
             ensure!(
@@ -469,6 +520,9 @@ impl Service {
             );
             let request: crate::battle::Start = serde_json::from_slice(body)?;
             let id = request.scene.session.clone();
+            let phone_start = self
+                .phone_surface
+                .then(|| (self.phone.battle.generation(), request.snapshot.clone()));
             ensure!(!id.is_empty() && id.len() <= 128, "戦闘ID不正");
             let session = crate::battle::Session::new(
                 &self.root,
@@ -476,11 +530,12 @@ impl Service {
                 request,
                 self.persist_rewards,
             )?;
-            let stats = session.stats(false)?;
+            let stats = session.stats(self.phone_surface)?;
             let textures = session.scene.textures().to_vec();
             let title = session.title.clone();
             let active_combos = session.active_combo_ids();
             let inspection_assets = session.inspection_assets()?;
+            let audio = json!({"se":session.stage_sounds,"music":session.stage_music});
             let mut battles = self
                 .battles
                 .lock()
@@ -489,6 +544,13 @@ impl Service {
                 battles.len() < 8 && !battles.contains_key(&id),
                 "戦闘を閉じてから開始してください"
             );
+            if let Some((generation, snapshot)) = phone_start {
+                self.phone.battle.register(generation, id.clone(), json!({"snapshot":snapshot,"textures":textures,"inspectionAssets":inspection_assets}))?;
+                battles.insert(id.clone(), Arc::new(Mutex::new(session)));
+                return Ok(Reply::json(
+                    json!({"session":id,"textures":textures,"title":title,"audio":audio,"activeComboIds":active_combos}),
+                ));
+            }
             battles.insert(id.clone(), Arc::new(Mutex::new(session)));
             return Ok(Reply::json(
                 json!({"session":id,"runtime":stats,"textures":textures,"title":title,"inspectionAssets":inspection_assets,"activeComboIds":active_combos}),
@@ -560,6 +622,10 @@ impl Service {
                 "戦闘入力が不正です"
             );
             let mut request: crate::battle::Request = serde_json::from_slice(body)?;
+            let observation = self
+                .phone_surface
+                .then(|| self.phone.battle.query(&request.session))
+                .flatten();
             let session = self
                 .battles
                 .lock()
@@ -597,7 +663,11 @@ impl Service {
             let core_ms = started.elapsed().as_secs_f64() * 1000.;
             session.settle()?;
             let mut runtime = session.stats(request.compact && !request.debug)?;
-            if let Some(query) = &request.inspection {
+            if let Some(query) = request.inspection.as_ref().or_else(|| {
+                observation
+                    .as_ref()
+                    .and_then(|view| view.inspection.as_ref())
+            }) {
                 runtime["inspection"] = session.inspection(query)?;
             }
             if request.debug {
@@ -640,7 +710,9 @@ impl Service {
             runtime["comboIntro"] =
                 session.combo_intro(combo_frame, request.scene.viewport_width)?;
             let mut ranges = crate::battle::ActorDrawRanges::default();
-            if let Some(id) = request.focus_actor
+            if let Some(id) = request
+                .focus_actor
+                .or_else(|| observation.as_ref().and_then(|view| view.focus_actor))
                 && let Some((actor, value)) = session.focused_actor(id)?
             {
                 if actor.retired_frame < 0 {
@@ -648,7 +720,36 @@ impl Service {
                 }
                 runtime["focusedActor"] = value;
             }
-            let frame = session.draw(&request.scene, combo_frame, &mut ranges)?;
+            let mut frame = session.draw(&request.scene, combo_frame, &mut ranges)?;
+            if self.phone_surface && observation.is_some() {
+                let pose = ranges
+                    .preview
+                    .and_then(|[start, end]| frame.commands.get(start..end));
+                self.phone.battle.publish(&request.session, json!({"state":battle.state,"runtime":runtime,
+                    "coreMs":core_ms,"pose":pose,"phoneStats":request.phone_stats,"sceneMs":frame.compute_ms}));
+                for key in ["inspection", "focusedActor"] {
+                    runtime.as_object_mut().unwrap().remove(key);
+                }
+            }
+            if self.phone_surface && request.packed {
+                // 画像の索引は出撃時の固定テーブルを端末側で使う。
+                frame.textures = &[];
+                let commands = std::mem::take(&mut frame.commands);
+                return Ok(Reply {
+                    status: 200,
+                    mime: "application/x-kbcs-battle-frame",
+                    bytes: crate::battle_wire::encode_mobile(
+                        &BattleFrame {
+                            battle: &battle,
+                            scene: Some(frame),
+                            core_ms,
+                            runtime: Some(runtime),
+                        },
+                        &commands,
+                        started,
+                    )?,
+                });
+            }
             if let Some(range) = ranges.preview {
                 runtime["focusedDrawRange"] = json!(range);
             }

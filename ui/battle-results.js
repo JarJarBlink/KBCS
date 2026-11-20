@@ -1,12 +1,12 @@
 ﻿// 005e97d8 / 005ecde0 / 005ee758 / 005efbac。時計と座標はC++が返す。
 import {createResultPopup} from './battle-result-popup.js';
 import {nativeFont} from './native-font.js';
-export function createBattleResults(controls){
+export function createBattleResults(controls,{drawing=true,summary=true}={}){
  const panel=document.createElement('section');panel.className='battle-receipt';panel.hidden=true;panel.setAttribute('aria-label','戦闘結果');
  const host=document.querySelector('.workspace-right .workspace-panel-content');(host||controls).append(panel);
  const button=document.createElement('button');button.type='button';button.textContent='報酬・記録';button.hidden=true;controls.querySelector('.battle-actions').append(button);
  let runtime,last,lastEx;const metadata=new Map();
- const popup=createResultPopup(error=>{panel.hidden=false;panel.textContent='通知の配置を取得できません：'+error;});
+ const popup=drawing?createResultPopup(error=>{panel.hidden=false;panel.textContent='通知の配置を取得できません：'+error;}):null;
  function open(){const toggle=document.querySelector('[data-workspace-toggle=right]');if(toggle?.getAttribute('aria-expanded')==='false')toggle.click();panel.scrollIntoView({block:'nearest'});}
  button.addEventListener('click',open);
  function render(){
@@ -32,14 +32,15 @@ export function createBattleResults(controls){
   if(receipt.radarBlocked){const note=document.createElement('p');note.textContent='レーダー対象の報酬は取得済みです';panel.append(note);}
   const link=document.createElement('a');link.href='/pages/inventory/';link.textContent='持ち物を開く';panel.append(link);if(runtime.ex?.source>0){const next=document.createElement('a');next.href='/pages/stage-sortie/?'+new URLSearchParams({map:'EX'+String(runtime.ex.mapIndex).padStart(3,'0'),stage:runtime.ex.stage,crown:1});next.textContent='EXステージへ';panel.append(document.createElement('br'),next);}
  }
- fetch('/api/inventory/catalog').then(r=>r.json()).then(value=>{for(const item of value.items||[])metadata.set(item.id,item);if(runtime?.receipt)render();}).catch(()=>{});
+ if(summary)fetch('/api/inventory/catalog').then(r=>r.json()).then(value=>{for(const item of value.items||[])metadata.set(item.id,item);if(runtime?.receipt)render();}).catch(()=>{});
  return {
   update(value,width,atlas){runtime=value;
    // phase0から準備し、勝利文字/経験値の演出中に通知の配置を取得する。
    if(runtime.result.mode===2&&runtime.continueNotice){
-    popup.prepare([[runtime.continueNotice,runtime.defeatBossHp].filter(Boolean).join('<br>')],width,atlas);
+    popup?.prepare([[runtime.continueNotice,runtime.defeatBossHp].filter(Boolean).join('<br>')],width,atlas);
    }
-   else if(runtime.receipt)popup.prepare(runtime.receipt.notifications||[],width,atlas);
+   else if(runtime.receipt)popup?.prepare(runtime.receipt.notifications||[],width,atlas);
+   if(!summary)return;
    const visible=!!(runtime.result.mode&&(runtime.receipt||runtime.receiptError||runtime.continuePrompt?.error));button.hidden=!visible;panel.hidden=!visible;if(!visible){last=undefined;return;}
    const key=runtime.receipt?'saved':runtime.receiptError||runtime.continuePrompt?.error;if(key!==last||lastEx!==runtime.ex?.source){last=key;lastEx=runtime.ex?.source;render();}
   },
@@ -87,6 +88,6 @@ export function createBattleResults(controls){
    }
    if(runtime.receipt&&e.phase===8)popup.paint(context,e.popup,atlas,images);
   },
-  stop(){popup.stop();panel.remove();button.remove();},
+  stop(){popup?.stop();panel.remove();button.remove();},
  };
 }

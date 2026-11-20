@@ -3,6 +3,18 @@ import {test} from 'node:test';
 import {accumulateBattleTicks,battlePresentationClock} from '../battle-view.js';
 import {adjustCaptureRectangle,captureRectangle,recordingVideoSize,recordingVideoBitrate,saveBattleRecording} from '../battle-recording.js';
 import {observedActorChanges} from '../battle-details.js';
+import {decodeBattleFrame} from '../battle-frame.js';
+
+test('スマホのフレームは使用する頂点を倍精度のまま復元する',()=>{
+ const metadata=new TextEncoder().encode('{"scene":{}}'),offset=Math.ceil((32+metadata.length)/8)*8;
+ const body=new ArrayBuffer(offset+128),data=new DataView(body),bytes=new Uint8Array(body);
+ bytes.set(new TextEncoder().encode('KBP1'));data.setUint32(4,metadata.length,true);data.setUint32(8,1,true);bytes.set(metadata,32);
+ data.setInt32(offset+8,4,true);data.setFloat64(offset+24,-0,true);data.setFloat64(offset+32,1/3,true);
+ data.setInt32(offset+88,-7,true);
+ const [command]=decodeBattleFrame(body).scene.commands;
+ assert.equal(command.points.length,8);assert.ok(Object.is(command.points[0],-0));assert.equal(command.points[1],1/3);assert.equal(command.cut[0],-7);
+ assert.throws(()=>decodeBattleFrame(body.slice(0,-1)));
+});
 
 test('連続入力や上限変更で描画間隔を飛び越えない',()=>{
  const clock=battlePresentationClock();

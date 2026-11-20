@@ -32,9 +32,7 @@ a.sortie-enemy:hover{border-color:var(--color-accent)}
 .sortie-launch-options label{margin:0;gap:6px}
 .battle-large .site-header,.battle-large .workspace-viewbar,.battle-large .workspace-bottom,.battle-large .workspace-panel,.battle-large .workspace-separator,.battle-large .workspace-edge{display:none}
 .battle-large #sortie-initial{position:fixed;inset:0;z-index:10001}
-.sortie-phone-output{display:grid;grid-template-rows:minmax(0,1fr) auto;height:100%;min-height:180px}
-.sortie-phone-output>div{background:#000}
-.sortie-phone-output>footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;flex-wrap:wrap}
+.phone-battle-monitor .battle-stage canvas,.phone-battle-monitor .battle-stage .battle-menu{display:none}
 .phone-surface .site-header,.phone-surface #sortie-stage-navigation>a,.phone-surface #sortie-database-link,.phone-surface #sortie-formation-edit,.phone-surface .sortie-launch-options,.phone-surface #sortie-details,.phone-surface #battle-controls,.phone-surface #battle-details{display:none!important}
 .phone-surface .page-main{width:100%;max-width:none;margin:0;padding:8px}
 .phone-surface #sortie-stage-navigation{margin-bottom:8px}

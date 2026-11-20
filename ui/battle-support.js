@@ -28,6 +28,18 @@ export async function castleHealth(database,document){
 }
 
 // 暗転中に、選択したステージと編成の原本画像を重複なくデコードする。
+export function prepareBattleImages(paths,images,signal,report=()=>{},version=''){
+  const assets=[...new Set(paths.filter(path=>path&&!images.has(path)))];
+  let index=0,done=0;
+  return Promise.all(Array.from({length:Math.min(4,assets.length)},async()=>{
+    while(index<assets.length){
+      signal.throwIfAborted();const path=assets[index++],image=new Image();image.src='/api/asset/'+path+version;
+      try{await image.decode();}catch{throw Error('戦闘画像を読み込めません：'+path);}
+      signal.throwIfAborted();images.set(path,image);report('戦闘画像',++done,assets.length);
+    }
+  }));
+}
+
 export async function prepareBattleAssets(stage,formation,scene,report,signal){
   const actors=[...new Set([...(stage.enemies||[]),...stage.spawns.map(spawn=>spawn.enemy),stage.enemyCastle].filter(id=>Number.isInteger(id)&&id>=0))].map(id=>({kind:'enemy',id}));
   actors.push(...formation.slots.filter(Boolean).map(member=>({kind:'unit',id:member.unitId,form:member.form})));
@@ -36,8 +48,7 @@ export async function prepareBattleAssets(stage,formation,scene,report,signal){
   await workers(actors,async actor=>{manifests.push(await readBattleJson('/api/motion?'+new URLSearchParams({...actor,files:0}),{signal}));report('キャラ素材',++completed,actors.length);});
   const paths=new Set(scene.textures.filter(Boolean));
   for(const manifest of manifests)for(const resource of [manifest.body,manifest.soul])if(resource?.image)paths.add(resource.image);
-  const images=new Map();completed=0;
-  await workers([...paths],async path=>{const image=new Image();image.src='/api/asset/'+path;try{await image.decode();}catch{throw Error('画像を読み込めません：'+path);}signal.throwIfAborted();images.set(path,image);report('画像',++completed,paths.size);});
+  const images=new Map();await prepareBattleImages([...paths],images,signal,report);
   return {manifests,images};
 }
 

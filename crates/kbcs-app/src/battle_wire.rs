@@ -1,4 +1,4 @@
-﻿use anyhow::{Context, Result};
+use anyhow::{Context, Result};
 use kbcs_bridge::render::Command;
 use std::io::Write;
 use std::time::Instant;
@@ -10,14 +10,32 @@ pub fn encode(
     started: Instant,
     compressed: bool,
 ) -> Result<Vec<u8>> {
+    encode_frame(metadata, commands, started, compressed, false)
+}
+
+pub fn encode_mobile(
+    metadata: &impl serde::Serialize,
+    commands: &[Command],
+    started: Instant,
+) -> Result<Vec<u8>> {
+    encode_frame(metadata, commands, started, false, true)
+}
+
+fn encode_frame(
+    metadata: &impl serde::Serialize,
+    commands: &[Command],
+    started: Instant,
+    compressed: bool,
+    mobile: bool,
+) -> Result<Vec<u8>> {
     let encoding = Instant::now();
     let json = serde_json::to_vec(metadata)?;
     let json_len = u32::try_from(json.len()).context("戦闘ヘッダーが大きすぎます")?;
     let count = u32::try_from(commands.len()).context("描画命令が多すぎます")?;
     let offset = (32 + json.len() + 7) & !7;
-    let mut bytes = Vec::with_capacity(offset + commands.len() * 192);
-    bytes.extend_from_slice(b"KBF1");
-    for value in [json_len, count, 192] {
+    let mut bytes = Vec::with_capacity(offset + commands.len() * if mobile { 128 } else { 192 });
+    bytes.extend_from_slice(if mobile { b"KBP1" } else { b"KBF1" });
+    for value in [json_len, count, if mobile { 0 } else { 192 }] {
         bytes.extend_from_slice(&value.to_le_bytes());
     }
     bytes.resize(32, 0);
@@ -28,7 +46,17 @@ pub fn encode(
             bytes.extend_from_slice(&value.to_le_bytes());
         }
         bytes.extend_from_slice(&command.opacity.to_le_bytes());
-        for value in command.points {
+        // USBでは命令が実際に使う頂点だけを送る。座標の精度・描画順は維持する。
+        let points = if mobile {
+            usize::try_from(command.count)
+                .ok()
+                .filter(|count| *count <= 8)
+                .context("描画命令の頂点数が不正です")?
+                * 2
+        } else {
+            command.points.len()
+        };
+        for value in &command.points[..points] {
             bytes.extend_from_slice(&value.to_le_bytes());
         }
         for value in command.cut.into_iter().chain(command.colors) {
@@ -104,4 +132,11 @@ fn wire_preserves_offsets_and_float_bits() {
     )
     .unwrap();
     assert_eq!(expanded, plain[32..]);
+    let mut quad = repeated[0].clone();
+    quad.count = 4;
+    let mobile = encode_mobile(&serde_json::json!({}), &[quad], Instant::now()).unwrap();
+    let offset = 40;
+    assert_eq!(&mobile[..4], b"KBP1");
+    assert_eq!(mobile.len(), offset + 128);
+    assert_eq!(&mobile[offset + 88..offset + 92], &(-7i32).to_le_bytes());
 }

@@ -1,5 +1,5 @@
 ﻿// SEの選択・終了後の抑止はC++で確定する。音源の取得で戦闘時計を止めない。
-export function createBattleSounds(errors,settings=[]){
+export function createBattleSounds(errors,settings=[],{preloadedOnly=false,version=''}={}){
  const context=new AudioContext(),gain=context.createGain(),buffers=new Map(),voices=new Map(),controller=new AbortController();
  const sequences=new Map(),pendingVoices=new Map(),stops=new WeakMap();
  let music,mediaSource,capture;
@@ -14,7 +14,7 @@ export function createBattleSounds(errors,settings=[]){
  gain.connect(context.destination);let closed=false,generation=0,finished=false,muted=false,paused=false;
  async function buffer(id){
   if(!buffers.has(id))buffers.set(id,(async()=>{
-   const response=await fetch('/api/stage-audio/'+id,{signal:controller.signal});
+   const response=await fetch('/api/stage-audio/'+id+version,{signal:controller.signal});
    if(!response.ok){const result=await response.json();throw Error(result.error||'SE '+id);}
    const data=await context.decodeAudioData(await response.arrayBuffer());errors.delete('SE '+id);return data;
   })().catch(error=>{if(error.name!=='AbortError'&&!closed)errors.set('SE '+id,error.message);return null;}));
@@ -36,7 +36,7 @@ export function createBattleSounds(errors,settings=[]){
    catch{gain.disconnect(destination);capture=null;for(const track of destination.stream.getTracks())track.stop();return null;}
    return {track:destination.stream.getAudioTracks()[0],release};
   },
-  preload(ids){let next=0;return Promise.all(Array.from({length:Math.min(4,ids.length)},async()=>{while(!closed&&next<ids.length)await buffer(ids[next++]);}));},
+  preload(ids,report){let next=0,done=0;return Promise.all(Array.from({length:Math.min(4,ids.length)},async()=>{while(!closed&&next<ids.length){await buffer(ids[next++]);report?.('効果音',++done,ids.length);}}));},
   update(events,level,speed=1,hostPaused=false,ended=false){
    if(closed)return;
    gain.gain.value=[0,.25,.5,1][level];
@@ -59,7 +59,7 @@ export function createBattleSounds(errors,settings=[]){
     if(paused||muted)continue;
     const waiting={stopAt:Infinity},waitingSet=pendingVoices.get(id)||new Set();
     waitingSet.add(waiting);pendingVoices.set(id,waitingSet);
-    const pending=buffer(event.id);
+    const pending=preloadedOnly?buffers.get(event.id):buffer(event.id);
     const sequence=(sequences.get(event.id)||Promise.resolve()).then(async()=>{
      const data=await pending;if(!data||closed||token!==generation||context.currentTime>=waiting.stopAt)return;
      const when=Math.max(context.currentTime,origin+(event.frame-first)/(30*speed));

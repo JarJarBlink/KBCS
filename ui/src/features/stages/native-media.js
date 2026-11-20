@@ -34,7 +34,10 @@ async function raster(canvas,result,direct,supplied,options={}){
   // 戦闘用の読み込み済み画像は待ち合わせや一時Mapを作らずに使用する。
   for(const command of result.commands){
     const path=command.texture>=0?result.textures[command.texture]:null;
-    if(path&&!supplied?.has(path))paths.add(path);
+    if(path&&!supplied?.has(path)){
+      if(options.preloadedOnly)throw Error('戦闘開始前に準備されていない画像：'+path);
+      paths.add(path);
+    }
   }
   const loaded=paths.size?new Map(await Promise.all([...paths].map(async path=>{try{return [path,await image(path)];}catch{return [path,null];}}))):null;
   const textureFor=index=>{const path=result.textures[index];return supplied?.get(path)??loaded?.get(path);};
@@ -69,7 +72,7 @@ export function stageSceneInput(stage,view){return {background:stage.background,
 export {frame as loadStageScene,raster as paintStageScene};
 export function stageMediaStats(supplied){return {pending,hits:imageHits,misses:imageMisses,bytes:[...new Set([...decoded.values(),...(supplied?.values()||[])])].reduce((sum,v)=>sum+v.naturalWidth*v.naturalHeight*4,0)};}
 // 戦闘は専用WebGL面へ直接描き、2D面にはHUDだけを重ねる。
-export function createStagePainter(canvas,onRestore,supplied,{transparent=false}={}){
+export function createStagePainter(canvas,onRestore,supplied,{transparent=false,preloadedOnly=false}={}){
   const settings={preserveDrawingBuffer:false,trackTextures:true,alpha:transparent};
   let active=new NativeWebGLRenderer(canvas,settings),disposed=false;
   renderers.add(active);
@@ -88,7 +91,7 @@ export function createStagePainter(canvas,onRestore,supplied,{transparent=false}
       }
       return bytes;
     },
-    paint:async result=>{if(disposed||active.gl.isContextLost())return false;return raster(canvas,result,active,supplied,{transparent});},
+    paint:async result=>{if(disposed||active.gl.isContextLost())return false;return raster(canvas,result,active,supplied,{transparent,preloadedOnly});},
     dispose:()=>{disposed=true;renderers.delete(active);active.dispose();canvas.removeEventListener('webglcontextlost',lost);canvas.removeEventListener('webglcontextrestored',restored);},
   };
 }

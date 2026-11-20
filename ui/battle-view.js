@@ -8,9 +8,17 @@ export function battleViewportWidth(choice,width,height){
 
 // ネイティブの座標系と、スマホ画面へ出力する物理画素数を分ける。
 export function phoneCanvasSize(width,box,dpr){
- const scale=Math.min(box.width/width,box.height/640)*dpr;
- const pixels=Math.min(3840,Math.max(1,Math.round(width*scale)));
+ const scale=Math.min(box.width/width*dpr,box.height/640*dpr,1600/width,720/640);
+ const pixels=Math.max(1,Math.round(width*scale));
  return [pixels,Math.max(1,Math.round(640*pixels/width))];
+}
+
+// 005d2408・005d1f2cは左右の安全幅を別々に使う。入力だけ逆変換して原本の矩形へ渡す。
+export function phoneHudPoint(point,width,{left,right},icons){
+ const {x,y}=point;
+ if(y<=88&&x<=left+88||y>=519&&x<=left+146)return {...point,x:x-left};
+ if(y>=510&&x>=width-right-146||y>=43&&y<=131&&x>=width-right-88*icons)return {...point,x:x+right};
+ return point;
 }
 
 // 終了演出の操作権と拡大上限は戦闘コアが返す。

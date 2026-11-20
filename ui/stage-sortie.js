@@ -14,10 +14,15 @@ import {stageRulesHtml,stageFormationHtml} from './src/features/stages/view.js';
 import {readBattleJson,battleFormation,castleHealth,prepareBattleAssets,effectiveStageLimit,stageDeployment} from './battle-support.js';
 import {enterPhoneFullscreen,phoneConnection} from './phone-connection.js';
 import {loadStageSearchIndex} from './search-index.js';
+import {sendPhoneControl,startPhoneBattle} from './phone-battle.js';
 
 const node=id=>document.getElementById('sortie-'+id),route=new URLSearchParams(location.search);
 const largeStart=node('large-start');
-const phone=route.get('phone')==='1';
+const phone=route.get('phone')==='1',desktop=typeof window.ipc?.postMessage==='function';
+const phonePolling=new AbortController();
+let phoneLinked=false,phoneLoading=false,phoneMirror,phoneTimer,phoneDisconnect;
+function stopPhonePolling(){phonePolling.abort();clearTimeout(phoneTimer);phoneMirror?.stop();}
+window.addEventListener('pagehide',stopPhonePolling,{once:true});
 if(phone){
  node('enemies').inert=true;
  node('limits').inert=true;
@@ -26,7 +31,7 @@ let artwork,battleArtwork,paintFormation,formationIndex=1,deployment,deployVersi
 let database,enemies,units,map,stages=[],stage,entry,health,choiceVersion=0,controller,loadedAssets,prepared;
 let reorder,formationSaving=false,formationSelected=-1;
 if(phone)window.addEventListener('kbcs:phone-leave',()=>{
- controller?.abort();
+ stopPhonePolling();controller?.abort();
  battle?.stop();
 });
 let saved={items:{},speed:2};try{saved=readSortiePreferences(localStorage,sessionStorage);}catch{}
@@ -46,7 +51,7 @@ node('items').before(moneyControls);
 const moneyInput=moneyControls.querySelector('input');
 moneyInput.addEventListener('change',()=>{try{const value=sortieFixedMoney(map,moneyInput.valueAsNumber);saved.fixedMoney={...saved.fixedMoney,[map.key]:value};moneyInput.setCustomValidity('');store();}catch(error){moneyInput.setCustomValidity(error.message);moneyInput.reportValidity();}});
 moneyControls.querySelector('button').onclick=()=>{if(saved.fixedMoney)delete saved.fixedMoney[map.key];moneyInput.value=sortieFixedMoney(map);moneyInput.setCustomValidity('');store();};
-function ready(){node('launch').disabled=!!controller||formationSaving||!!reorder?.active||!entry||!health||!deployment||!stage||!!(stage.variants?.length&&!stage.patternSource)||!(stage.width>0)||stage.background==null;}
+function ready(){node('launch').disabled=!!controller||phoneLoading||!!phoneMirror||formationSaving||!!reorder?.active||!entry||!health||!deployment||!stage||!!(stage.variants?.length&&!stage.patternSource)||!(stage.width>0)||stage.background==null;}
 function drawFormation(){
   if(!entry){node('formation-preview').innerHTML=phone?'PCで編成を作成してください':'<a href="/pages/formation/">編成を作成</a>';return;}
   const document=battleFormation(units,entry.document);
@@ -124,30 +129,53 @@ function renderStage(){
 }
 function report(label,current,total){node('loading-status').textContent=label+' '+current+' / '+total;node('progress').max=Math.max(1,total);node('progress').value=current;}
 let recording;
-async function depart(){
-  if(node('launch').disabled||!moneyInput.reportValidity())return;
-  if(phone)void enterPhoneFullscreen();
-  const active=new AbortController();controller=active;ready();node('initial').hidden=false;node('setup').hidden=true;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:true}));node('blackout').hidden=false;node('load-info').hidden=false;report('ステージを準備中',0,1);
-  try{
-    // 出撃時点の保存版を固定し、編集タブで変更された設定を黙って使わない。
-    const latest=await readBattleJson('/api/formations?current='+entry.id,{signal:active.signal});
-    if(latest.entry?.revision!==entry.revision){await chooseFormation(entry.id);throw Error('編成が更新されました。設定を確認してから出撃してください');}
-    const formation=battleFormation(units,entry.document),currentHealth=await castleHealth(units,formation);
-    const seed=new Uint32Array(1);while(!seed[0])crypto.getRandomValues(seed);
-    const snapshot={schemaVersion:1,version:database.gameVersion,buildId:database.buildId,stage:structuredClone(stage),map:structuredClone(map),crown,formationId:entry.id,formationRevision:entry.revision,formation,fixedMoney:sortieFixedMoney(map,saved.fixedMoney?.[map.key]),items:structuredClone(items),speed:items.speedup?speed:1,seed:seed[0],limits:applicableLimits(map,stage,crown),castle:currentHealth,deployment:structuredClone(deployment),frame:0};
-    snapshot.stage.musicTracks=(stage.musicTracks||[]).map(track=>({...track,loop:database.musicCatalog?.tracks?.[track.id]?.loop!==false}));
-    const scene=await loadStageScene(stage,{frame:0,showEnemy:true,showPlayer:true,showEffects:true},active.signal);
-    if(scene.missing?.length)throw Error('ステージ素材が未収録です：'+scene.missing.join(', '));
-    loadedAssets=await prepareBattleAssets(stage,formation,scene,report,active.signal);
-    const screen=await prepareBattleScreen(units,snapshot,loadedAssets,active.signal,report,enemies,{phone});active.signal.throwIfAborted();
-    prepared=snapshot;node('initial').hidden=false;node('setup').hidden=true;stageMedia.clear();
-    battle=await startBattleScreen(node('initial'),node('canvas'),scene,snapshot,screen,returnToPreparation,recording,active.signal,phone||largeStart.checked);active.signal.throwIfAborted();status('');
-  }catch(error){returnToPreparation();if(error.name!=='AbortError')status(error.message,true);}
-  finally{if(controller===active){controller=null;node('blackout').hidden=true;node('load-info').hidden=true;ready();}}
+function battleMode(active){document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:active}));}
+async function sortieSnapshot(signal){
+  // 出撃時点の保存版を固定し、編集タブで変更された設定を黙って使わない。
+  const latest=await readBattleJson('/api/formations?current='+entry.id,{signal});
+  if(latest.entry?.revision!==entry.revision){await chooseFormation(entry.id);throw Error('編成が更新されました。設定を確認してから出撃してください');}
+  const formation=battleFormation(units,entry.document),currentHealth=await castleHealth(units,formation);
+  const seed=new Uint32Array(1);while(!seed[0])crypto.getRandomValues(seed);
+  const snapshot={schemaVersion:1,version:database.gameVersion,buildId:database.buildId,stage:structuredClone(stage),map:structuredClone(map),crown,formationId:entry.id,formationRevision:entry.revision,formation,fixedMoney:sortieFixedMoney(map,saved.fixedMoney?.[map.key]),items:structuredClone(items),speed:items.speedup?speed:1,seed:seed[0],limits:applicableLimits(map,stage,crown),castle:currentHealth,deployment:structuredClone(deployment),frame:0};
+  snapshot.stage.musicTracks=(stage.musicTracks||[]).map(track=>({...track,loop:database.musicCatalog?.tracks?.[track.id]?.loop!==false}));
+  return snapshot;
 }
-node('launch').addEventListener('click',depart);
+function phoneFailure(message){
+ return readBattleJson('/api/phone/failure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(message)}).catch(()=>{});
+}
+async function depart(assigned){
+  if(controller||battle||phoneMirror||(!assigned&&(node('launch').disabled||!moneyInput.reportValidity())))return;
+  if(phone&&!assigned)void enterPhoneFullscreen();
+  const active=new AbortController();controller=active;ready();
+  let entering=false;
+  try{
+    if(phoneLinked&&(await phoneConnection()).paired){
+      const snapshot=await sortieSnapshot(active.signal);active.signal.throwIfAborted();
+      await sendPhoneControl({type:'launch',snapshot});phoneLoading=true;status('スマホで戦闘素材を準備しています…');return;
+    }
+    entering=true;node('initial').hidden=false;node('setup').hidden=true;battleMode(true);node('blackout').hidden=false;node('load-info').hidden=false;report('ステージを準備中',0,1);
+    if(phone)window.top.document.documentElement.classList.add('phone-playing');
+    const snapshot=assigned??await sortieSnapshot(active.signal);
+    if(snapshot.buildId!==database.buildId)throw Error('DBが更新されました。出撃準備を開き直してください');
+    const scene=await loadStageScene(snapshot.stage,{frame:0,showEnemy:true,showPlayer:true,showEffects:true},active.signal);
+    if(scene.missing?.length)throw Error('ステージ素材が未収録です：'+scene.missing.join(', '));
+    loadedAssets=phone?{images:new Map()}:await prepareBattleAssets(snapshot.stage,snapshot.formation,scene,report,active.signal);
+    const screen=await prepareBattleScreen(units,snapshot,loadedAssets,active.signal,report,enemies,{phone,onFailure:phone?phoneFailure:undefined});active.signal.throwIfAborted();
+    prepared=snapshot;stageMedia.clear();
+    battle=await startBattleScreen(node('initial'),node('canvas'),scene,snapshot,screen,returnToPreparation,recording,active.signal,phone||largeStart.checked);active.signal.throwIfAborted();status('');
+  }catch(error){
+    if(entering)returnToPreparation();
+    if(phone&&!phonePolling.signal.aborted)void phoneFailure(error.name==='AbortError'?'スマホで出撃を取り消しました':error.message);
+    if(error.name!=='AbortError')status(error.message,true);
+  }finally{if(controller===active){controller=null;node('blackout').hidden=true;node('load-info').hidden=true;ready();}}
+}
+node('launch').addEventListener('click',()=>depart());
 node('cancel').addEventListener('click',()=>controller?.abort());
-function returnToPreparation(){battle?.stop();battle=null;prepared=null;loadedAssets=null;node('initial').hidden=true;node('setup').hidden=false;document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:false}));stageMedia.refresh();}
+function returnToPreparation(){
+ battle?.stop();battle=null;phoneMirror?.stop();phoneMirror=null;phoneLoading=false;
+ if(phone)window.top.document.documentElement.classList.remove('phone-playing');
+ document.body.classList.remove('phone-battle-monitor');prepared=null;loadedAssets=null;node('initial').hidden=true;node('setup').hidden=false;battleMode(false);stageMedia.refresh();ready();
+}
 node('formation').addEventListener('change',event=>chooseFormation(event.target.value));
 node('stages').addEventListener('click',event=>{const target=event.target.closest('[data-stage]');if(target){stage=stages.find(value=>value.index===Number(target.dataset.stage));renderStage();}});
 node('crowns').addEventListener('click',event=>{const target=event.target.closest('[data-crown]');if(target){crown=Number(target.dataset.crown);renderStage();}});
@@ -190,26 +218,52 @@ async function load(){
   }catch(error){node('status').textContent=error.message;}
 }
 let refreshTime=0;
-function refreshSavedFormation(){if(!map||!units||controller||formationSaving||reorder?.active||Date.now()-refreshTime<300)return;refreshTime=Date.now();refreshFormationList().catch(error=>status(error.message,true));}
+function refreshSavedFormation(){if(!map||!units||controller||battle||phoneMirror||formationSaving||reorder?.active||Date.now()-refreshTime<300)return;refreshTime=Date.now();refreshFormationList().catch(error=>status(error.message,true));}
 window.addEventListener('pageshow',event=>{if(event.persisted)refreshSavedFormation();});
 window.addEventListener('focus',refreshSavedFormation);
 window.addEventListener('storage',event=>{if(event.key==='kbcs:formation-update')refreshSavedFormation();});
-async function openSortie(){
- if(!phone&&typeof window.ipc?.postMessage==='function'){
-  const state=await phoneConnection().catch(()=>null);
-  if(state?.active){
-   node('status').hidden=true;
-   const output=document.createElement('section');output.className='sortie-phone-output';
-   output.innerHTML='<div aria-label="スマホ出力中の戦闘画面"></div><footer><span role="status">スマホで出撃準備・戦闘を操作できます</span><button type="button">接続を終了してPCで表示</button></footer>';
-   document.getElementById('main').append(output);
-   output.querySelector('button').onclick=async event=>{
-    const button=event.currentTarget;button.disabled=true;
-    try{await phoneConnection('DELETE');output.remove();node('status').hidden=false;load();}
-    catch(error){output.querySelector('[role=status]').textContent=error.message;button.disabled=false;}
-   };
-   return;
+async function listenToPc(){
+ if(phonePolling.signal.aborted)return;
+ let delay=0;
+ try{
+  const commands=await readBattleJson('/api/phone/commands',{signal:phonePolling.signal});
+  for(const command of commands){
+   if(command.type==='launch'){
+    if(controller||battle)void phoneFailure('スマホで出撃準備中、または戦闘中です');
+    else void depart(command.snapshot);
+   }else document.dispatchEvent(new CustomEvent('kbcs:phone-control',{detail:command}));
   }
+ }catch{delay=250;}
+ if(!phonePolling.signal.aborted)phoneTimer=setTimeout(listenToPc,delay);
+}
+function phoneBattleEnded(disconnected=false){
+ if(disconnected){phoneLinked=false;phoneDisconnect?.remove();}
+ returnToPreparation();status('');void pollPhoneBattle();
+}
+async function pollPhoneBattle(){
+ if(phonePolling.signal.aborted||phoneMirror||!phoneLinked)return;
+ try{
+  const value=await readBattleJson('/api/phone/battle',{signal:phonePolling.signal});
+  if(phonePolling.signal.aborted)return;
+  if(value.id&&value.start&&units&&!battle&&!controller){
+   document.body.classList.add('phone-battle-monitor');node('initial').hidden=false;node('setup').hidden=true;stageMedia.clear();battleMode(true);
+   phoneMirror=startPhoneBattle(value.id,value.start,units,enemies,phoneBattleEnded);return;
+  }
+  if(value.loading!==phoneLoading||value.error&&node('message').textContent!==value.error){
+   phoneLoading=value.loading;status(value.error||(phoneLoading?'スマホで戦闘素材を準備しています…':''),!!value.error);ready();
+  }
+ }catch(error){if(!phonePolling.signal.aborted)status(error.message,true);}
+ if(!phonePolling.signal.aborted)phoneTimer=setTimeout(pollPhoneBattle,240);
+}
+async function openSortie(){
+ const validate=desktop&&!phone?phoneConnection().catch(()=>null):null;
+ await load();
+ if(phone&&map)void listenToPc();
+ if((await validate)?.active){
+  phoneLinked=true;
+  phoneDisconnect=document.createElement('button');phoneDisconnect.textContent='スマホ接続を終了';phoneDisconnect.type='button';node('launch').after(phoneDisconnect);
+  phoneDisconnect.onclick=async()=>{try{await phoneConnection('DELETE');phoneBattleEnded(true);}catch(error){status(error.message,true);}};
+  void pollPhoneBattle();
  }
- load();
 }
 openSortie();

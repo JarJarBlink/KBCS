@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 #[path = "battle_inspector.rs"]
-mod inspector;
+pub(super) mod inspector;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -23,9 +23,9 @@ fn set_sortie_speed(
     screen: &mut battle_screen::Config,
     state: &mut battle_screen::State,
 ) {
-    // 持ち込みは出撃準備の記録で決める。入力に残った速度やアイテムのビットは引き継がない。
+    // ボタンは常設し、持ち込みの有無で開始倍率と切替上限を決める。
     let equipped = snapshot["items"]["speedup"].as_bool() == Some(true);
-    screen.items = (screen.items & !1) | i32::from(equipped);
+    screen.items |= 1;
     screen.speed = if equipped && snapshot["speed"] == 3 {
         3
     } else {
@@ -53,6 +53,7 @@ pub struct Request {
     #[serde(default)]
     pub inspection: Option<Vec<inspector::Query>>,
     pub focus_actor: Option<i32>,
+    pub phone_stats: Option<Value>,
     #[serde(default)]
     pub compact: bool,
 }
@@ -79,6 +80,8 @@ pub struct Session {
     pub effects: BTreeMap<(i32, i32, i32), Clip>,
     pub key: String,
     pub title: Value,
+    pub stage_sounds: Vec<i32>,
+    pub stage_music: [i32; 2],
     combos: Vec<kbcs_data::combos::Combo>,
     pub combo_skipped: bool,
     receipt: crate::battle_rewards::Receipt,
@@ -1332,6 +1335,21 @@ impl Session {
             config.screen.items as u32,
         )?;
         native(core.reward_rules(&reward_rules))?;
+        let stage_sounds = std::iter::once(reward_rules.start_sound)
+            .chain(
+                reward_rules
+                    .win_sounds
+                    .into_iter()
+                    .take(reward_rules.win_count as usize),
+            )
+            .chain(
+                reward_rules
+                    .lose_sounds
+                    .into_iter()
+                    .take(reward_rules.lose_count as usize),
+            )
+            .filter(|id| *id >= 0)
+            .collect();
         let continue_policy = if stage["noContinue"] == true {
             battle::ContinuePolicy::Forbidden
         } else if persist_rewards && !matches!(rules.score_type, 1 | 3) {
@@ -1419,6 +1437,8 @@ impl Session {
             effects,
             key: start.scene.key(),
             title,
+            stage_sounds,
+            stage_music: reward_rules.music,
             combos: active_combos,
             combo_skipped: false,
             receipt,
@@ -2097,10 +2117,10 @@ mod tests {
         use super::{battle_screen, json, set_sortie_speed};
 
         for (equipped, speed, expected) in [
-            (None, 3, (0, 2, 0)),
-            (Some(false), 3, (0, 2, 0)),
-            (Some(true), 2, (1, 2, 1)),
-            (Some(true), 3, (1, 3, 2)),
+            (None, 3, (8, 2, 0)),
+            (Some(false), 3, (8, 2, 0)),
+            (Some(true), 2, (9, 2, 1)),
+            (Some(true), 3, (9, 3, 2)),
         ] {
             let mut screen = battle_screen::Config {
                 items: 9,
@@ -2113,9 +2133,13 @@ mod tests {
                 ..Default::default()
             };
             let items = equipped.map_or_else(|| json!({}), |value| json!({"speedup":value}));
-            set_sortie_speed(&json!({"items":items,"speed":speed}), &mut screen, &mut state);
-            assert_eq!((screen.items - 8, screen.speed, state.speed_mode), expected);
-            assert_eq!(state.items_on, screen.items);
+            set_sortie_speed(
+                &json!({"items":items,"speed":speed}),
+                &mut screen,
+                &mut state,
+            );
+            assert_eq!(screen.items, 9);
+            assert_eq!((state.items_on, screen.speed, state.speed_mode), expected);
         }
     }
 

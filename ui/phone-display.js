@@ -4,14 +4,18 @@ const standby=document.getElementById('phone-standby'),viewport=document.getElem
 const status=document.getElementById('phone-status');
 let current=null,checksFailed=0;
 const fullscreen=document.getElementById('phone-fullscreen'),displayError=document.getElementById('phone-display-error');
+let noticeTimer;
 fullscreen.onclick=async()=>{
  const message=await enterPhoneFullscreen();
+ clearTimeout(noticeTimer);
  displayError.textContent=message;displayError.hidden=!message;
+ if(message)noticeTimer=setTimeout(()=>{displayError.hidden=true;},5000);
 };
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)displayError.hidden=true;});
 window.screen.orientation?.addEventListener('change',()=>{if(window.matchMedia('(orientation: landscape)').matches)displayError.hidden=true;});
 function show(route,message){
  if(route!==current){
+  document.documentElement.classList.remove('phone-playing');
   // 画面を外す前に、同一オリジンの戦闘と準備中の要求を終了させる。
   try{viewport.querySelector('iframe')?.contentWindow?.dispatchEvent(new Event('kbcs:phone-leave'));}catch{}
   current=route;viewport.replaceChildren();
