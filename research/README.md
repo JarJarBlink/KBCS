@@ -12,6 +12,21 @@
 
 Actionsは新しいJP版の資料を作り、同じABIの直前2版を使って関数の由来・構造・処理の変更候補を追跡します。結果は `research/comparisons/` と解析Releaseに保存します。[追跡v2の検索・設計](matcher/docs/tracking-v2.md) · [自動更新と復旧手順](docs/actions-analysis.md)
 
+## 閲覧用の関数資料を作る
+
+[出典・生成・プレビュー・比較リンク・再実行の手順](indexer/docs/native-reference.md)を参照してください。
+
+関数ページは擬似コードと、機械語バイト・オペランド付き逆アセンブリ、基本ブロックと分岐、参照位置、定義済みの読み取り専用データを載せます。出力先は `<output>/<版>/<ABI>/<SO SHA>/functions/`。raw P-codeは構造アーカイブから読みます。
+
+完成済みキャッシュと同一のSOから作った、命令バイト収録済みの `structure.jsonl.gz` を指定します。手元になければ `python -m matcher.tracking backfill` で構造を抽出できます。
+
+```powershell
+$env:PYTHONPATH = (Resolve-Path research).Path
+python -m indexer.reference --cache <完成済みキャッシュ> --structure <structure.jsonl.gz> --output research/.local/reference-preview
+```
+
+関数ページの「連続バージョンの比較」から、調査対象の変更・対応候補へ移動できます。対応経路を特定できない区間には版全体の比較一覧を出します。[比較資料の作り方](matcher/docs/tracking-v2.md)
+
 ## 全関数の参考資料を作成・再開
 
 ```powershell
