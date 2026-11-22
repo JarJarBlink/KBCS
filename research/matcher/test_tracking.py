@@ -423,10 +423,14 @@ class TrackingTests(unittest.TestCase):
                 ('0-1', 'a', 'b', 'logic_change_candidate', '{}'), ('1-2', 'b', 'c', 'logic_change_candidate', '{}'),
                 ('0-2', 'a', 'c', 'no_difference_in_scope', '{}')])
             db.execute("INSERT INTO manual_decisions VALUES('0-2','e','different','accept','reviewed')")
+            db.execute("INSERT INTO entry_states VALUES('0-1',0,'gap','deletion_within_inspected_scope','{}')")
+            db.execute("INSERT INTO review VALUES('0-1',0,'gap','deletion_within_inspected_scope','[]','{}')")
             totals = tracking.reconcile(db, maps, 3)
             self.assertEqual(totals, {'consistent': 1, 'temporary_change_candidate': 1, 'conflict': 1, 'gap_candidate': 1})
             self.assertEqual(db.execute('SELECT COUNT(*) FROM conflict_edges').fetchone()[0], 3)
             self.assertEqual(db.execute("SELECT action FROM manual_decisions").fetchone()[0], 'accept')
+            self.assertEqual(db.execute("SELECT state FROM entry_states WHERE address='gap'").fetchone()[0], 'held_direct_route')
+            self.assertEqual(db.execute("SELECT kind FROM review WHERE address='gap'").fetchone()[0], 'held_direct_route')
 
     def test_integrated_replay_and_migration(self):
         with tempfile.TemporaryDirectory() as temporary, redirect_stdout(io.StringIO()):
