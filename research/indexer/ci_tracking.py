@@ -109,7 +109,8 @@ def publish_tracking(tag, publish, *, regenerate=False):
             if regenerate or not manifest or manifest.get('analysis_revision') != revision or (
                     manifest.get('generator_signature') != reference_signature()):
                 archive, _ = structure_checkpoint(cache, None, data, identity, tag, root / 'materials-structure', extract=False)
-                stage_materials(cache, data, archive, root / 'reference', reference)
+                stage_materials(cache, data, archive, root / 'reference', reference,
+                                base_url=f'https://github.com/{REPO}/blob/{revision_sha}/')
                 manifest = read_json(manifest_path)
             validate_cache(cache, manifest, identity)
         if len(entries) == 1:

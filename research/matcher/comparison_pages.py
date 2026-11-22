@@ -17,6 +17,40 @@ def relative_link(target, page):
     return Path(os.path.relpath(target, page.parent)).as_posix()
 
 
+def preserve_published_links(repository, previous, base_url):
+    # 旧ランに残す本文は、差し替え前のGitコミットで同じ関数を参照する。
+    comparison = repository / 'research/comparisons' / previous.parent.name
+    targets = {}
+    for page in comparison.glob('*/*/*.md'):
+        original = page.read_bytes()
+        text = original.decode('utf-8-sig')
+        fence = None
+        lines = []
+
+        def pin(match):
+            href = match[1]
+            if ':' in href or href.startswith('/'):
+                return match[0]
+            path, separator, anchor = href.partition('#')
+            target = Path(os.path.normpath(page.parent / path))
+            if not target.is_relative_to(previous):
+                return match[0]
+            if target not in targets:
+                targets[target] = target.is_file()
+            if not targets[target]:
+                return match[0]
+            return '](' + base_url + target.relative_to(repository).as_posix() + separator + anchor + ')'
+
+        for line in text.splitlines(keepends=True):
+            marker = re.match(r'^(~{3,}|\x60{3,})', line)
+            if marker and (fence is None or marker[0] == fence):
+                fence = marker[0] if fence is None else None
+            lines.append(line if fence else re.sub(r'\]\(([^)]+)\)', pin, line))
+        updated = ''.join(lines).encode('utf-8-sig')
+        if updated != original:
+            page.write_bytes(updated)
+
+
 def overlay(path, direction, link, heading):
     if path.is_symlink() or path.parent.resolve() != path.parent.absolute():
         raise ValueError(f'Unsafe reference page path: {path}')
