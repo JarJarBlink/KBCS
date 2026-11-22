@@ -1889,8 +1889,10 @@ impl Session {
             && native(self.core.outcome())?.mode == 2
         {
             let mut lines = lines.clone();
-            if let Some(boss) = &boss_line {
-                lines.push(format!("({boss})"));
+            if let Some(boss) = &boss_line
+                && let Some(last_line) = lines.last_mut()
+            {
+                last_line.push_str(&format!("({boss})"));
             }
             json!({"layout":native(self.core.continue_view())?,"cost":kbcs_data::inventory::CONTINUE_CAT_FOOD_COST,"balance":self.continue_balance,"error":self.continue_error,"lines":lines})
         } else {
