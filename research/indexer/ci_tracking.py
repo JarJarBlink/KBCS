@@ -1,17 +1,16 @@
 import json
 import os
 import shutil
-import subprocess
 import tempfile
 from functools import lru_cache
 from pathlib import Path
 
 from indexer.ci import REPO, RESEARCH, acquire_input, public_only, publish_worktree, reference_worktree
-from indexer.ci_delivery import checkpoint_key, restore_completed
+from indexer.ci_delivery import checkpoint_key, restore_completed, stage_materials
 from indexer.ci_structure import asset_record, deliver_asset, get_asset, structure_asset_name, structure_checkpoint
 from indexer.reference import reference_path
-from indexer.store import LOCAL, digest, read_json, write_json
-from indexer.upstream import LIBRARY, TRACKING_POLICY, previous_references, tracking_sources
+from indexer.store import LOCAL, digest, read_json, reference_signature, write_json
+from indexer.upstream import LIBRARY, TRACKING_POLICY, adjacent_references, tracking_sources
 from matcher import tracking, tracking_pages
 from matcher.structure import reader
 
@@ -22,11 +21,17 @@ def validate_cache(cache, manifest, identity):
         raise ValueError('Published reference and completed checkpoint disagree')
 
 
-def window_tags(tag):
+def window_manifests(tag, ref=None):
     version, architecture, _ = checkpoint_key(tag)
-    previous = previous_references({'versionName': version, 'architecture': architecture, 'library': LIBRARY}, REPO)
-    return [*(f"native-analysis-{entry['version']}-{entry['architecture']}-{entry['analysis_revision']}"
-              for entry in previous), tag]
+    data = {'versionName': version, 'architecture': architecture, 'library': LIBRARY}
+    before = adjacent_references(data, REPO, 2, ref=ref)
+    after = adjacent_references(data, REPO, 1, following=True, ref=ref)
+    return [*before, None, *after]
+
+
+def window_tags(tag):
+    return [f"native-analysis-{entry['version']}-{entry['architecture']}-{entry['analysis_revision']}" if entry else tag
+            for entry in window_manifests(tag)]
 
 
 def missing_structures(tag, *, current_only=False):
@@ -49,15 +54,18 @@ def backfill(tag, publish, *, current_only=False):
                                  data, identity, release, root / 'delivery', publish=True)
 
 
-def restore_window(data, identity, cache, tag, root):
+def restore_window(data, identity, cache, tag, root, ref=None):
     entries = []
-    for number, previous in enumerate(previous_references(data, REPO)):
+    for number, previous in enumerate(window_manifests(tag, ref)):
+        if previous is None:
+            entries.append((data, identity, cache, tag))
+            continue
         old_tag = f"native-analysis-{previous['version']}-{previous['architecture']}-{previous['analysis_revision']}"
         old_cache = root / f'cache-{number}'
         old_data, old_identity = restore_completed(old_tag, old_cache)
         validate_cache(old_cache, previous, old_identity)
         entries.append((old_data, old_identity, old_cache, old_tag))
-    return [*entries, (data, identity, cache, tag)]
+    return entries
 
 
 def verify_result(database, config_id):
@@ -81,7 +89,9 @@ def retire_old_reports(work, versions):
     return paths
 
 
-def publish_tracking(tag, publish):
+def publish_tracking(tag, publish, *, regenerate=False):
+    import subprocess
+
     public_only()
     LOCAL.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ci-tracking-', dir=LOCAL) as temporary:
@@ -91,11 +101,17 @@ def publish_tracking(tag, publish):
         revision = identity['analysis_revision']
         work = reference_worktree(revision + '-tracking') if publish else None
         reference = work / 'research/reference' if work else None
+        revision_sha = subprocess.check_output(['git', '-C', str(work), 'rev-parse', 'HEAD'], text=True).strip() if work else None
         manifest_path = reference / reference_path(identity) / 'manifest.json' if work else None
+        entries = restore_window(data, identity, cache, tag, root, revision_sha)
         if publish:
-            manifest = read_json(manifest_path)
+            manifest = read_json(manifest_path) if manifest_path.is_file() else None
+            if regenerate or not manifest or manifest.get('analysis_revision') != revision or (
+                    manifest.get('generator_signature') != reference_signature()):
+                archive, _ = structure_checkpoint(cache, None, data, identity, tag, root / 'materials-structure', extract=False)
+                stage_materials(cache, data, archive, root / 'reference', reference)
+                manifest = read_json(manifest_path)
             validate_cache(cache, manifest, identity)
-        entries = restore_window(data, identity, cache, tag, root)
         if len(entries) == 1:
             if publish:
                 manifest.update(comparison_state='no_baseline', tracking_format=2, tracking_navigation_format=1, tracking_policy=TRACKING_POLICY,
@@ -131,13 +147,12 @@ def publish_tracking(tag, publish):
         print(json.dumps({'window': [entry[1]['version'] for entry in entries],
                           'cycles': result['cycles'], 'seconds': result['seconds']}, ensure_ascii=False), flush=True)
         if publish:
-            git_revision = subprocess.check_output(['git', '-C', str(work), 'rev-parse', 'HEAD'], text=True).strip()
-            source_url = f'https://github.com/{REPO}/blob/{git_revision}/'
             asset_url = f'https://github.com/{REPO}/releases/download/{tag}/{name}'
             destination = work / 'research/comparisons' / identity['architecture'] / result['run']
+            tracking_pages.render(database, work, destination, asset_url)
+            tracking_pages.attach(work, destination, result, verify=True)
+            tracking_pages.refresh_affected_navigation(work, result)
             deliver_asset(tag, database)
-            tracking_pages.render(database, work, destination, asset_url, source_url)
-            tracking_pages.attach(work, destination, result)
             retired = retire_old_reports(work, [entry[1]['version'] for entry in entries])
             publish_worktree(work, f'Publish native tracking window {result["run"]}',
                              ('research/reference', 'research/comparisons', *retired))

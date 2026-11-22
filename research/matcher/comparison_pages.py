@@ -56,6 +56,8 @@ def attach_function_comparisons(page, links):
         content = '\n'.join(f'- [{title}]({target}' for title, target in sorted(
             links.items(), key=lambda item: tuple(map(int, re.findall(r'\d+', item[0])))))
         overlay(page, FUNCTION_TRACKING, '## 連続バージョンの比較\n\n' + content, FUNCTION_HEADING)
+    else:
+        overlay(page, FUNCTION_TRACKING, '', FUNCTION_HEADING)
 
 
 def comparison_identity(identity):
@@ -96,9 +98,14 @@ def valid_comparison_entries(catalog, source, repository):
     valid = {}
     targets = {}
     for address, entries in catalog['rows'].items():
+        seen = set()
         for entry in entries:
             # 版・ABI・SO・解析リビジョンの異なる区間は持ち越さない。
             key = (tuple(sorted(entry['older'].items())), tuple(sorted(entry['newer'].items())))
+            interval = (entry['older']['version'], entry['newer']['version'])
+            if interval in seen or tuple(map(int, interval[0].split('.'))) >= tuple(map(int, interval[1].split('.'))):
+                raise ValueError('Duplicate or reversed comparison interval')
+            seen.add(interval)
             if key not in valid:
                 valid[key] = all((repository / 'research/reference' / reference_path(identity) / 'manifest.json').is_file()
                     and comparison_identity(read_json(repository / 'research/reference' / reference_path(identity) / 'manifest.json')) == identity
@@ -120,10 +127,12 @@ def valid_comparison_entries(catalog, source, repository):
     return rows
 
 
-def render_comparison_catalog(source, catalog, repository):
+def render_comparison_catalog(source, catalog, repository, *, verify=False):
     for address, entries in catalog['rows'].items():
         page = source / function_path(address)
         if not page.is_file():
+            if verify:
+                raise ValueError(f'Missing function page: {page}')
             continue
         links = {}
         for entry in entries:
@@ -133,6 +142,8 @@ def render_comparison_catalog(source, catalog, repository):
             suffix = {'accepted': '', 'review': '（要確認）', 'index': '（版の比較一覧）'}[entry['kind']]
             links[title] = href + ')' + suffix
         attach_function_comparisons(page, links)
+        if verify and function_comparison_links(page) != links:
+            raise ValueError(f'Function comparison links differ from the catalog: {page}')
     write_comparison_catalog(source, catalog)
 
 

@@ -177,7 +177,7 @@ jobs:
       !cancelled() && needs.analyze.result == 'success' && needs.analyze.outputs.checkpoint != '' &&
       needs.analyze.outputs.match_only != 'true' &&
       needs.structures.result == 'success' &&
-      inputs.stage != 'analyze' && inputs.stage != 'match' && inputs.stage != 'backfill'
+      inputs.stage == 'references' && !inputs.publish_reference
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -219,7 +219,7 @@ jobs:
         shell: bash
         run: |
           args=()
-          if [[ "${{ inputs.stage }}" == references ]]; then args+=(--current-only); fi
+          if [[ "${{ inputs.stage }}" == references && "$PUBLISH_REFERENCE" != true ]]; then args+=(--current-only); fi
           python3 -m indexer.ci backfill-plan --checkpoint "$CHECKPOINT" "${args[@]}"
       - name: Require permission to preserve missing checkpoints
         if: steps.plan.outputs.needed == 'true' && env.PUBLISH_REFERENCE != 'true'
@@ -246,7 +246,7 @@ jobs:
         shell: bash
         run: |
           args=()
-          if [[ "${{ inputs.stage }}" == references ]]; then args+=(--current-only); fi
+          if [[ "${{ inputs.stage }}" == references && "$PUBLISH_REFERENCE" != true ]]; then args+=(--current-only); fi
           python3 -m indexer.ci backfill --checkpoint "$CHECKPOINT" --publish "${args[@]}"
 
   match:
@@ -254,10 +254,10 @@ jobs:
     needs: [analyze, references, structures]
     if: >-
       !cancelled() && needs.analyze.result == 'success' && needs.structures.result == 'success' &&
-      inputs.stage != 'backfill' && inputs.stage != 'references' &&
-      (needs.references.result == 'success' || inputs.stage == 'match' || needs.analyze.outputs.match_only == 'true')
+      inputs.stage != 'backfill' && inputs.stage != 'analyze' &&
+      (inputs.stage != 'references' || inputs.publish_reference) && needs.analyze.outputs.checkpoint != ''
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 300
     permissions:
       contents: write
     env:
@@ -279,4 +279,6 @@ jobs:
         run: |
           args=()
           if [[ "$PUBLISH_REFERENCE" == true ]]; then args+=(--publish); fi
-          python3 -m indexer.ci match --checkpoint "$CHECKPOINT" "${args[@]}"
+          action=match
+          if [[ "${{ inputs.stage }}" == references ]]; then action=references; fi
+          python3 -m indexer.ci "$action" --checkpoint "$CHECKPOINT" "${args[@]}"

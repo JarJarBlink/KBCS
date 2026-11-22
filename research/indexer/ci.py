@@ -487,8 +487,7 @@ def main():
 
             tag = analyze(args.manifest, args.label)
             backfill(tag, args.publish)
-            publish_materials(tag, args.publish)
-            publish_comparison(tag, args.publish)
+            publish_comparison(tag, args.publish, regenerate=args.publish)
         else:
             if not args.checkpoint:
                 parser.error('--checkpoint is required')

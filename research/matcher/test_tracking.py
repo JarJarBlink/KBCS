@@ -19,7 +19,7 @@ from indexer.reference import function_path, reference_path
 from indexer.reference_structure import listing
 from indexer.run import headless
 from indexer.store import LOCAL, connect, digest, read_json, write_json
-from matcher import logic, structure, tracking, tracking_pages, tracking_pair
+from matcher import blocks, instruction_matcher, logic, structure, tracking, tracking_pages, tracking_pair
 from matcher.comparison_pages import carry_function_comparisons, comparison_catalog, comparison_identity, valid_comparison_entries, catalog_path, function_comparison_links, render_links
 
 
@@ -239,7 +239,7 @@ class TrackingTests(unittest.TestCase):
             source = (left, right)[side][1]
             kind = tracking_pair.residuals(side, source, {}, nearby[side], {}, set(), defaultdict(set),
                 lambda x, address: {('present',)})[0][0]
-            self.assertEqual(kind, ('deletion_candidate', 'addition_candidate')[side])
+            self.assertEqual(kind, 'unresolved')
         mapped[left[3]], mapped[left[4]] = mapped[left[4]], mapped[left[3]]
         layout, _, moved = tracking_pair.intervals((left, right), mapped)
         self.assertTrue(moved)
@@ -266,8 +266,64 @@ class TrackingTests(unittest.TestCase):
         self.assertEqual(hits[0][0], 'inline_candidate')
         mixed = tracking_pair.residuals(0, 'a', {'a': {'b'}}, {'a': (['b', 'c'], ('a0','a1','b0','b1'))},
             {'caller': 'next'}, {'next'}, defaultdict(set, a={'caller'}), lambda s, a: pieces.get((s, a), set()))
-        self.assertTrue({'split_candidate', 'inline_candidate', 'competing_candidates', 'deletion_candidate'} <=
-                        {item[0] for item in mixed})
+        self.assertEqual({item[0] for item in mixed}, {'split_candidate', 'inline_candidate', 'competing_candidates'})
+
+    def test_call_insertion_uses_corresponding_positions(self):
+        targets = {'a': 'x', 'b': 'y'}
+        old = record('00001000', [op('CALL', 'ram:2000:8'), op('CALL', 'ram:3000:8'), op('RETURN', 'register:40f0:8')])
+        new = record('00005000', [op('CALL', 'ram:6000:8'), op('CALL', 'ram:7000:8'), op('CALL', 'ram:8000:8'),
+                                  op('RETURN', 'register:40f0:8')])
+        old['refs'] = [[old['instructions'][i][0], target, 'UNCONDITIONAL_CALL', 'ANALYSIS', callee, None, None]
+                       for i, (target, callee) in enumerate((('00002000', 'a'), ('00003000', 'b')))]
+        new['refs'] = [[new['instructions'][i][0], target, 'UNCONDITIONAL_CALL', 'ANALYSIS', callee, None, None]
+                       for i, (target, callee) in enumerate((('00006000', 'extra'), ('00007000', 'x'), ('00008000', 'y')))]
+        result = logic.compare(old, new, targets, {key: key for key in ('extra', 'x', 'y')})
+        self.assertEqual(result['impact'], {'call_count': 1})
+        self.assertEqual(result['references']['mapped_call_target_changes'], 0)
+        self.assertEqual(result['references']['added'][0][0], '00005000')
+
+    def test_assignment_keeps_indistinguishable_candidates_on_hold(self):
+        choices = [{'new': name, 'score': 90, 'eligible': True} for name in ('x', 'y')]
+        matches, evidence = blocks.assignment({'a': choices, 'b': choices})
+        self.assertEqual(matches, {})
+        self.assertTrue(all(item['assignment_gap'] == 0 for item in evidence.values()))
+
+    def test_alignment_respects_branch_inversion_and_block_order(self):
+        rows = []
+        for entry, inverted in ((0x1000, False), (0x2000, True)):
+            base, next_site, last = (f'{entry + offset:08x}' for offset in (0, 4, 8))
+            ops = [op('CBRANCH', f'ram:{entry+8:x}:8', 'register:108:1'),
+                   op('COPY', 'const:2:8' if inverted else 'const:1:8', output='register:4000:8'),
+                   op('COPY', 'const:1:8' if inverted else 'const:2:8', output='register:4000:8')]
+            row = record(base, ops)
+            row['instructions'][0][1] = 'b.ne' if inverted else 'b.eq'
+            row['blocks'] = [[base, [[base, base]], [['FALL_THROUGH', base, next_site], ['CONDITIONAL_JUMP', base, last]]],
+                             [next_site, [[next_site, next_site]], []], [last, [[last, last]], []]]
+            rows.append(row)
+        evidence = blocks.align(*rows)
+        self.assertEqual(evidence['sites']['00001004'], '00002008')
+        self.assertEqual(evidence['cfg_coverage'], [1.0, 1.0])
+        self.assertEqual(evidence['verified_branch_inversions'], [('00001000', '00002000')])
+
+    def test_entry_evidence_requires_references_and_complete_search(self):
+        old_graph = defaultdict(set, {'a': {'old'}, 'b': {'old'}})
+        incoming = defaultdict(set, old={'a', 'b'})
+        new_graph = defaultdict(set)
+        complete = {'keys': 1, 'candidate_functions': 0}
+        caller = {'refs': [['00001000', '00002000', 'CALL', 'ANALYSIS', 'old', None, None]]}
+        missing = {'index_boundary_verification': 'ranges_match', 'unresolved': 0}
+        for side in (0, 1):
+            shapes = ({'old': ('available',)}, {})
+            graph = (old_graph, incoming, new_graph, defaultdict(set))
+            maps = ({'a': 'x', 'b': 'y'}, {'x': 'a', 'y': 'b'})
+            if side == 1:
+                shapes, graph, maps = shapes[::-1], graph[2:] + graph[:2], maps[::-1]
+            for scope, expected in ((complete, ('deletion_within_inspected_scope', 'addition_within_inspected_scope')[side]),
+                                    (complete | {'truncated': True}, 'unmatched')):
+                kind, proof = instruction_matcher.entry_evidence(side, 'old', scope, shapes, graph, maps,
+                    lambda _, address: missing if address == 'old' else caller, [('unresolved', [], {})])
+                self.assertEqual(kind, expected)
+                self.assertEqual(len(proof['reference_witnesses']), 2)
 
     def test_structural_promotion_requires_strict_operands_and_anchors(self):
         left, right = '00001111', '00002222'
@@ -477,6 +533,12 @@ class TrackingTests(unittest.TestCase):
             tracking_pages.render(second, repository, second_destination, 'manifest.json', original_url)
             tracking_pages.attach(repository, second_destination, second_result)
             self.assertEqual(list(function_comparison_links(target_page)), ['v15.7.2 → v15.7.3', 'v15.7.3 → v15.7.4', 'v15.7.4 → v15.7.5'])
+            middle_manifest = locations[1][0] / 'manifest.json'
+            saved_middle = read_json(middle_manifest)
+            write_json(middle_manifest, saved_middle | {'analysis_revision': 'f' * 16})
+            tracking_pages.refresh_affected_navigation(repository, second_result)
+            self.assertEqual(list(function_comparison_links(target_page)), ['v15.7.4 → v15.7.5'])
+            write_json(middle_manifest, saved_middle)
             trace = tracking.trace([db, second], '15.7.2', old[1], 10)
             self.assertEqual(len(trace['nodes']), 4)
             two = tracking.build(datasets[:2], root / 'out', pair_dbs=seeds)
