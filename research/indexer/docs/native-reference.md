@@ -49,9 +49,9 @@ KBCSのmainへ実装を反映してから実行する。GitHubへの書込とwor
 
 - `analyze` は新規解析とチェックポイント・構造保存。
 - `backfill` は不足する現行エクスポーターの構造をReleaseへ保存。
-- `references` は対象版の構造だけを在庫確認・必要時補完してから関数資料を生成。
-- `match` は最大3版の構造を確認・補完し、追跡SQLite・比較資料・関数リンクを生成。
-- `all` は解析、構造補完、資料生成、追跡を順に実行。完成checkpoint指定時は解析を再利用。
+- `references` は対象版の資料を明示的に再生成する。`publish_reference=false` では対象版だけのプレビューを生成する。公開時は隣接比較も揃えて一括反映する。
+- `match` は直前2版・対象版・次の1版を参照する。現行形式の資料は再利用し、不足や出典差があれば対象版を生成する。
+- `all` は解析・構造補完の後に、完成した関数資料、比較、両側のリンクを同じGitコミットで反映する。完成checkpoint指定時は解析を再利用する。
 
 資料形式または生成器の署名が古い公開版は `references_pending`、資料は新形式で追跡導線が古い版は `pending` として再開する。現行形式・出典・追跡ウィンドウまで揃った版は重い処理を起動しない。エクスポーターSHAが変わると構造アセット名も変わり、旧アセットを保全したまま補完する。
 
@@ -61,7 +61,7 @@ KBCSのmainへ実装を反映してから実行する。GitHubへの書込とwor
 - `native-analysis-16.0.2-arm64-v8a-ea0159f06d493a87`
 - `native-analysis-16.0.3-arm64-v8a-9afc4f9e264e1fda`
 
-各タグを `checkpoint`、`stage=references`、`publish_reference=true` で順に実行した後、16.0.3のタグで `stage=match` を実行する。比較判定エンジンの設定も含めた新しいSQLiteを生成・公開する。既存の判定をそのまま使ったローカルの表示検証と区別する。標準Public runner、1ジョブ6時間以内、Release保存を維持する。
+各タグを `checkpoint` に指定し、`stage=references`、`publish_reference=true` を対象版ごとに実行すると、関数資料と影響する比較が一緒に更新される。既存資料に対して照合の改善だけを反映する場合は16.0.3のタグで `stage=match` を実行する。標準Public runnerで追跡ジョブの上限は300分。構造と追跡DBはReleaseへ保存する。
 
 ## 検証
 

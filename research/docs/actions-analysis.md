@@ -39,7 +39,7 @@ workflowは `.github/workflows/native-analysis.yml`。
 | source_manifest | 空 | assetsの検証済み最新版。旧版を指定する場合は `research/inputs` 内の固定台帳 |
 | assets_commit | 空 | assetsの公開通知に含まれるコミットSHA。新しいJPデータセットに置き換わった通知は処理を終える |
 | checkpoint | 空 | 処理済みの `native-analysis-*` Releaseタグ。指定時は保存済み解析から開始 |
-| stage | all | `analyze` は解析、`references` は関数資料、`backfill` は不足構造の補完、`match` は構造の確認と追跡公開 |
+| stage | all | `analyze` は解析、`references` は関数資料の再生成、`backfill` は不足構造の補完、`match` は構造の確認と追跡公開 |
 | check_only | false | 台帳と公開状態だけを確認。解析、Release書込、Git公開を行わない |
 | revision_label | ci-v1 | 同じ値で再開、変更すると別リビジョンを作成 |
 | publish_reference | true | 完成した資料でmain上の同じゲーム版・ABIを更新 |
@@ -67,15 +67,15 @@ KBCSはassetsの通知で受け取ったコミットから `current.json` と版
 5. 1000関数以下を1バッチとして逐次デコンパイルする。プロセス中断時も、書き終えた関数があれば同期・保存して残りへ進む。進捗0の場合は時間に余裕があれば1回だけ再起動する。保存時はGitHub側のsize/digestも照合する。
 6. 標準→conservative→minimalの有限3設定で未保存分を処理する。過去に同じ設定で処理した失敗関数を自動反復しない。
 7. `analyze` は未処理0を確認して最終checkpointを保存し、Releaseタグを後続へ渡す。失敗関数は理由と逆アセンブルを残し、成功件数へ加算しない。
-8. `references` はそのcheckpointから資料を生成する。`publish_reference=true` ならmainの同じゲーム版・ABIを差し替え、manifestに `comparison_state=pending` を記録する。
-9. `structures` は対象と同じABIの直前2公開版を含めてsidecarの在庫を確認する。不足している版だけ隔離Ghidraプロジェクトで構造を抽出し、元の解析Releaseへ保存する。ReleaseのSHA-256、SO、解析ID、索引、抽出器を照合する。
+8. `references` は `publish_reference=false` の単独実行で関数資料の生成を試す。公開時は追跡ジョブで資料と比較を同じ作業領域に揃える。
+9. `structures` は対象と同じABIの直前2公開版と直後1公開版を含めてsidecarの在庫を確認する。不足している版だけ隔離Ghidraプロジェクトで構造を抽出し、元の解析Releaseへ保存する。ReleaseのSHA-256、SO、解析ID、索引、抽出器を照合する。
 10. `match` は検証済みsidecarから連続比較と直接検証を集約する。完成SQLiteを解析Releaseに保存してsizeとSHA-256を照合し、Markdown生成の中断後も再利用する。全リンクの検査後、`research/comparisons/` の公開、版目次への導線、旧比較資料の廃止を同一コミットで行う。比較元がなければ `no_baseline`、追跡公開後は `complete` を版のmanifestに記録する。
 
-15.7.2・15.7.3・15.7.4から初回移行する場合は、`checkpoint=native-analysis-15.7.4-arm64-v8a-6cf79e30b2bdfc73` と `publish_reference=true` を指定し、`stage=backfill` の後で `stage=match` を実行する。両段階に同じcheckpointを指定する。通常の更新では在庫確認と不足分の補完を同じパイプライン内で行う。資料生成だけなら `stage=references` を使う。再実行では検証済みsidecarと、同じ入力・エンジン・手動判断で完成したSQLiteを再利用する。SQLite完成前に照合が中断した場合は、sidecarから照合をやり直す。
+15.7.2・15.7.3・15.7.4から初回移行する場合は、`checkpoint=native-analysis-15.7.4-arm64-v8a-6cf79e30b2bdfc73` と `publish_reference=true` を指定し、`stage=backfill` の後で `stage=match` を実行する。両段階に同じcheckpointを指定する。通常の更新では在庫確認と不足分の補完を同じパイプライン内で行う。資料生成のプレビューだけなら `stage=references` と `publish_reference=false` を使う。再実行では検証済みsidecarと、同じ入力・エンジン・手動判断で完成したSQLiteを再利用する。SQLite完成前に照合が中断した場合は、sidecarから照合をやり直す。
 
 checkpointにはGhidraプロジェクトを含めない。そのため未完了の再開時は元APKからプロジェクトを再解析する。以前と新しい索引を、実行パスや所要時間を除いた構造ハッシュで照合し、一致した場合だけ保存済み疑似コードを再利用する。不一致時は停止し、別ラベルで新規生成する。完了checkpointからの再開では、同じ解析IDの資料生成・反映から再試行できる。Actionsの結果と `ci-status.json` の `complete` で、関数処理と資料公開の状態を区別する。
 
-ジョブ上限は解析235分、資料作成30分、追跡90分、初回を含む構造補完135分。全sidecarが揃う通常更新では、構造の在庫確認・不足補完を資料作成の前に実施し、合計6時間以内を目標にする。初回移行やジョブ待機の時間は別途発生する。解析プロセスは60分、1関数は900秒。開始から210分を超えると次のバッチを控え、未完了の場合は再開を促す。中断時は最後に検証済みのcheckpointとsidecarを再利用する。[GitHub管理runnerの上限](https://docs.github.com/en/actions/reference/limits)
+ジョブ上限は解析235分、資料作成30分、追跡・公開300分、初回を含む構造補完135分。全sidecarが揃う通常更新では、構造の在庫確認・不足補完を資料作成の前に実施し、各ジョブの上限内で完了するようにする。初回移行やジョブ待機の時間は別途発生する。解析プロセスは60分、1関数は900秒。開始から210分を超えると次のバッチを控え、未完了の場合は再開を促す。中断時は最後に検証済みのcheckpointとsidecarを再利用する。[GitHub管理runnerの上限](https://docs.github.com/en/actions/reference/limits)
 
 一時的な通信エラーは取得・公開とも最大3回の試行に抑える。認証エラーや原本ハッシュの不一致では停止する。アップロード応答が失われた場合はRelease側のsize/digestを照合し、完了済みならそのまま進む。片方しか届かなかった場合は別名で再送し、既存アセットを上書きしない。
 
@@ -91,7 +91,7 @@ Release: `native-analysis-<版>-<ABI>-<解析ID>`。checkpointアーカイブと
 
 関数ページには、擬似コードに加えて命令バイト付きの逆アセンブリ、分岐、参照先を収録する。構造アーカイブのSHA-256を `manifest.json` の `source_structure_sha256` に記録し、完全な命令範囲を確認できた関数数も残す。比較結果は `research/comparisons/` に置き、関数ページに区間別のリンクを張る。
 
-旧版の関数ページを再生成する場合は、完成済みのReleaseタグを指定して `stage=all` を実行できる。個別に行う場合は同じタグで `backfill` → `references` → `match` の順。従来の構造アセットには命令の表示文字列とバイト列がないため、現行のエクスポータで構造を補完する。擬似コードは完成checkpointから復元する。
+旧版の関数ページを再生成する場合は、完成済みのReleaseタグを指定して `stage=all` を実行できる。個別に行う場合は同じタグで `backfill` → `references` の順で実行し、`publish_reference=true` で比較まで揃える。従来の構造アセットには命令の表示文字列とバイト列がないため、現行のエクスポータで構造を補完する。擬似コードは完成checkpointから復元する。
 
 資料だけのmain更新でアプリの版が上がらないよう、アプリbuildのpush/pull_requestに `research/reference/**` のpaths-ignoreを追加する。手動のアプリビルドや、解析ツール自体の変更時の従来ビルドは維持する。
 
