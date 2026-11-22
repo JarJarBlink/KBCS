@@ -94,21 +94,27 @@ def valid_comparison_entries(catalog, source, repository):
         return {}
     rows = {}
     valid = {}
-    anchors = {}
+    targets = {}
     for address, entries in catalog['rows'].items():
         for entry in entries:
             # 版・ABI・SO・解析リビジョンの異なる区間は持ち越さない。
-            key = (entry['older']['version'], entry['newer']['version'])
+            key = (tuple(sorted(entry['older'].items())), tuple(sorted(entry['newer'].items())))
             if key not in valid:
                 valid[key] = all((repository / 'research/reference' / reference_path(identity) / 'manifest.json').is_file()
                     and comparison_identity(read_json(repository / 'research/reference' / reference_path(identity) / 'manifest.json')) == identity
                     for identity in (entry['older'], entry['newer']))
+            if not valid[key]:
+                continue
             target, _, anchor = entry['target'].partition('#')
-            page = (repository / target).resolve()
-            if valid[key] and page.is_relative_to(repository) and page.is_file():
-                if anchor and page not in anchors:
-                    anchors[page] = set(re.findall(r'<a id="([^"]+)"></a>', page.read_text(encoding='utf-8-sig')))
-                if anchor and anchor not in anchors[page]:
+            if target not in targets:
+                page = (repository / target).resolve()
+                if page.is_relative_to(repository) and page.is_file():
+                    targets[target] = set(re.findall(r'<a id="([^"]+)"></a>', page.read_text(encoding='utf-8-sig')))
+                else:
+                    targets[target] = None
+            markers = targets[target]
+            if markers is not None:
+                if anchor and anchor not in markers:
                     raise ValueError(f'Missing comparison anchor: {entry["target"]}')
                 rows.setdefault(address, []).append(entry)
     return rows

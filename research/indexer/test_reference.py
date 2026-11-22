@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from indexer.reference import cached_export, export_cache, replace_reference
 from indexer.store import connect, digest
@@ -103,6 +104,14 @@ class ReferenceTest(unittest.TestCase):
             for expected in ('## 疑似コード', '## 逆アセンブリ', 'c0 03 5f d6', '## 基本ブロックと分岐先',
                              '## 命令位置別の参照', '## 読み取り専用データ', '80000000'):
                 self.assertIn(expected, page_text)
+            many_refs = function | {'blocks': function['blocks'] * 80, 'refs': function['refs'] * 80, 'reference_details': [{'source': '00100000', 'target': '00400000', 'resolution': 'boundary_unknown'}] * 80}
+            write_structure(version, many_refs)
+            with patch('indexer.reference.ASSEMBLY_PAGE_BYTES', 4096), contextlib.redirect_stdout(io.StringIO()):
+                split_root, split_report = export_cache(cache, Path(temporary) / 'split', structure=archive)
+            self.assertTrue(list((split_root / 'references').rglob('*.md')))
+            self.assertTrue(list((split_root / 'data').rglob('*.md')))
+            self.assertGreater(split_report['verified_links'], 0)
+            write_structure(version, function)
             unavailable = (combined_root / 'functions/00100/00100004.md').read_text(encoding='utf-8-sig')
             self.assertIn('not_exported', unavailable)
             self.assertIn('00100004  nop', unavailable)

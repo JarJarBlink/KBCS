@@ -14,7 +14,7 @@ from pathlib import Path
 
 from indexer import reference_structure
 from indexer.run import locked
-from indexer.store import LOCAL, configure_output, digest, read_json
+from indexer.store import LOCAL, configure_output, digest, read_json, reference_signature
 
 GIT_FILE_LIMIT = 100 * 1024**2
 REFERENCE_FORMAT = 2
@@ -105,7 +105,7 @@ def function_records(functions, structure, metadata, inventory):
 ASSEMBLY_PAGE_BYTES = 1024**2
 
 
-def structure_sections(row, base, save, paths):
+def structure_sections(row, base, save, paths, budget):
     chunks, lines, length = [], [], 0
     for instruction, display in zip(row['instructions'], row['disassembly']):
         site, mnemonic, flow, _ = instruction
@@ -119,19 +119,19 @@ def structure_sections(row, base, save, paths):
     if lines:
         chunks.append(lines)
     locations = {}
-    split = len(chunks) > 1
+    split = len(chunks) > 1 or sum(len(line.encode('utf-8')) for chunk in chunks for _, line in chunk) > budget
     for chunk in chunks:
         file = Path('assembly') / base.parent.name / f'{row["address"]}-{chunk[0][0]}-{chunk[-1][0]}.md' if split else base
         locations.update((site, file) for site, _ in chunk)
 
-    def target(site):
+    def target(site, origin=base):
         file = locations.get(site)
         if file is None:
             if site in paths:
-                href = Path(os.path.relpath(paths[site], base.parent)).as_posix()
+                href = Path(os.path.relpath(paths[site], origin.parent)).as_posix()
                 return f'[`{site}`]({href})'
             return f'`{site}`（関数外または未収録）'
-        relative = Path(os.path.relpath(file, base.parent)).as_posix() if file != base else ''
+        relative = Path(os.path.relpath(file, origin.parent)).as_posix() if file != origin else ''
         return f'[`{site}`]({relative}#insn-{site})'
 
     blocks = ['## 逆アセンブリ\n\n命令アドレス、生バイト（メモリ順）、オペランド、フロー。\n']
@@ -146,55 +146,120 @@ def structure_sections(row, base, save, paths):
             blocks.append(f'- [{chunk[0][0]}〜{chunk[-1][0]}]({relative}) · {len(chunk)}命令\n')
         else:
             blocks.append(body)
-    blocks.append('## 基本ブロックと分岐先\n\n')
-    for start, ranges, exits in row['blocks']:
-        blocks.append(f'- ブロック {target(start)} 範囲 `{ranges}`\n')
-        blocks.extend(f'  - `{kind}` {target(site)} → {target(dest)}\n' for kind, site, dest in exits)
-    blocks.append('## 命令位置別の参照\n\n')
-    for site, dest, kind, source, callee, name, datatype in row['refs']:
-        blocks.append(f'- {target(site)} → {target(dest)} · `{kind}` · `{source}` · 関数 `{callee}` · '
-                      f'推定シンボル `{html.escape(str(name))}` · 推定型 `{html.escape(str(datatype))}`\n')
-    blocks.append('## 読み取り専用データ\n\nGhidraが定義した境界から先頭32バイトまで取得。'
+    budget -= sum(len(block.encode('utf-8')) for block in blocks)
+
+    def section(title, folder, entries, render):
+        nonlocal budget
+        inline = ''.join(render(entry, base) for _, entry in entries)
+        header = f'## {title}\n\n'
+        if not entries or len((header + inline).encode('utf-8')) <= max(budget, 0):
+            budget -= len((header + inline).encode('utf-8'))
+            return header + inline
+        directory = Path(folder) / base.parent.name
+        origin = directory / 'range.md'
+        chunks, chunk, length = [], [], 0
+        for site, entry in entries:
+            text = render(entry, origin)
+            size = len(text.encode('utf-8'))
+            if chunk and length + size > ASSEMBLY_PAGE_BYTES - 2048:
+                chunks.append(chunk)
+                chunk, length = [], 0
+            chunk.append((site, text))
+            length += size
+        if chunk:
+            chunks.append(chunk)
+        links = [header, f'全{len(entries)}件を参照元の命令範囲ごとに収録。\n\n']
+        for number, chunk in enumerate(chunks, 1):
+            first, last = chunk[0][0], chunk[-1][0]
+            first = first if reference_structure.ADDRESS.fullmatch(first) else row['address']
+            last = last if reference_structure.ADDRESS.fullmatch(last) else row['address']
+            file = directory / f'{row["address"]}-{first}-{last}-{number:04d}.md'
+            backlink = Path(os.path.relpath(base, file.parent)).as_posix()
+            save(file, f'# {title} {first}〜{last}\n\n[関数の入口]({backlink})\n\n' + ''.join(text for _, text in chunk))
+            href = Path(os.path.relpath(file, base.parent)).as_posix()
+            links.append(f'- [{first}〜{last}]({href}) · {len(chunk)}件\n')
+        result = ''.join(links)
+        budget -= len(result.encode('utf-8'))
+        return result
+
+    def block_entry(entry, origin):
+        start, ranges, exits = entry
+        text = f'- ブロック {target(start, origin)} 範囲 `{ranges}`\n'
+        return text + ''.join(f'  - `{kind}` {target(site, origin)} → {target(dest, origin)}\n' for kind, site, dest in exits)
+
+    blocks.append(section('基本ブロックと分岐先', 'blocks', [(block[0], block) for block in row['blocks']], block_entry))
+
+    def reference_entry(entry, origin):
+        site, dest, kind, source, callee, name, datatype = entry
+        return (f'- {target(site, origin)} → {target(dest, origin)} · `{kind}` · `{source}` · 関数 `{callee}` · '
+                f'推定シンボル `{html.escape(str(name))}` · 推定型 `{html.escape(str(datatype))}`\n')
+
+    blocks.append(section('命令位置別の参照', 'references', [(ref[0], ref) for ref in row['refs']], reference_entry))
+    blocks.append('## 読み取り専用データの取得範囲\n\nGhidraが定義した境界から先頭32バイトまで取得。'
                   '型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。\n')
-    for sample in row.get('reference_details', ()):
-        blocks.append(f'- 参照命令 {target(sample["source"])}\n\n' + fenced(json.dumps(sample, ensure_ascii=False, indent=2), 'json'))
+
+    def data_entry(sample, origin):
+        return f'- 参照命令 {target(sample["source"], origin)}\n\n' + fenced(json.dumps(sample, ensure_ascii=False, indent=2), 'json')
+
+    blocks.append(section('読み取り専用データ', 'data', [(sample['source'], sample) for sample in row.get('reference_details', ())], data_entry))
     if row.get('read_only_data'):
         blocks.append(fenced(reference_structure.tabular(('先頭', '定義サイズ', '推定型', '先頭の生バイト'), row['read_only_data']), 'tsv'))
     return blocks
 
 
 
+def markdown_files(root):
+    files, pending = {}, [root]
+    while pending:
+        with os.scandir(pending.pop()) as entries:
+            for entry in entries:
+                if entry.is_symlink():
+                    raise ValueError(f'Symlinks are not allowed in generated references: {entry.path}')
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append(Path(entry.path))
+                elif entry.name.endswith('.md') and entry.is_file(follow_symlinks=False):
+                    path = Path(entry.path)
+                    files[path] = entry.stat(follow_symlinks=False).st_size
+    return files
+
+
 def verify_reference_links(root):
+    files = markdown_files(root)
+    groups = defaultdict(list)
+    for page in files:
+        relative = page.relative_to(root)
+        if relative.parts[0] == 'functions':
+            key = ('function', page.stem)
+        elif relative.parts[0] in ('assembly', 'blocks', 'references', 'data'):
+            key = ('function', page.stem.split('-')[0])
+        else:
+            key = ('page', relative.as_posix())
+        groups[key].append(page)
     checked = 0
-    targets = {}
-    for page in root.rglob('*.md'):
-        anchor_cache = {}
-        text = page.read_text(encoding='utf-8-sig')
-        # 擬似コード内の文字列を生成リンクとして扱わない。
-        visible, fence = [], None
-        for line in text.splitlines():
-            marker = re.match(r'^(~{3,}|`{3,})', line)
-            if marker and (fence is None or marker[0] == fence):
-                fence = marker[0] if fence is None else None
-            elif fence is None:
-                visible.append(line)
-        for href in re.findall(r'\]\(([^)]+)\)', '\n'.join(visible)):
+    # 命令アンカーを全関数分保持せず、関数本体とその命令範囲ページだけをまとめて検査する。
+    for pages in groups.values():
+        anchors, links = {}, []
+        for page in pages:
+            visible, fence = [], None
+            for line in page.read_text(encoding='utf-8-sig').splitlines():
+                marker = re.match(r'^(~{3,}|`{3,})', line)
+                if marker and (fence is None or marker[0] == fence):
+                    fence = marker[0] if fence is None else None
+                elif fence is None:
+                    visible.append(line)
+            text = '\n'.join(visible)
+            markers = re.findall(r'<a id="([^"]+)"></a>', text)
+            if len(markers) != len(set(markers)):
+                raise ValueError(f'Duplicate reference anchor in {page}')
+            anchors[page] = set(markers) | set(re.findall(r'^## ([^\n]+)', text, re.MULTILINE))
+            links.extend((page, href) for href in re.findall(r'\]\(([^)]+)\)', text))
+        for page, href in links:
             filename, _, anchor = href.partition('#')
-            key = os.path.normpath(page.parent / filename) if filename else str(page)
-            if key not in targets:
-                target = Path(key).resolve()
-                if not target.is_relative_to(root) or not target.is_file():
-                    raise ValueError(f'Broken reference link in {page}: {href}')
-                targets[key] = target
-            target = targets[key]
-            if anchor:
-                if target not in anchor_cache:
-                    source = text if target == page else target.read_text(encoding='utf-8-sig')
-                    anchors = re.findall(r'<a id="([^"]+)"></a>', source)
-                    anchors += re.findall(r'^## ([^\n]+)', source, re.MULTILINE)
-                    anchor_cache[target] = set(anchors)
-                if anchor not in anchor_cache[target]:
-                    raise ValueError(f'Broken reference anchor in {page}: {href}')
+            target = Path(os.path.normpath(page.parent / filename)) if filename else page
+            if target not in files:
+                raise ValueError(f'Broken reference link in {page}: {href}')
+            if anchor and anchor not in anchors.get(target, ()):
+                raise ValueError(f'Broken reference anchor in {page}: {href}')
             checked += 1
     return checked
 
@@ -326,7 +391,7 @@ def generate_cache(cache, output, *, structure=None, addresses=None):
             blocks.append('<a id="pseudocode"></a>\n\nGhidraによる復元。型・変数名・制御構造は推定です。\n\n' + f'## {"疑似コード" if language == "c" else "逆アセンブル"} / UTF-8 {len(content.encode("utf-8"))} bytes\n\n'
                           + fenced(content, language))
         if evidence:
-            blocks.extend(structure_sections(evidence, base, save, link_paths))
+            blocks.extend(structure_sections(evidence, base, save, link_paths, max(0, ASSEMBLY_PAGE_BYTES - 2048 - len('\n'.join(blocks).encode('utf-8')))))
         else:
             blocks.extend(['## 逆アセンブリ\n\n構造未収録。\n', '## 基本ブロックと分岐先\n\n構造未収録。\n', '## 命令位置別の参照\n\n構造未収録。\n'])
         if not content:
@@ -379,14 +444,10 @@ GitHub連携の検索結果が不十分なら、既知のファイルパスを�
                                      'source_structure_sha256': structure_sha, 'reference_policy': (reference_structure.REFERENCE_POLICY if structure and reference_structure.structure_header(structure).get('reference_format') == 1 else 'pseudocode-or-legacy-structure'),
                                      'structure_provenance': provenance, 'structure_unavailable_reasons': dict(reasons),
                                      'page_limit_bytes': GIT_FILE_LIMIT, 'format': REFERENCE_FORMAT,
-                                     'generator_signature': generator_signature()}
+                                     'generator_signature': reference_signature()}
     save(Path('manifest.json'), json.dumps(summary, ensure_ascii=False, indent=2) + '\n', count=False)
     write_reference_index(output)
     return root, summary
-
-
-def generator_signature():
-    return hashlib.sha256((digest(Path(__file__)) + digest(Path(reference_structure.__file__))).encode('ascii')).hexdigest()
 
 
 def cached_export(cache, output, structure):
@@ -399,13 +460,13 @@ def cached_export(cache, output, structure):
     report = read_json(manifest)
     if (report.get('format'), report.get('generator_signature'), report.get('analysis_revision'),
             report.get('source_database_sha256'), report.get('source_structure_sha256'), report.get('source_index_sha256')) != (
-            REFERENCE_FORMAT, generator_signature(), metadata.get('analysis_revision'),
+            REFERENCE_FORMAT, reference_signature(), metadata.get('analysis_revision'),
             digest(cache / 'cache.sqlite'), digest(structure) if structure else None,
             digest(cache / 'index.jsonl') if (cache / 'index.jsonl').is_file() else None):
         return None
     if structure and reference_structure.provenance(cache, structure, metadata) != report.get('structure_provenance'):
         return None
-    if sum(1 for _ in root.rglob('*.md')) != report['pages']:
+    if len(markdown_files(root)) != report['pages']:
         return None
     return root, report
 
