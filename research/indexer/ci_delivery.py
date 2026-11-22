@@ -52,7 +52,7 @@ def stage_materials(cache, data, structure, output, reference=None, *, base_url=
             preserve_published_links(reference.parent.parent, replaced.parent, base_url)
         for direction in DIRECTIONS:
             disconnect(reference, replaced.parent, direction, replacing=True)
-    replace_reference(source, reference, move=True)
+    replace_reference(source, reference, move=source.stat().st_dev == reference.stat().st_dev)
     return destination
 
 

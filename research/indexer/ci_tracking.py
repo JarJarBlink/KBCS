@@ -8,6 +8,7 @@ from pathlib import Path
 from indexer.ci import REPO, RESEARCH, acquire_input, public_only, publish_worktree, reference_worktree
 from indexer.ci_delivery import checkpoint_key, restore_completed, stage_materials
 from indexer.ci_structure import asset_record, deliver_asset, get_asset, structure_asset_name, structure_checkpoint
+from indexer.network import gh_json
 from indexer.reference import reference_path
 from indexer.store import LOCAL, digest, read_json, reference_signature, write_json
 from indexer.upstream import LIBRARY, TRACKING_POLICY, adjacent_references, tracking_sources
@@ -24,6 +25,7 @@ def validate_cache(cache, manifest, identity):
 
 def window_manifests(tag, ref=None):
     version, architecture, _ = checkpoint_key(tag)
+    ref = ref or gh_json(f'repos/{REPO}/git/ref/heads/main')['object']['sha']
     data = {'versionName': version, 'architecture': architecture, 'library': LIBRARY}
     before = adjacent_references(data, REPO, 2, ref=ref)
     after = adjacent_references(data, REPO, 1, following=True, ref=ref)
@@ -121,7 +123,8 @@ def publish_tracking(tag, publish, *, regenerate=False):
                 manifest.update(comparison_state='no_baseline', tracking_format=2, tracking_navigation_format=1, tracking_policy=TRACKING_POLICY,
                                 tracking_sources=tracking_sources([identity]))
                 write_json(manifest_path, manifest)
-                publish_worktree(work, f'Publish native tracking state {revision}')
+                publish_worktree(work, f'Publish native tracking state {revision}',
+                                 ('research/reference', 'research/comparisons'))
             print('No earlier published reference for this ABI', flush=True)
             return
         java_home = Path(os.environ['JAVA_HOME'])
