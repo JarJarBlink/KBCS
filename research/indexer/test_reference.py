@@ -4,11 +4,12 @@ import hashlib
 import io
 import json
 import re
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
 
-from indexer.reference import export_cache, replace_reference
+from indexer.reference import cached_export, export_cache, replace_reference
 from indexer.store import connect, digest
 from matcher.comparison_pages import attach_function_comparisons
 
@@ -40,6 +41,11 @@ class ReferenceTest(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 root, summary = export_cache(cache, Path(temporary) / 'export')
             self.assertEqual(before, digest(cache / 'cache.sqlite'))
+            with contextlib.redirect_stdout(io.StringIO()) as replay:
+                same, repeated = export_cache(cache, Path(temporary) / 'export')
+            self.assertEqual(same, root)
+            self.assertEqual(repeated, summary)
+            self.assertTrue(json.loads(replay.getvalue())['reused'])
             self.assertEqual((summary['cached'], summary['failed'], summary['external'], summary['low_confidence']), (1, 1, 1, 1))
             for page in root.rglob('*.md'):
                 data = page.read_bytes()
@@ -118,6 +124,7 @@ class ReferenceTest(unittest.TestCase):
             # 同一入口・同一サイズでも、本体範囲が違う索引は一致扱いにしない。
             (cache / 'index.jsonl').write_text(json.dumps({'type': 'function', 'address': '00100000',
                 'ranges': [['00100000', '00100000'], ['00100005', '00100007']]}) + '\n', encoding='utf-8')
+            self.assertIsNone(cached_export(cache, combined, archive))
             with contextlib.redirect_stdout(io.StringIO()):
                 checked, report = export_cache(cache, Path(temporary) / 'mismatch', structure=archive)
             self.assertEqual(report['disassembled'], 0)
@@ -132,6 +139,12 @@ class ReferenceTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'footer'):
                 export_cache(cache, combined, structure=archive)
             self.assertEqual(combined_page.read_bytes(), original_page)
+            unsafe = Path(temporary) / 'unsafe'
+            original_cache = unsafe / '1.2.3/arm64-v8a' / ('a' * 64)
+            shutil.copytree(cache, original_cache)
+            with contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(ValueError, 'overwrite analysis inputs'):
+                export_cache(original_cache, unsafe)
+            self.assertEqual(digest(original_cache / 'cache.sqlite'), before)
 
             self.assertEqual(before, digest(cache / 'cache.sqlite'))
 
