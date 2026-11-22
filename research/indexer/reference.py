@@ -13,6 +13,7 @@ from contextlib import closing
 from pathlib import Path
 
 from indexer import reference_structure
+from indexer.run import locked
 from indexer.store import LOCAL, configure_output, digest, read_json
 
 GIT_FILE_LIMIT = 100 * 1024**2
@@ -87,13 +88,16 @@ def replace_reference(source, reference, *, move=False):
     write_reference_index(reference)
 
 
-def function_records(functions, structure, metadata):
+def function_records(functions, structure, metadata, inventory):
     remaining = {row['address']: row for row in functions}
     if structure:
         for evidence in reference_structure.records(structure, metadata):
+            inventory['structure_functions'] += 1
             row = remaining.get(evidence['address'])
             if row and not row['external']:
                 yield remaining.pop(evidence['address']), evidence
+            else:
+                inventory['structure_extra_functions'] += 1
     for row in remaining.values():
         yield row, None
 
@@ -162,6 +166,7 @@ def structure_sections(row, base, save, paths):
 
 def verify_reference_links(root):
     checked = 0
+    targets = {}
     for page in root.rglob('*.md'):
         anchor_cache = {}
         text = page.read_text(encoding='utf-8-sig')
@@ -175,12 +180,16 @@ def verify_reference_links(root):
                 visible.append(line)
         for href in re.findall(r'\]\(([^)]+)\)', '\n'.join(visible)):
             filename, _, anchor = href.partition('#')
-            target = (page.parent / filename).resolve() if filename else page
-            if not target.is_relative_to(root) or not target.is_file():
-                raise ValueError(f'Broken reference link in {page}: {href}')
+            key = os.path.normpath(page.parent / filename) if filename else str(page)
+            if key not in targets:
+                target = Path(key).resolve()
+                if not target.is_relative_to(root) or not target.is_file():
+                    raise ValueError(f'Broken reference link in {page}: {href}')
+                targets[key] = target
+            target = targets[key]
             if anchor:
                 if target not in anchor_cache:
-                    source = target.read_text(encoding='utf-8-sig')
+                    source = text if target == page else target.read_text(encoding='utf-8-sig')
                     anchors = re.findall(r'<a id="([^"]+)"></a>', source)
                     anchors += re.findall(r'^## ([^\n]+)', source, re.MULTILINE)
                     anchor_cache[target] = set(anchors)
@@ -197,6 +206,7 @@ def generate_cache(cache, output, *, structure=None, addresses=None):
     database = cache / 'cache.sqlite'
     database_sha = digest(database)
     structure_sha = digest(structure) if structure else None
+    index_sha = digest(cache / 'index.jsonl') if (cache / 'index.jsonl').is_file() else None
     original = {}
     if (cache / 'index.jsonl').is_file():
         with (cache / 'index.jsonl').open(encoding='utf-8-sig') as stream:
@@ -237,7 +247,7 @@ def generate_cache(cache, output, *, structure=None, addresses=None):
     link_paths = paths if not addresses else {key: paths[key] for key in addresses}
     reasons = Counter()
     inventory = {'pages': 0, 'page_bytes': 0, 'max_page_bytes': 0, 'cached': 0, 'failed': 0, 'external': 0, 'low_confidence': 0}
-    inventory.update(disassembled=0, structure_unavailable=0, instruction_count=0, instruction_bytes=0, legacy_boundary_unverified=0)
+    inventory.update(disassembled=0, structure_unavailable=0, instruction_count=0, instruction_bytes=0, legacy_boundary_unverified=0, structure_functions=0, structure_extra_functions=0)
 
     def save(relative, text, count=True):
         data = text.encode('utf-8-sig')
@@ -257,7 +267,7 @@ def generate_cache(cache, output, *, structure=None, addresses=None):
         save(base, header + f'解析リビジョン `{identity.get("analysis_revision", "記録なし")}` · Ghidra `{identity["ghidra"]}`\n\n' + '\n'.join(blocks))
 
     index = defaultdict(list)
-    for ordinal, (row, evidence) in enumerate(function_records(functions, structure, metadata), 1):
+    for ordinal, (row, evidence) in enumerate(function_records(functions, structure, metadata, inventory), 1):
         address = row['address']
         if addresses and address not in addresses:
             continue
@@ -282,8 +292,12 @@ def generate_cache(cache, output, *, structure=None, addresses=None):
         details['structure_status'] = state
         details['structure_provenance'] = provenance
         details['index_boundary_verification'] = ('ranges_match' if original.get(address, {}).get('ranges') == (evidence or {}).get('ranges') and evidence else 'legacy_boundary_unverified')
-        if metadata.get('program_id') and evidence and metadata['program_id'] == evidence['program_id']:
-            details['same_ghidra_program'] = True
+        details['index_program_id'] = metadata.get('program_id')
+        details['structure_program_id'] = evidence.get('program_id') if evidence else None
+        details['analysis_link'] = 'legacy_program_id_unavailable'
+        if details['index_program_id'] and details['structure_program_id']:
+            details['analysis_link'] = ('same_program' if details['index_program_id'] == details['structure_program_id']
+                                        else 'separate_analysis')
         if not row['external'] and details['index_boundary_verification'] == 'legacy_boundary_unverified':
             inventory['legacy_boundary_unverified'] += 1
         if evidence:
@@ -325,9 +339,10 @@ def generate_cache(cache, output, *, structure=None, addresses=None):
             print(json.dumps({'exported_functions': ordinal, 'total': len(functions)}), flush=True)
 
     if addresses:
-        if digest(database) != database_sha or (structure and digest(structure) != structure_sha):
-            raise ValueError('Source changed during preview generation')
         verify_reference_links(root)
+        if (digest(database) != database_sha or (structure and digest(structure) != structure_sha)
+                or (digest(cache / 'index.jsonl') if (cache / 'index.jsonl').is_file() else None) != index_sha):
+            raise ValueError('Source changed during preview generation')
         return root, {'preview': True, 'selected': sorted(addresses), **inventory}
 
     for key, rows in index.items():
@@ -356,30 +371,63 @@ GitHub連携の検索結果が不十分なら、既知のファイルパスを�
 
 ''' + ''.join(f'- [{key}](index/{key}.md)\n' for key in sorted(index))
     save(Path('README.md'), guide)
-    if digest(database) != database_sha:
-        raise ValueError('Source database changed during export; do not publish this output')
-    if structure and digest(structure) != structure_sha:
-        raise ValueError('Source structure changed during export; do not publish this output')
     inventory['verified_links'] = verify_reference_links(root)
-    summary = identity | inventory | {'source_database_sha256': database_sha, 'functions': len(functions),
+    if (digest(database) != database_sha or (structure and digest(structure) != structure_sha)
+            or (digest(cache / 'index.jsonl') if (cache / 'index.jsonl').is_file() else None) != index_sha):
+        raise ValueError('Source inputs changed during export; do not publish this output')
+    summary = identity | inventory | {'source_database_sha256': database_sha, 'source_index_sha256': index_sha, 'functions': len(functions),
                                      'source_structure_sha256': structure_sha, 'reference_policy': (reference_structure.REFERENCE_POLICY if structure and reference_structure.structure_header(structure).get('reference_format') == 1 else 'pseudocode-or-legacy-structure'),
                                      'structure_provenance': provenance, 'structure_unavailable_reasons': dict(reasons),
-                                     'page_limit_bytes': GIT_FILE_LIMIT, 'format': REFERENCE_FORMAT}
+                                     'page_limit_bytes': GIT_FILE_LIMIT, 'format': REFERENCE_FORMAT,
+                                     'generator_signature': generator_signature()}
     save(Path('manifest.json'), json.dumps(summary, ensure_ascii=False, indent=2) + '\n', count=False)
     write_reference_index(output)
     return root, summary
 
 
-def export_cache(cache, output, *, structure=None, addresses=None):
+def generator_signature():
+    return hashlib.sha256((digest(Path(__file__)) + digest(Path(reference_structure.__file__))).encode('ascii')).hexdigest()
+
+
+def cached_export(cache, output, structure):
+    with closing(sqlite3.connect((cache / 'cache.sqlite').as_uri() + '?mode=ro', uri=True)) as db:
+        metadata = {key: json.loads(value) for key, value in db.execute('SELECT key,value FROM metadata')}
+    root = output / reference_path(metadata)
+    manifest = root / 'manifest.json'
+    if not manifest.is_file():
+        return None
+    report = read_json(manifest)
+    if (report.get('format'), report.get('generator_signature'), report.get('analysis_revision'),
+            report.get('source_database_sha256'), report.get('source_structure_sha256'), report.get('source_index_sha256')) != (
+            REFERENCE_FORMAT, generator_signature(), metadata.get('analysis_revision'),
+            digest(cache / 'cache.sqlite'), digest(structure) if structure else None,
+            digest(cache / 'index.jsonl') if (cache / 'index.jsonl').is_file() else None):
+        return None
+    if structure and reference_structure.provenance(cache, structure, metadata) != report.get('structure_provenance'):
+        return None
+    if sum(1 for _ in root.rglob('*.md')) != report['pages']:
+        return None
+    return root, report
+
+
+def export_cache(cache, output, *, structure=None, addresses=None, refresh=False):
     started = time.perf_counter()
     cache, output = cache.resolve(), output.resolve()
     if output == cache or output.is_relative_to(cache):
         raise ValueError('Output must be outside the source cache')
     output.mkdir(parents=True, exist_ok=True)
     # 末尾の検査まで成功した一式だけを既存資料と入れ替える。
-    with tempfile.TemporaryDirectory(prefix='.generate-', dir=output) as temporary:
+    with locked(output / '.reference-writer.lock'), tempfile.TemporaryDirectory(prefix='.generate-', dir=output) as temporary:
+        existing = cached_export(cache, output, structure) if not addresses and not refresh else None
+        if existing:
+            root, summary = existing
+            print(json.dumps({'root': str(root), 'reused': True, 'generation_seconds': time.perf_counter() - started}, ensure_ascii=False))
+            return root, summary
         root, summary = generate_cache(cache, Path(temporary), structure=structure, addresses=addresses)
         target = output / root.relative_to(temporary)
+        scope = target.parent
+        if cache.is_relative_to(scope) or scope.is_relative_to(cache) or (structure and structure.resolve().is_relative_to(scope)):
+            raise ValueError('Reference replacement would overwrite analysis inputs')
         target.parent.mkdir(parents=True, exist_ok=True)
         if addresses:
             if target.exists():
@@ -402,10 +450,11 @@ def main():
     parser.add_argument('--cache', type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--structure', type=Path, help='Verified structure.jsonl.gz with instruction bytes and operands')
+    parser.add_argument('--refresh', action='store_true', help='Regenerate even if the completed output matches these inputs')
     parser.add_argument('--address', action='append', help='Preview only selected addresses in a separate output')
     args = parser.parse_args()
     cache = args.cache or Path(read_json(LOCAL / 'reference.json')['cache'])
-    export_cache(cache, args.output, structure=args.structure, addresses=args.address)
+    export_cache(cache, args.output, structure=args.structure, addresses=args.address, refresh=args.refresh)
 
 
 if __name__ == '__main__':
