@@ -8,6 +8,8 @@ Rust `render::Model::parse` がimgcut/mamodel/maanimを読み、`kbcs_core_pose`
 
 `effect_create` は正規化パラメータをコピーし、opaque handleを返す。`effect_frame` は指定フレームまで進め、巻戻し時は同じシードで再初期化する。RustのRuntime::Dropが`effect_destroy`を必ず呼ぶ。Sendのみ許可し、ServiceのMutexで直列化する。戦闘用RNGを共有していない。背景試写のシードは0x12345678、Xorshift32の13/17/15であり、原本の全乱数消費との一致は未確認。
 
+戦闘の `Session::draw` は自城の状態（word 1）と論理フレームを `Scene::draw_with_castle_state` から `kbcs_core_live_scene_paint` に渡す。16.0.3 ARM64の `007082e8` は状態が非ゼロで、戦闘フレームの剰余が1のとき、城描画のXに4pxを足す。除数は `00a48f48` が初期化する値1に1を足した2。自城の3部品に同じ差分をカメラ変換前に適用する。破壊後の状態2も対象で、ステージ試写は状態0で描く。
+
 ## 原本と検証の境界
 
 背景・城・演出の根拠は参照リポジトリstage-db/research/native-v1571の003a9bd0、003987f8、00398af4、003a8bfc、00217ae4、00218618、00861104、00840f70、004da7a8と、同docs/backgrounds.md。版は15.7.1 ARM32、SHA 7226cbdf9f9ea9a521b4e4c3a78a72141a31410aa9293a03bb45717d1682ac79。姿勢の既存調査には15.5.0 ARM32（SHA e28ae3aefea402f28cf4c95e5fd947e2fd09984b3d376d4c2623dce1256ff0c8）の007e375c/007e1b6c/007e24e8も含む。JP15.7.2 ARM64の戦闘カーネル証跡と混同しない。
