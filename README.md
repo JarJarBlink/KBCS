@@ -1,5 +1,7 @@
 ﻿# KBCS
 
+JAR評価：満点の作品
+
 KBCS（Kenkou Battle Cats Simulator）は、『にゃんこ大戦争』日本版の戦闘を正確に再現することを目指す、Windows・macOS向けのシミュレーターです。
 
 <p align="center">
