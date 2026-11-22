@@ -1,5 +1,5 @@
 ﻿from bisect import bisect_right
-from collections import defaultdict
+from collections import Counter, defaultdict
 from itertools import zip_longest
 
 
@@ -129,7 +129,7 @@ def collect(row, sequence, intern, abi):
     return events
 
 
-def changes(old, new, left, right, abi, *, include_evidence=True):
+def changes(old, new, left, right, abi, *, include_evidence=True, positions=None):
     nodes, numbers = [], {}
 
     def intern(key):
@@ -148,18 +148,73 @@ def changes(old, new, left, right, abi, *, include_evidence=True):
         return {'site': event[0], 'definition_site': item[1], 'value': describe(item[0]),
                 'incomplete_value': item[2]} if item else None
 
+    def guard_key(event):
+        item = event[2][0]
+        if not item or event[1] not in ('CONDITIONAL_JUMP', 'FALL_THROUGH'):
+            return event[1], item and item[0]
+        number, negate = item[0], event[1] == 'FALL_THROUGH'
+        node = nodes[number]
+        while node[0] == 'BOOL_NEGATE':
+            number, negate = node[2][0], not negate
+            node = nodes[number]
+        if node[0] in ('INT_NOTEQUAL', 'FLOAT_NOTEQUAL'):
+            return (node[0].replace('NOTEQUAL', 'EQUAL'), node[1], node[2]), not negate
+        return tuple(node), negate
+
     a, b = collect(old, left, intern, abi), collect(new, right, intern, abi)
     records, counts = [], defaultdict(int)
     fields = {'store': ('store_space', 'store_destination', 'store_value'),
               'branch': ('branch_value',), 'call': ('call_target',), 'return': (), 'guard': ('store_condition',)}
+
+    def aligned(before, after):
+        if positions is None:
+            yield from zip_longest(before, after)
+            return
+        following = defaultdict(list)
+        for event in after:
+            following[event[0]].append(event)
+        groups = defaultdict(list)
+        for event in before:
+            groups[event[0]].append(event)
+        used = set()
+        for site, events in groups.items():
+            target = positions.get(site)
+            peers = following.get(target, ())
+            if len(events) == len(peers):
+                used.add(target)
+                yield from zip(events, peers)
+            else:
+                # 一命令内の多重イベントも、増減で後続をずらさない。
+                first = Counter(tuple(item[0] if item else None for item in event[2]) for event in events)
+                second = Counter(tuple(item[0] if item else None for item in event[2]) for event in peers)
+                by_value = {tuple(item[0] if item else None for item in event[2]): event for event in peers}
+                for event in events:
+                    signature = tuple(item[0] if item else None for item in event[2])
+                    if first[signature] == second[signature] == 1:
+                        yield event, by_value[signature]
+                    else:
+                        yield event, None
+                used.add(target)
+        for event in after:
+            if event[0] not in used:
+                yield None, event
+
     for sink, labels in fields.items():
-        for index, (first, second) in enumerate(zip_longest(a[sink], b[sink])):
+        if positions is not None and sink != 'guard':
+            difference = abs(len(a[sink]) - len(b[sink]))
+            if difference:
+                counts[sink + '_count'] += difference
+        for index, (first, second) in enumerate(aligned(a[sink], b[sink])):
             if first is None or second is None:
-                kind = sink + '_count'
-                counts[kind] += int(sink != 'guard')
+                if positions is None:
+                    counts[sink + '_count'] += int(sink != 'guard')
+                elif first is not None and len(a[sink]) == len(b[sink]) and sink != 'guard':
+                    counts['unresolved_' + sink + '_alignment'] += 1
                 continue
             for slot, (before, after) in enumerate(zip_longest(first[2], second[2])):
                 guard = sink == 'guard'
+                if guard and guard_key(first) == guard_key(second):
+                    continue
                 if (before and before[0], first[1] if guard else None) == (after and after[0], second[1] if guard else None):
                     continue
                 kind = labels[slot] if slot < len(labels) else ('call_argument_candidate' if sink == 'call' else 'return_value_candidate')

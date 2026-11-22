@@ -3,7 +3,7 @@ import time
 from collections import Counter, defaultdict
 from functools import lru_cache
 
-from matcher import logic
+from matcher import blocks, instruction_matcher, logic
 from matcher.report import peak_memory
 from matcher.structure import load_metadata, load_row, operations, pack, reader
 
@@ -129,7 +129,7 @@ def intervals(functions, accepted):
     return layouts, neighborhoods, moved
 
 
-def residuals(side, address, alternatives, neighbors, map_to_other, taken, callers, pieces, *, strong=(), callees=None):
+def residuals(side, address, alternatives, neighbors, map_to_other, taken, callers, pieces, *, callees=None):
     chunk, bounds = neighbors.get(address, ((), ()))
     pool = sorted((set(chunk) | alternatives.get(address, set())) - taken)[:24]
     own = pieces(side, address)
@@ -160,22 +160,22 @@ def residuals(side, address, alternatives, neighbors, map_to_other, taken, calle
     hypotheses = output[:12]
     if alternatives.get(address):
         hypotheses.append(('competing_candidates', sorted(alternatives[address])[:16], {'bounds': bounds}))
-    if bounds and own and not strong:
-        hypotheses.append(('deletion_candidate' if side == 0 else 'addition_candidate', [],
-                           {'bounds': bounds, 'other_functions_in_interval': len(chunk),
-                            'competing_weak_candidates': len(alternatives.get(address, ())),
-                            'evidence': 'bounded_interval_without_strong_correspondence'}))
+    # 区間の個数や候補不足だけでは、処理の追加・削除としない。
+    if not output:
+        hypotheses.append(('unresolved', [], {'bounds': bounds, 'reason': 'entry_unmatched_not_proof_of_addition_or_deletion'}))
     return hypotheses or [('unresolved', [], {'reason': 'insufficient_structural_or_interval_evidence'})]
 
 
 def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
     started, metrics = time.monotonic(), {}
+    cpu_started = time.process_time()
 
     def stage(name):
-        nonlocal started
+        nonlocal started, cpu_started
         end = time.monotonic()
-        metrics[name] = {'seconds': end - started, 'process_peak_rss_bytes': peak_memory()}
-        started = end
+        cpu_end = time.process_time()
+        metrics[name] = {'seconds': end - started, 'cpu_seconds': cpu_end - cpu_started, 'process_peak_rss_bytes': peak_memory()}
+        started, cpu_started = end, cpu_end
 
     with reader(initial) as source:
         metadata = {key: json.loads(value) for key, value in source.execute('SELECT key,value FROM metadata')}
@@ -209,25 +209,34 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
         # 未対応だけでなく、変更疑いと未対応の一段の呼出近傍を詳細調査する。
         hits, proposed, refinement = refine(accepted, (old, new), (old_out, old_in, new_out, new_in), get, rejected)
         accepted.update(hits)
+        block_hits, block_rankings, scopes, block_stats = instruction_matcher.refine(
+            accepted, sources, (old, new), (old_out, old_in, new_out, new_in), get, rejected,
+            candidates, target, pair)
+        accepted.update(block_hits)
         maps = ({a: row[0] for a, row in accepted.items()}, {row[0]: a for a, row in accepted.items()})
         new_targets = {b: b for b in maps[1]}
         alternatives = (defaultdict(set), defaultdict(set))
-        strong = (defaultdict(set), defaultdict(set))
         for a, b, *_ in [*candidates, *proposed]:
             if (a, b) not in rejected:
                 alternatives[0][a].add(b)
                 alternatives[1][b].add(a)
-        for a, b, _, _, eligible, _ in candidates:
-            if eligible and (a, b) not in rejected and a not in maps[0] and b not in maps[1]:
-                strong[0][a].add(b)
-                strong[1][b].add(a)
+        reverse_rankings = defaultdict(list)
+        baseline_rankings = (defaultdict(list), defaultdict(list))
+        for a, b, _, score, eligible, raw in candidates:
+            if (a, b) not in rejected:
+                for side, source, destination in ((0, a, b), (1, b, a)):
+                    baseline_rankings[side][source].append({'new': destination, 'score': score, 'eligible': eligible,
+                                                          'evidence': json.loads(raw)})
+        for a, items in block_rankings.items():
+            for item in items:
+                reverse_rankings[item['new']].append(item | {'new': a})
         layouts, nearby, moved = intervals(functions, accepted)
         target.executemany('INSERT INTO layout VALUES(?,?,?,?,?,?,?,?)', ((pair, *row) for row in layouts))
         target.executemany('INSERT INTO relations VALUES(?,?,?,?,?,?)',
                            ((pair, a, b, kind, verdict, pack(evidence)) for a, b, kind, verdict, evidence in proposed))
         target.executemany('INSERT INTO relations VALUES(?,?,?,?,?,?)',
                            ((pair, a, b, reason, 'accepted', pack(evidence)) for a, (b, reason, evidence) in accepted.items()))
-        emit(f'{pair} PASS 2: {len(hits)} added; {len(proposed)} structural candidates')
+        emit(f'{pair} PASS 2: {len(hits)} strict + {len(block_hits)} block relations; {len(proposed)} structural candidates')
         stage('pass2_structure')
         detailed = set(force_detail)
         for side, (shapes, outgoing, incoming) in enumerate(((old, old_out, old_in), (new, new_out, new_in))):
@@ -256,7 +265,7 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
                     record = logic.skipped((old[a], new[b]), reference_check)
                     inspection['skipped'] += 1
                 else:
-                    record = logic.compare(get(0, a), get(1, b), maps[0], new_targets, references=reference_check, abi=abi)
+                    record = logic.compare(get(0, a), get(1, b), maps[0], new_targets, abi=abi)
                     inspection['detailed'] += 1
                     if reference_check:
                         inspection['forced_by_references'] += 1
@@ -285,8 +294,28 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
                     results = [('boundary_candidate', [], {'reason': 'backfill disagrees with original function boundary'})]
                 else:
                     results = residuals(side, address, alternatives[side], nearby[side], maps[side],
-                                        maps[1 - side].keys(), incoming, pieces,
-                                        strong=strong[side].get(address, ()), callees=outgoing)
+                                        maps[1 - side].keys(), incoming, pieces, callees=outgoing)
+                ranked = (block_rankings if side == 0 else reverse_rankings).get(address, ())
+                ranking_method = 'instruction_blocks' if ranked else 'initial_matcher'
+                ranked = sorted(ranked or baseline_rankings[side].get(address, ()),
+                                key=lambda item: (-item['score'], item['new']))[:blocks.POLICY['maximum_candidates']]
+                if ranked:
+                    results = [row for row in results if row[0] != 'competing_candidates']
+                    results.append(('competing_candidates', [item['new'] for item in ranked],
+                                    {'ranked_candidates': ranked, 'ranking_method': ranking_method,
+                                     'order': 'score_descending_then_address'}))
+                if state == 'available':
+                    locations = instruction_matcher.locations(side, address, target, pair, get, maps,
+                                                              (old_out, old_in, new_out, new_in))
+                    if locations:
+                        detailed_kinds = {item[0] for item in locations}
+                        results = locations + [item for item in results if item[0] not in detailed_kinds]
+                entry_state, entry_proof = instruction_matcher.entry_evidence(
+                    side, address, scopes[side].get(address, {}), (old, new), (old_out, old_in, new_out, new_in), maps, get, results)
+                target.execute('INSERT INTO entry_states VALUES(?,?,?,?,?)', (pair, side, address,
+                    entry_state, pack(entry_proof)))
+                if entry_state != 'unmatched':
+                    results.append((entry_state, [], entry_proof))
                 for kind, candidates_for_function, proof in results:
                     residual_counts[kind] += 1
                     target.execute('INSERT INTO review VALUES(?,?,?,?,?,?)', (pair, side, address, kind,
@@ -298,7 +327,8 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
     held_out = answered + validation['abstained']
     rates = {'correct_among_answered': validation['correct'] / answered if answered else None,
              'abstention_rate': validation['abstained'] / held_out if held_out else None}
-    return maps[0], {'initial_accepted': initial_count, 'refined_accepted': len(hits),
+    return maps[0], {'initial_accepted': initial_count, 'refined_accepted': len(hits) + len(block_hits),
+                    'instruction_matching': block_stats,
                     'logic': dict(counts), 'review': dict(residual_counts), 'validation': metadata['validation'],
                     'importance': dict(importance), 'inspection': dict(inspection), 'impacts': dict(impacts),
                     'reference_states': dict(ref_states), 'refinement': refinement, 'unmatched': unresolved, 'passes': metrics,

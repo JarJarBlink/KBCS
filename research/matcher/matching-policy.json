@@ -1,0 +1,17 @@
+﻿{
+  "format": 1,
+  "minimum_block_instructions": 4,
+  "window_instructions": 4,
+  "maximum_window_keys": 64,
+  "maximum_search_keys": 128,
+  "maximum_posting_functions": 8,
+  "maximum_candidates": 24,
+  "maximum_assignment_component": 8,
+  "maximum_alignment_product": 262144,
+  "cfg_rounds": 4,
+  "minimum_instruction_coverage": 0.98,
+  "minimum_cfg_coverage": 0.98,
+  "minimum_assignment_gap": 4,
+  "minimum_rank_margin": 4,
+  "minimum_mapped_references": 2
+}
