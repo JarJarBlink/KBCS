@@ -1,4 +1,5 @@
 ﻿import gzip
+import copy
 import io
 import json
 import os
@@ -19,7 +20,7 @@ from indexer.reference_structure import listing
 from indexer.run import headless
 from indexer.store import LOCAL, connect, digest, read_json, write_json
 from matcher import logic, structure, tracking, tracking_pages, tracking_pair
-from matcher.comparison_pages import carry_function_comparisons, comparison_identity, catalog_path, function_comparison_links, render_links
+from matcher.comparison_pages import carry_function_comparisons, comparison_catalog, comparison_identity, valid_comparison_entries, catalog_path, function_comparison_links, render_links
 
 
 def op(name, *values, output=None):
@@ -444,6 +445,11 @@ class TrackingTests(unittest.TestCase):
             for value in links.values():
                 route, marker = value.removesuffix(')').split('#')
                 self.assertIn(f'<a id="{marker}"></a>', (target_page.parent / route).read_text(encoding='utf-8-sig'))
+            mixed = copy.deepcopy(comparison_catalog(new[0]))
+            addresses = list(mixed['rows'])
+            mixed['rows'][addresses[1]][0]['older'] = mixed['rows'][addresses[1]][0]['older'] | {'analysis_revision': 'f' * 16}
+            retained = valid_comparison_entries(mixed, new[0], repository)
+            self.assertFalse(any(entry['older']['analysis_revision'] == 'f' * 16 for entries in retained.values() for entry in entries))
             after = target_page.read_bytes()
             tracking_pages.attach(repository, destination, result)
             self.assertEqual(target_page.read_bytes(), after)

@@ -7,7 +7,7 @@ import urllib.request
 
 from indexer.apk import ASSETS, REPOSITORY, content, validate_split_source
 from indexer.network import gh_json, http_status, retry
-from indexer.store import LOCAL, read_json, write_json
+from indexer.store import LOCAL, read_json, write_json, reference_signature
 
 
 PACKAGE = 'jp.co.ponos.battlecats'
@@ -147,7 +147,8 @@ def tracking_sources(versions):
 def publication_state(data, manifest, repository):
     if manifest is None:
         return 'new'
-    if manifest.get('reference_policy') != 'native-reference-v1':
+    if (manifest.get('reference_policy') != 'native-reference-v1'
+            or manifest.get('generator_signature') != reference_signature()):
         return 'references_pending'
     state = manifest.get('comparison_state', 'pending')
     if state in ('complete', 'no_baseline') and (

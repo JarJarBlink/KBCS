@@ -18,6 +18,11 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def reference_signature():
+    root = Path(__file__).parent
+    return hashlib.sha256((digest(root / 'reference.py') + digest(root / 'reference_structure.py')).encode('ascii')).hexdigest()
+
+
 def read_json(path):
     return json.loads(Path(path).read_text(encoding='utf-8-sig'))
 
