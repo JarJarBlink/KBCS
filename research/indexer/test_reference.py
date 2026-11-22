@@ -157,6 +157,14 @@ class ReferenceTest(unittest.TestCase):
 
             self.assertEqual(before, digest(cache / 'cache.sqlite'))
 
+            stale = root / 'old-generation-only.md'
+            stale.write_text('stale generated content', encoding='utf-8')
+            with contextlib.redirect_stdout(io.StringIO()):
+                replacement, _ = export_cache(cache, Path(temporary) / 'same-sha')
+            replace_reference(replacement, Path(temporary) / 'export')
+            self.assertTrue((root / 'manifest.json').is_file())
+            self.assertFalse(stale.exists())
+
             db = connect(cache / 'cache.sqlite')
             with db:
                 db.execute('INSERT INTO metadata VALUES(?,?)', ('analysis_revision', json.dumps('b' * 16)))

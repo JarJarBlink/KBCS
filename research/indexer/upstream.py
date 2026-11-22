@@ -13,7 +13,7 @@ from indexer.store import LOCAL, read_json, write_json, reference_signature
 PACKAGE = 'jp.co.ponos.battlecats'
 ABI = 'arm64-v8a'
 LIBRARY = 'libnative-lib.so'
-TRACKING_POLICY = 'observed-effects-v1'
+TRACKING_POLICY = 'block-correspondence-v1'
 SIGNER = 'baf876d554213331c6fe5f6bbf9ae9af2f95c20e82b14bc232b0ac3a77680cb1'
 
 
@@ -119,24 +119,28 @@ def matching_publication(data, repository, inputs):
     return None
 
 
-def previous_references(data, repository, limit=2):
+def adjacent_references(data, repository, limit, *, following=False, ref=None):
     def version_key(name):
         return tuple(map(int, name.split('.')))
 
-    ref = gh_json(f'repos/{repository}/git/ref/heads/main')['object']['sha']
+    ref = ref or gh_json(f'repos/{repository}/git/ref/heads/main')['object']['sha']
     current = version_key(data['versionName'])
     entries = gh_json(f'repos/{repository}/contents/research/reference?ref={ref}')
     versions = [entry['name'] for entry in entries if entry['type'] == 'dir'
                 and re.fullmatch(r'\d+\.\d+\.\d+', entry['name'])
-                and version_key(entry['name']) < current]
+                and (version_key(entry['name']) > current if following else version_key(entry['name']) < current)]
     result = []
-    for version in sorted(versions, key=version_key, reverse=True):
+    for version in sorted(versions, key=version_key, reverse=not following):
         previous = reference_at(repository, ref, version, data['architecture'], data['library'])
         if previous:
             result.append(previous)
             if len(result) == limit:
                 break
-    return list(reversed(result))
+    return result if following else list(reversed(result))
+
+
+def previous_references(data, repository, limit=2):
+    return adjacent_references(data, repository, limit)
 
 
 def tracking_sources(versions):

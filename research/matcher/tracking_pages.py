@@ -189,7 +189,7 @@ def render_pages(database, repository, destination, asset_url, reference_url):
                 rows = db.execute(f"""SELECT l.old,l.new,l.evidence,r.reason,
                         EXISTS (SELECT 1 FROM conflict_edges c WHERE c.pair=l.pair AND c.old=l.old AND c.new=l.new)
                     FROM logic l JOIN relations r ON l.pair=r.pair AND l.old=r.old AND l.new=r.new
-                    WHERE l.pair=? AND r.verdict='accepted' AND {condition} ORDER BY l.old""", (pair,))
+                    WHERE l.pair=? AND r.verdict IN ('accepted','held_conflict') AND {condition} ORDER BY l.old""", (pair,))
 
                 def pair_row(row, detail):
                     a, b, raw, reason, conflict = row
@@ -212,6 +212,10 @@ def render_pages(database, repository, destination, asset_url, reference_url):
                              f'- 旧版 {call_context(i, a, detail)}', f'- 新版 {call_context(j, b, detail)}', '']
                     if tags:
                         lines.extend([f'変更の種類 {tags}', ''])
+                    coverage = record.get('instruction_correspondence')
+                    if coverage:
+                        before, after = coverage['coverage']
+                        lines.extend([f'命令の説明率　旧版 {before:.2%} / 新版 {after:.2%}', ''])
                     for key, caption in (('priority_impact', '優先判定に残った影響'),
                                          ('address_sensitive_impact', 'アドレスに依存する影響')):
                         if record.get(key):
@@ -221,7 +225,7 @@ def render_pages(database, repository, destination, asset_url, reference_url):
                         lines.extend([fenced(json.dumps(record['effects'][:3], ensure_ascii=False, indent=2), 'json'), ''])
                     if record.get('reference_changed'):
                         reference = record['references']
-                        lines.extend(['参照の変更（関数入口からの相対位置）', '',
+                        lines.extend(['参照の変更（対応した命令位置）', '',
                                       fenced(json.dumps({key: reference[key][:3] for key in ('removed', 'added')},
                                                         ensure_ascii=False, indent=2), 'json'), ''])
                     sample = []
@@ -244,7 +248,19 @@ def render_pages(database, repository, destination, asset_url, reference_url):
             def review_row(row, detail):
                 side, address, kind, targets, raw = row
                 first, second = (i, j) if side == 0 else (j, i)
-                target_links = ' '.join(node(second, a, detail) for a in json.loads(targets))
+                candidates = json.loads(targets)
+                proof = json.loads(raw)
+                ranked = proof.get('ranked_candidates', ())
+                target_links = '' if ranked else ' '.join(node(second, a, detail) for a in candidates)
+                ranks = [f"- {rank}. {node(second, item['new'], detail)} · スコア {item['score']} · "
+                         f"{'採用条件を満たす' if item['eligible'] else '採用条件未達'} · "
+                         f"順位差 {item['evidence'].get('margin', '—')} / {item['evidence'].get('reverse_margin', '—')} · "
+                         + ', '.join(item['evidence'].get('held', ()))
+                         for rank, item in enumerate(ranked[:8], 1)]
+                if ranked:
+                    proof['ranked_candidates'] = [item | {'evidence': {key: item['evidence'][key] for key in
+                        ('coverage', 'cfg_coverage', 'mapped_data', 'held', 'margin', 'reverse_margin') if key in item['evidence']}}
+                        for item in ranked[:3]]
                 marker = []
                 if address not in review_targets[side]:
                     anchor = anchor_for('review', (first, address))
@@ -252,7 +268,7 @@ def render_pages(database, repository, destination, asset_url, reference_url):
                     marker = [f'<a id="{anchor}"></a>', '']
                 return [*marker, f'### v{versions[first]} {node(first, address, detail, named=True)}', '',
                         f'`{kind}` {target_links}', '', call_context(first, address, detail), '',
-                        fenced(json.dumps(json.loads(raw), ensure_ascii=False, indent=2), 'json')]
+                        *ranks, '', fenced(json.dumps(proof, ensure_ascii=False, indent=2), 'json')]
 
             pair_index.extend(paged(page, title, 'review', '追加調査', reviews, review_row))
             pair_index.extend(['', '## 集計・検証', '', fenced(json.dumps(json.loads(summary), ensure_ascii=False, indent=2), 'json')])
@@ -298,7 +314,7 @@ def retire_legacy(reference, identities):
             readme.write_bytes(after)
 
 
-def attach_adjacent_links(reference, destination, identities):
+def attach_adjacent_links(reference, destination, identities, *, verify=False):
     navigation = read_json(destination / 'navigation.json')
     if not isinstance(navigation, dict) or navigation.get('format') != 1 or navigation['sources'] != [comparison_identity(identity) for identity in identities]:
         raise ValueError('Comparison navigation belongs to different analysis sources')
@@ -351,10 +367,10 @@ def attach_adjacent_links(reference, destination, identities):
         catalogs.append((directory, {'format': 1, 'identity': comparison_identity(identity), 'rows': rows}))
     # 全リンク先を確認してから、各関数のナビゲーションを更新する。
     for directory, catalog in catalogs:
-        render_comparison_catalog(directory, catalog, repository)
+        render_comparison_catalog(directory, catalog, repository, verify=verify)
 
 
-def attach(repository, destination, result):
+def attach(repository, destination, result, *, verify=False):
     reference = repository / 'research/reference'
     publication = read_json(destination / 'manifest.json')
     if publication.get('navigation_sha256') != digest(destination / 'navigation.json'):
@@ -368,22 +384,87 @@ def attach(repository, destination, result):
                 source['cache_sha256'], identity['analysis_revision']):
             raise ValueError('Published version changed during tracking')
     identities = [source['identity'] for source in result['sources']]
-    attach_adjacent_links(reference, destination, identities)
+    attach_adjacent_links(reference, destination, identities, verify=verify)
     retire_legacy(reference, identities)
     for i, source in enumerate(result['sources']):
         directory = reference / reference_path(source['identity'])
         page = directory / 'README.md'
         overlay(page, 'tracking', f'[バージョン間の関数追跡]({link(destination / "README.md", page)})', '## アドレス索引\n')
+        guidance = []
+        for neighbor, caption in ((i-1, '前の版との比較'), (i+1, '次の版との比較')):
+            if 0 <= neighbor < len(identities):
+                pair = destination / f'{min(i, neighbor)}-{max(i, neighbor)}' / 'README.md'
+                if pair.is_file():
+                    guidance.append(f'[{caption} v{identities[neighbor]["version"]}]({link(pair, page)})')
+        if guidance:
+            overlay(page, 'tracking-neighbors', '\n\n'.join(guidance), '## アドレス索引\n')
         manifest = read_json(directory / 'manifest.json')
+        sources = tracking_sources(identities[max(0, i-2):i + 1])
+        if i < 2 and len(manifest.get('tracking_sources', ())) > len(sources):
+            previous = manifest['tracking_sources']
+            if previous[-len(sources):] == sources:
+                sources = previous
         manifest.update(comparison_state='complete' if i else manifest.get('comparison_state', 'no_baseline'),
                         tracking_format=2, tracking_navigation_format=1, tracking_policy=TRACKING_POLICY, tracking_run=result['run'],
                         tracking_page=(destination / 'README.md').relative_to(repository).as_posix(),
-                        tracking_sources=tracking_sources(identities[:i + 1]))
+                        tracking_sources=sources)
         write_json(directory / 'manifest.json', manifest)
     root = repository / 'research/comparisons'
     write_page(root / 'README.md', ['# ネイティブ関数の追跡資料', '', *(
         f'- [{path.parent.relative_to(root).as_posix()}]({link(path, root / "README.md")})'
         for path in sorted(root.glob('*/*/README.md')))])
+
+
+def refresh_affected_navigation(repository, result):
+    # 同版の出典変更と、途中版追加で隣接でなくなった区間だけを更新する。
+    reference = repository / 'research/reference'
+    identities = [row['identity'] for row in result['sources']]
+    abi = identities[0]['architecture']
+    manifests = {entry['version']: (path.parent, entry) for path in reference.glob(f'*/{abi}/*/manifest.json')
+                 for entry in (read_json(path),)}
+    versions = sorted(manifests, key=lambda version: tuple(map(int, version.split('.'))))
+    neighbors = set(zip(versions, versions[1:]))
+    live = {version: comparison_identity(manifest) for version, (_, manifest) in manifests.items()}
+
+    def valid(entry):
+        older, newer = entry['older'], entry['newer']
+        return ((older['version'], newer['version']) in neighbors
+                and live.get(older['version']) == older and live.get(newer['version']) == newer)
+
+    for version, (directory, manifest) in manifests.items():
+        catalog = comparison_catalog(directory)
+        if not catalog:
+            continue
+        intervals = catalog.get('intervals', {})
+        same_source = catalog['identity'] == live[version]
+        if same_source and intervals and all(map(valid, intervals.values())):
+            continue
+        affected = {address: [entry for entry in entries if same_source and valid(entry)]
+                    for address, entries in catalog['rows'].items() if not same_source or any(not valid(entry) for entry in entries)}
+        if not affected:
+            continue
+        updated = catalog | {'identity': live[version], 'rows': catalog['rows'] | affected}
+        valid_rows = valid_comparison_entries(updated, directory, repository)
+        if any(entries != valid_rows.get(address, []) for address, entries in updated['rows'].items()):
+            raise ValueError('Broken retained comparison reference')
+        render_comparison_catalog(directory, updated, repository, verify=True)
+        # 出典が変わった旧ランへの目次リンクを、有効な隣接区間で作り直す。
+        row = next(iter(valid_rows.values()), ())
+        immediate = [entry for entry in row if version in (entry['older']['version'], entry['newer']['version'])]
+        readme = directory / 'README.md'
+        guidance = []
+        for entry in immediate:
+            following = entry['older']['version'] == version
+            caption, peer = ('次の版との比較', entry['newer']['version']) if following else ('前の版との比較', entry['older']['version'])
+            overview = (repository / entry['target'].split('#', 1)[0]).with_name('README.md')
+            guidance.append(f'[{caption} v{peer}]({link(overview, readme)})')
+        overlay(readme, 'tracking-neighbors', '\n\n'.join(guidance), '## アドレス索引\n')
+        if not same_source or manifest.get('tracking_run') != result['run']:
+            overlay(readme, 'tracking', '', '## アドレス索引\n')
+            for key in ('tracking_run', 'tracking_page', 'tracking_sources'):
+                manifest.pop(key, None)
+            manifest['comparison_state'] = 'pending'
+            write_json(directory / 'manifest.json', manifest)
 
 
 def main():
