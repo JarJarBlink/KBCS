@@ -15,10 +15,11 @@ from unittest.mock import patch
 
 from indexer.ci_structure import unpack
 from indexer.reference import function_path, reference_path
+from indexer.reference_structure import listing
 from indexer.run import headless
 from indexer.store import LOCAL, connect, digest, read_json, write_json
 from matcher import logic, structure, tracking, tracking_pages, tracking_pair
-from matcher.comparison_pages import catalog_path, render_links
+from matcher.comparison_pages import carry_function_comparisons, comparison_identity, catalog_path, function_comparison_links, render_links
 
 
 def op(name, *values, output=None):
@@ -46,25 +47,27 @@ def make_elf(path, threshold, write=True):
     instructions = (0xF100001F | (threshold << 10), 0x5400004B if write else 0x5400004A,
                     0xF9000020 if write else 0xD503201F, 0x94000002 if write else 0x94000004,
                     0xD65F03C0, 0xD2800020, 0xD65F03C0, 0xD2800040, 0xD65F03C0)
-    code = struct.pack('<9I', *instructions)
-    names = b'\0.text\0.symtab\0.strtab\0.shstrtab\0'
-    strings = b'\0_start\0helper_a\0helper_b\0'
+    code = struct.pack('<12I', *instructions, 0x10007EE2, 0xB9400040, 0xD65F03C0)
+    names = b'\0.text\0.symtab\0.strtab\0.shstrtab\0.rodata\0'
+    strings = b'\0_start\0helper_a\0helper_b\0data_reader\0'
     text_offset, entry = 4096, 0x10000
     symbols = bytes(24) + b''.join(struct.pack('<IBBHQQ', strings.index(name), 0x12, 0, 1, entry+start, size)
-                                  for name, start, size in ((b'_start', 0, 20), (b'helper_a', 20, 8), (b'helper_b', 28, 8)))
+                                  for name, start, size in ((b'_start', 0, 20), (b'helper_a', 20, 8), (b'helper_b', 28, 8), (b'data_reader', 36, 12)))
     offset = text_offset + len(code)
     sh_offset = offset + len(symbols) + len(strings) + len(names)
     header = struct.pack('<16sHHIQQQIHHHHHH', b'\x7fELF\x02\x01\x01', 2, 183, 1, entry, 64, sh_offset,
-                         0, 64, 56, 1, 64, 5, 4)
+                         0, 64, 56, 2, 64, 6, 4)
     segment = struct.pack('<IIQQQQQQ', 1, 5, text_offset, entry, entry, len(code), len(code), 4096)
+    segment += struct.pack('<IIQQQQQQ', 1, 4, 8192, 0x11000, 0x11000, 4, 4, 4096)
     sections = bytes(64) + b''.join(struct.pack('<IIQQQQIIQQ', names.index(name), kind, flags, addr,
                                                 start, size, link, info, align, entsize)
         for name, kind, flags, addr, start, size, link, info, align, entsize in (
             (b'.text', 1, 6, entry, text_offset, len(code), 0, 0, 4, 0),
             (b'.symtab', 2, 0, 0, offset, len(symbols), 3, 1, 4, 24),
             (b'.strtab', 3, 0, 0, offset+len(symbols), len(strings), 0, 0, 1, 0),
-            (b'.shstrtab', 3, 0, 0, offset+len(symbols)+len(strings), len(names), 0, 0, 1, 0)))
-    path.write_bytes((header + segment).ljust(text_offset, b'\0') + code + symbols + strings + names + sections)
+            (b'.shstrtab', 3, 0, 0, offset+len(symbols)+len(strings), len(names), 0, 0, 1, 0),
+            (b'.rodata', 1, 2, 0x11000, 8192, 4, 0, 0, 4, 0)))
+    path.write_bytes((header + segment).ljust(text_offset, b'\0') + code + symbols + strings + names + sections + bytes(8192-sh_offset-len(sections)) + bytes.fromhex('44332211'))
 
 
 class TrackingTests(unittest.TestCase):
@@ -81,6 +84,33 @@ class TrackingTests(unittest.TestCase):
             self.assertEqual(href, target.as_uri())
             page.write_text(f'[function]({href})', encoding='utf-8')
             self.assertEqual(tracking_pages.verify_links(preview, root, None, None), 1)
+
+    def test_unmatched_function_links_to_review_and_pair_index(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            identities = [{'version': f'16.0.{i}', 'architecture': 'arm64-v8a', 'sha256': 'a' * 64, 'analysis_revision': 'b' * 16}
+                          for i in (1, 2, 3)]
+            reference = root / 'research/reference'
+            address = '00010000'
+            page = reference / reference_path(identities[-1]) / function_path(address)
+            page.parent.mkdir(parents=True)
+            page.write_text('# Entry\n\n## 関数情報\n', encoding='utf-8-sig')
+            destination = root / 'research/comparisons'
+            for name in ('0-1', '1-2'):
+                (destination / name).mkdir(parents=True)
+            (destination / '0-1/README.md').touch()
+            review = destination / '1-2/review-0001.md'
+            review.write_text('<a id="review-1-00010000"></a>\n', encoding='utf-8-sig')
+            write_json(page.parents[2] / 'manifest.json', identities[-1])
+            write_json(destination / 'navigation.json', {'format': 1, 'sources': [comparison_identity(identity) for identity in identities], 'pairs': [
+                {'pair': '0-1', 'older': 0, 'newer': 1, 'details': {}, 'reviews': [{}, {}]},
+                {'pair': '1-2', 'older': 1, 'newer': 2, 'details': {},
+                 'reviews': [{}, {address: [review.name, 'review-1-00010000']}]},
+            ]})
+            tracking_pages.attach_adjacent_links(reference, destination, identities)
+            links = function_comparison_links(page)
+            self.assertTrue(links['v16.0.1 → v16.0.2'].endswith('0-1/README.md)（版の比較一覧）'))
+            self.assertTrue(links['v16.0.2 → v16.0.3'].endswith('1-2/review-0001.md#review-1-00010000)（要確認）'))
 
     def test_logic_scope_and_changes(self):
         a, b = '00010000', '00020000'
@@ -279,7 +309,7 @@ class TrackingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             archive, metadata = root / 'structure.jsonl.gz', root / 'structure-metrics.json'
-            header = {'type': 'program', 'schema': 1, 'sha256': 'a' * 64}
+            header = {'type': 'program', 'schema': 1, 'sha256': 'a' * 64, 'analysis_revision': 'b' * 16}
             export(archive, header, [])
             proof = {'identity': {'sha256': header['sha256']}, 'extractor_sha256': 'expected'}
             write_json(metadata, {'source': proof, 'sha256': digest(archive), 'metrics': {}})
@@ -407,7 +437,28 @@ class TrackingTests(unittest.TestCase):
             tracking_pages.attach(repository, destination, result)
             self.assertFalse((new[0] / 'comparison.md').exists())
             self.assertFalse((new[0] / 'changes/README.md').exists())
-            self.assertTrue((new[0] / function_path(new[1])).read_text(encoding='utf-8-sig').endswith('疑似コード原本\n'))
+            target_page = new[0] / function_path(new[1])
+            self.assertTrue(target_page.read_text(encoding='utf-8-sig').endswith('疑似コード原本\n'))
+            links = function_comparison_links(target_page)
+            self.assertEqual(list(links), ['v15.7.2 → v15.7.3', 'v15.7.3 → v15.7.4'])
+            for value in links.values():
+                route, marker = value.removesuffix(')').split('#')
+                self.assertIn(f'<a id="{marker}"></a>', (target_page.parent / route).read_text(encoding='utf-8-sig'))
+            after = target_page.read_bytes()
+            tracking_pages.attach(repository, destination, result)
+            self.assertEqual(target_page.read_bytes(), after)
+            regenerated = root / 'regenerated'
+            regenerated_page = regenerated / function_path(new[1])
+            regenerated_page.parent.mkdir(parents=True)
+            regenerated_page.write_text('# Entry\n\n## 関数情報\n\n再生成した原本\n', encoding='utf-8-sig')
+            write_json(regenerated / 'manifest.json', read_json(new[0] / 'manifest.json'))
+            carry_function_comparisons(new[0], regenerated, repository)
+            self.assertEqual(function_comparison_links(regenerated_page), links)
+            write_json(regenerated / 'manifest.json', read_json(new[0] / 'manifest.json') | {'analysis_revision': 'f' * 16})
+            regenerated_page.write_text('# Entry\n\n## 関数情報\n\n再生成した原本\n', encoding='utf-8-sig')
+            carry_function_comparisons(new[0], regenerated, repository)
+            self.assertEqual(function_comparison_links(regenerated_page), {})
+            self.assertTrue(regenerated_page.read_text(encoding='utf-8-sig').endswith('再生成した原本\n'))
             self.assertEqual(read_json(new[0] / 'manifest.json')['tracking_format'], 2)
             for page in destination.rglob('*.md'):
                 for link in re.findall(r'\]\(([^)]+)\)', page.read_text(encoding='utf-8-sig')):
@@ -415,6 +466,11 @@ class TrackingTests(unittest.TestCase):
                     self.assertTrue(target.is_file(), link)
             second = tracking.build(datasets[1:], root / 'out', pair_dbs={
                 '0-1': seeds['1-2'], '1-2': seeds['2-3'], '0-2': seeds['1-3']})
+            second_result = read_json(second.with_name('summary.json'))
+            second_destination = result_root / second_result['run']
+            tracking_pages.render(second, repository, second_destination, 'manifest.json', original_url)
+            tracking_pages.attach(repository, second_destination, second_result)
+            self.assertEqual(list(function_comparison_links(target_page)), ['v15.7.2 → v15.7.3', 'v15.7.3 → v15.7.4', 'v15.7.4 → v15.7.5'])
             trace = tracking.trace([db, second], '15.7.2', old[1], 10)
             self.assertEqual(len(trace['nodes']), 4)
             two = tracking.build(datasets[:2], root / 'out', pair_dbs=seeds)
@@ -425,7 +481,7 @@ class TrackingTests(unittest.TestCase):
     def test_ghidra_elf_fixture(self):
         root = LOCAL / 'cache'
         root.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(prefix='tracking-fixture-', dir=root) as temporary:
+        with tempfile.TemporaryDirectory(prefix='tracking-fixture-') as temporary:
             config = {'ghidra_home': os.environ['GHIDRA_HOME'], 'java_home': os.environ['JAVA_HOME'],
                       'program': 'fixture.so', 'heap': '512M', 'analysis_timeout_seconds': 60,
                       'batch_timeout_seconds': 150}
@@ -439,9 +495,28 @@ class TrackingTests(unittest.TestCase):
                 with gzip.open(folder / 'structure.jsonl.gz', 'rt', encoding='utf-8') as stream:
                     records = [json.loads(line) for line in stream]
                 self.assertEqual(records[0]['sha256'], digest(binary))
+                self.assertIs(records[0]['disassembly'], True)
                 self.assertEqual(records[-1]['functions'], len(records)-2)
                 function = max(records[1:-1], key=lambda row: row['instruction_count'])
                 self.assertGreater(len(function['blocks']), 1)
+                self.assertIn('cmp', listing(function, function['body_bytes']))
+                raw_binary = binary.read_bytes()
+                for entry in records[1:-1]:
+                    for instruction, display in zip(entry['instructions'], entry['disassembly']):
+                        site = int(instruction[0], 16)
+                        machine = bytes.fromhex(display[0])
+                        self.assertEqual(machine, raw_binary[4096+site-0x10000:4096+site-0x10000+len(machine)])
+                        self.assertIsInstance(display[2], list)
+                captured = [sample for entry in records[1:-1] for sample in entry['reference_details'] if sample.get('bytes')]
+                self.assertTrue(any(sample['bytes'] == '44332211' for sample in captured))
+                if i == 0:
+                    headless(config | {'sha256': digest(binary)}, folder, binary, 'index', 0)
+                    with (folder / 'index.jsonl').open(encoding='utf-8-sig') as source:
+                        indexed = [json.loads(line) for line in source]
+                    self.assertEqual(indexed[0]['program_id'], records[0]['program_id'])
+                    original_ranges = {entry['address']: entry['ranges'] for entry in indexed if entry['type'] == 'function'}
+                    for entry in records[1:-1]:
+                        self.assertEqual(original_ranges[entry['address']], entry['ranges'])
                 rows.append(function)
             changes = logic.compare(*rows, {}, {})
             self.assertTrue({'constant', 'branch_condition_or_target', 'memory_write_count', 'call'} <= set(changes['changes']))

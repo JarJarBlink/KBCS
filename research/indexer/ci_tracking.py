@@ -29,15 +29,15 @@ def window_tags(tag):
               for entry in previous), tag]
 
 
-def missing_structures(tag):
+def missing_structures(tag, *, current_only=False):
     name = structure_asset_name()
-    return [candidate for candidate in window_tags(tag) if asset_record(candidate, name) is None]
+    return [candidate for candidate in ([tag] if current_only else window_tags(tag)) if asset_record(candidate, name) is None]
 
 
-def backfill(tag, publish):
+def backfill(tag, publish, *, current_only=False):
     public_only()
     LOCAL.mkdir(exist_ok=True)
-    missing = missing_structures(tag)
+    missing = missing_structures(tag, current_only=current_only)
     if missing and not publish:
         raise ValueError('Structure backfill requires publish_reference=true to preserve results between runners')
     for release in missing:
@@ -98,7 +98,7 @@ def publish_tracking(tag, publish):
         entries = restore_window(data, identity, cache, tag, root)
         if len(entries) == 1:
             if publish:
-                manifest.update(comparison_state='no_baseline', tracking_format=2, tracking_policy=TRACKING_POLICY,
+                manifest.update(comparison_state='no_baseline', tracking_format=2, tracking_navigation_format=1, tracking_policy=TRACKING_POLICY,
                                 tracking_sources=tracking_sources([identity]))
                 write_json(manifest_path, manifest)
                 publish_worktree(work, f'Publish native tracking state {revision}')

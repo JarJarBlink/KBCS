@@ -1,6 +1,7 @@
 ﻿import os
 import re
 from pathlib import Path
+from itertools import takewhile
 
 from indexer.reference import GIT_FILE_LIMIT, function_path, reference_path
 from indexer.store import read_json, write_json
@@ -8,6 +9,8 @@ from indexer.store import read_json, write_json
 
 DIRECTIONS = {'previous': 'next', 'next': 'previous'}
 COMPARISON_LINK = '[直前の公開版との関数対応](comparison.md)'
+FUNCTION_TRACKING = 'function-tracking'
+FUNCTION_HEADING = '## 関数情報\n'
 
 
 def relative_link(target, page):
@@ -19,9 +22,11 @@ def overlay(path, direction, link, heading):
         raise ValueError(f'Unsafe reference page path: {path}')
     before = path.read_bytes()
     text = before.decode('utf-8-sig')
-    header, separator, body = text.partition(heading)
-    if not separator:
+    match = re.search(r'^' + re.escape(heading.rstrip('\n')) + r'\r?\n', text, re.MULTILINE)
+    if not match:
         raise ValueError(f'Unexpected reference page format: {path}')
+    header = text[:match.start()].replace('\r\n', '\n')
+    separator, body = heading, text[match.end():]
     start, end = f'<!-- kbcs-version-{direction} -->', f'<!-- /kbcs-version-{direction} -->'
     block = f'{start}\n{link}\n{end}\n\n' if link else ''
     header, replaced = re.subn(rf'^{start}\n.*?^{end}\n\n', lambda _: block, header, flags=re.MULTILINE | re.DOTALL)
@@ -36,6 +41,114 @@ def overlay(path, direction, link, heading):
 
 def catalog_path(source, direction):
     return source / 'version-links' / (direction + '.json')
+
+
+def function_comparison_links(page):
+    with page.open(encoding='utf-8-sig') as source:
+        header = ''.join(takewhile(lambda line: line != FUNCTION_HEADING, source))
+    block = header.partition(f'<!-- kbcs-version-{FUNCTION_TRACKING} -->\n')[2]
+    block = block.partition(f'<!-- /kbcs-version-{FUNCTION_TRACKING} -->')[0]
+    return {match[1]: match[2] for match in re.finditer(r'^- \[([^\]]+)\]\((.+)$', block, re.MULTILINE)}
+
+
+def attach_function_comparisons(page, links):
+    if links:
+        content = '\n'.join(f'- [{title}]({target}' for title, target in sorted(
+            links.items(), key=lambda item: tuple(map(int, re.findall(r'\d+', item[0])))))
+        overlay(page, FUNCTION_TRACKING, '## 連続バージョンの比較\n\n' + content, FUNCTION_HEADING)
+
+
+def comparison_identity(identity):
+    return {key: identity[key] for key in ('version', 'architecture', 'sha256', 'analysis_revision')}
+
+
+def comparison_catalog(source):
+    path = source / 'function-comparisons.json'
+    if not path.is_file():
+        return None
+    catalog = read_json(path)
+    if 'intervals' in catalog:
+        catalog['rows'] = {address: [catalog['intervals'][entry['interval']] |
+            {key: value for key, value in entry.items() if key != 'interval'} for entry in entries]
+            for address, entries in catalog['rows'].items()}
+    return catalog
+
+
+def write_comparison_catalog(source, catalog):
+    # 版の出典は区間ごとに共用し、関数ごとに同じSHAや版を繰り返し保存しない。
+    intervals, rows = {}, {}
+    for address, entries in catalog['rows'].items():
+        rows[address] = []
+        for entry in entries:
+            key = entry['older']['version'] + '--' + entry['newer']['version']
+            intervals[key] = {side: entry[side] for side in ('older', 'newer')}
+            rows[address].append({'interval': key, 'target': entry['target'], 'kind': entry['kind']})
+    write_json(source / 'function-comparisons.json', catalog | {'intervals': intervals, 'rows': rows})
+
+
+def valid_comparison_entries(catalog, source, repository):
+    if not catalog or catalog.get('format') != 1:
+        return {}
+    manifest = read_json(source / 'manifest.json')
+    if catalog['identity'] != comparison_identity(manifest):
+        return {}
+    rows = {}
+    valid = {}
+    anchors = {}
+    for address, entries in catalog['rows'].items():
+        for entry in entries:
+            # 版・ABI・SO・解析リビジョンの異なる区間は持ち越さない。
+            key = (entry['older']['version'], entry['newer']['version'])
+            if key not in valid:
+                valid[key] = all((repository / 'research/reference' / reference_path(identity) / 'manifest.json').is_file()
+                    and comparison_identity(read_json(repository / 'research/reference' / reference_path(identity) / 'manifest.json')) == identity
+                    for identity in (entry['older'], entry['newer']))
+            target, _, anchor = entry['target'].partition('#')
+            page = (repository / target).resolve()
+            if valid[key] and page.is_relative_to(repository) and page.is_file():
+                if anchor and page not in anchors:
+                    anchors[page] = set(re.findall(r'<a id="([^"]+)"></a>', page.read_text(encoding='utf-8-sig')))
+                if anchor and anchor not in anchors[page]:
+                    raise ValueError(f'Missing comparison anchor: {entry["target"]}')
+                rows.setdefault(address, []).append(entry)
+    return rows
+
+
+def render_comparison_catalog(source, catalog, repository):
+    for address, entries in catalog['rows'].items():
+        page = source / function_path(address)
+        if not page.is_file():
+            continue
+        links = {}
+        for entry in entries:
+            target, _, anchor = entry['target'].partition('#')
+            href = relative_link(repository / target, page) + ('#' + anchor if anchor else '')
+            title = f"v{entry['older']['version']} → v{entry['newer']['version']}"
+            suffix = {'accepted': '', 'review': '（要確認）', 'index': '（版の比較一覧）'}[entry['kind']]
+            links[title] = href + ')' + suffix
+        attach_function_comparisons(page, links)
+    write_comparison_catalog(source, catalog)
+
+
+def carry_function_comparisons(previous, source, repository=None):
+    catalog = comparison_catalog(previous)
+    if not catalog or not (source / 'manifest.json').is_file():
+        return
+    manifest = read_json(source / 'manifest.json')
+    if (catalog['identity'] != comparison_identity(manifest)
+            or read_json(previous / 'manifest.json')['source_database_sha256'] != manifest['source_database_sha256']):
+        return
+    repository = repository or previous.parents[4]
+    catalog['rows'] = valid_comparison_entries(catalog, previous, repository)
+    # 生成先は公開ツリーと同じ深さなので、リンクは公開先を基準に作る。
+    for page in source.glob('functions/*/*.md'):
+        original = previous / page.relative_to(source)
+        if original.is_file():
+            links = function_comparison_links(original)
+            titles = {f"v{entry['older']['version']} → v{entry['newer']['version']}"
+                      for entry in catalog['rows'].get(page.stem.replace('EXTERNAL-', 'EXTERNAL:'), ())}
+            attach_function_comparisons(page, {title: value for title, value in links.items() if title in titles})
+    write_comparison_catalog(source, catalog)
 
 
 def render_links(source, direction, catalog, previous=None):

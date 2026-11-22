@@ -47,6 +47,12 @@ public class ExportCache extends HeadlessScript {
             return value;
         } catch(Exception exception) { return null; }
     }
+    private List<List<String>> ranges(AddressSetView body) {
+        List<List<String>> result = new ArrayList<>();
+        for (AddressRange range : body.getAddressRanges())
+            result.add(List.of(key(range.getMinAddress()), key(range.getMaxAddress())));
+        return result;
+    }
     public void run() throws Exception {
         String[] args = getScriptArgs();
         Path root = Paths.get(args[0]);
@@ -71,7 +77,7 @@ public class ExportCache extends HeadlessScript {
                 emit(writer, row("type","program","sha256",currentProgram.getExecutableSHA256(),
                     "library",currentProgram.getName(),"language",currentProgram.getLanguageID().toString(),
                     "image_base",key(currentProgram.getImageBase()),"ghidra",ghidra.framework.Application.getApplicationVersion(),
-                    "function_count",manager.getFunctionCount(),"executable",currentProgram.getExecutablePath(),
+                    "program_id",Long.toUnsignedString(currentProgram.getUniqueProgramID(),16),"function_count",manager.getFunctionCount(),"executable",currentProgram.getExecutablePath(),
                     "analysis_timed_out",analysisTimeoutOccurred(),
                     "analysis_marked_complete",currentProgram.getOptions(Program.PROGRAM_INFO).getBoolean(Program.ANALYZED_OPTION_NAME,false),
                     "string_extraction","defined-data-or-bounded-readonly-utf8-utf16le"));
@@ -83,7 +89,7 @@ public class ExportCache extends HeadlessScript {
                     emit(writer,row("type","function","address",entry,"name",function.getName(true),
                         "size",function.getBody().getNumAddresses(),"external",function.isExternal(),
                         "thunk",function.isThunk(),"name_source",function.getSymbol().getSource().toString(),
-                        "confidence","unreviewed"));
+                        "confidence","unreviewed","ranges",ranges(function.getBody())));
                     AddressIterator sources=currentProgram.getReferenceManager().getReferenceSourceIterator(function.getBody(),true);
                     while(sources.hasNext()) {
                         Address source=sources.next();

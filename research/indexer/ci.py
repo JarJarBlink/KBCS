@@ -474,6 +474,7 @@ def main():
     parser.add_argument('--label', default='ci-v1')
     parser.add_argument('--publish', action='store_true')
     parser.add_argument('--checkpoint')
+    parser.add_argument('--current-only', action='store_true')
     args = parser.parse_args()
     if args.action in ('setup', 'setup-apk'):
         public_only()
@@ -485,8 +486,8 @@ def main():
             from indexer.ci_tracking import backfill
 
             tag = analyze(args.manifest, args.label)
-            publish_materials(tag, args.publish)
             backfill(tag, args.publish)
+            publish_materials(tag, args.publish)
             publish_comparison(tag, args.publish)
         else:
             if not args.checkpoint:
@@ -495,10 +496,10 @@ def main():
                 from indexer.ci_tracking import backfill, missing_structures
 
                 if args.action == 'backfill':
-                    backfill(args.checkpoint, args.publish)
+                    backfill(args.checkpoint, args.publish, current_only=args.current_only)
                 else:
                     public_only()
-                    missing = missing_structures(args.checkpoint)
+                    missing = missing_structures(args.checkpoint, current_only=args.current_only)
                     print(json.dumps({'missing_structure_checkpoints': missing}), flush=True)
                     with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
                         output.write(f'needed={str(bool(missing)).lower()}\n')
