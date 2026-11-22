@@ -9,6 +9,7 @@ import struct
 import tarfile
 import tempfile
 import unittest
+import zlib
 from collections import defaultdict
 from contextlib import closing, redirect_stdout
 from pathlib import Path
@@ -342,6 +343,22 @@ class TrackingTests(unittest.TestCase):
                     lambda _, address: missing if address == 'old' else caller, [('unresolved', [], {})])
                 self.assertEqual(kind, expected)
                 self.assertEqual(len(proof['reference_witnesses']), 2)
+
+    def test_processing_locations_count_split_without_reusing_a_site(self):
+        source = record('00001000', [op('COPY', f'const:{i}:8', output='register:4000:8') for i in range(8)])
+        peers = [record(address, [item[3][0] for item in source['instructions'][start:start+4]])
+                 for address, start in (('00002000', 0), ('00003000', 4))]
+        with closing(sqlite3.connect(':memory:')) as db:
+            db.executescript(tracking.DDL)
+            for peer in peers:
+                value = blocks.align(source, peer)
+                db.execute('INSERT INTO instruction_alignment VALUES(?,?,?,?,?)',
+                    ('0-1', source['address'], peer['address'], zlib.compress(structure.pack(value).encode()), '{}'))
+            entries = instruction_matcher.locations(0, source['address'], db, '0-1', lambda *_: source,
+                                                    ({}, {}), (defaultdict(set),)*4)
+            self.assertEqual(entries[0][0], 'split_candidate')
+            self.assertEqual(entries[0][2]['explained_source_instructions'], 8)
+            self.assertEqual(db.execute('SELECT SUM(source_instructions) FROM processing_locations').fetchone()[0], 8)
 
     def test_structural_promotion_requires_strict_operands_and_anchors(self):
         left, right = '00001111', '00002222'
