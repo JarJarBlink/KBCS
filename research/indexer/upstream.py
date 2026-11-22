@@ -147,9 +147,12 @@ def tracking_sources(versions):
 def publication_state(data, manifest, repository):
     if manifest is None:
         return 'new'
+    if manifest.get('reference_policy') != 'native-reference-v1':
+        return 'references_pending'
     state = manifest.get('comparison_state', 'pending')
     if state in ('complete', 'no_baseline') and (
-            manifest.get('tracking_format') == 2 and manifest.get('tracking_policy') == TRACKING_POLICY):
+            manifest.get('tracking_format') == 2 and manifest.get('tracking_policy') == TRACKING_POLICY
+            and manifest.get('tracking_navigation_format') == 1):
         expected = tracking_sources([*previous_references(data, repository), manifest])
         if manifest.get('tracking_sources') == expected:
             return state
@@ -176,12 +179,13 @@ def main():
         if state == 'new':
             write_json(LOCAL / 'ci-upstream.json', data)
             output.write('needed=true\n')
-        elif state == 'pending':
+        elif state in ('pending', 'references_pending'):
             revision = manifest['analysis_revision']
             if not re.fullmatch('[a-f0-9]{16}', revision):
                 raise ValueError('Invalid published revision')
             output.write(f"checkpoint=native-analysis-{data['versionName']}-{data['architecture']}-{revision}\n")
-            output.write('match_only=true\n')
+            if state == 'pending':
+                output.write('match_only=true\n')
 
 
 if __name__ == '__main__':

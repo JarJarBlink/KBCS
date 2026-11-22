@@ -104,7 +104,7 @@ def headless(config, root, snapshot, mode, timeout, initialize=False, analyze_ex
             alias.symlink_to(target, target_is_directory=True)
     if alias.resolve() != target.resolve():
         raise ValueError('Unexpected ghidra-workspace junction target')
-    project = alias / root.relative_to(target) / 'project'
+    project = (alias / root.relative_to(target) if root.is_relative_to(target) else root) / 'project'
     project.mkdir(exist_ok=True)
     existing = project / 'cache.gpr'
     if not existing.exists() and snapshot.suffix == '.zip':
