@@ -12,6 +12,7 @@ from indexer.reference import reference_path
 from indexer.store import LOCAL, digest, read_json, reference_signature, write_json
 from indexer.upstream import LIBRARY, TRACKING_POLICY, adjacent_references, tracking_sources
 from matcher import tracking, tracking_pages
+from matcher.comparison_pages import overlay
 from matcher.structure import reader
 
 
@@ -115,6 +116,8 @@ def publish_tracking(tag, publish, *, regenerate=False):
             validate_cache(cache, manifest, identity)
         if len(entries) == 1:
             if publish:
+                overlay(manifest_path.with_name('README.md'), 'tracking-neighbors',
+                        '同じABIで比較できる公開版はまだありません。', '## アドレス索引\n')
                 manifest.update(comparison_state='no_baseline', tracking_format=2, tracking_navigation_format=1, tracking_policy=TRACKING_POLICY,
                                 tracking_sources=tracking_sources([identity]))
                 write_json(manifest_path, manifest)
