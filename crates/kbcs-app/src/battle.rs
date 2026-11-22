@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, ensure};
+﻿use anyhow::{Context, Result, ensure};
 use kbcs_bridge::{actor, battle, battle_screen, production, render, stage};
 use kbcs_data::{equipment, formations::Document, store::Database};
 use serde::Deserialize;
@@ -1475,7 +1475,7 @@ impl Session {
         let references = native(self.core.active_actors())?;
         let mut frame = self
             .scene
-            .draw(&self.database, input)
+            .draw_with_castle_state(&self.database, input, actors[0][0].words[1])
             .context("戦闘背景の描画")?;
         let mut order = Vec::new();
         for side in [1, 0] {

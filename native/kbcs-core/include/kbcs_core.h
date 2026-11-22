@@ -162,6 +162,7 @@ typedef struct { int32_t texture,layer,count,blend; double opacity,points[16]; i
 typedef struct { KbcsSceneInput scene; int32_t cut[4],top[4],colors[12],overlay[7],self_sizes[6],show_enemy,show_player; } KbcsPaintInput;
 uint32_t kbcs_core_scene_paint(const KbcsPaintInput*,KbcsSceneLayout*,KbcsDrawCommand*,int32_t,int32_t*);
 uint32_t kbcs_core_battle_scene_paint(const KbcsPaintInput*,int32_t slot_slide,KbcsSceneLayout*,KbcsDrawCommand*,int32_t,int32_t*);
+uint32_t kbcs_core_live_scene_paint(const KbcsPaintInput*,int32_t slot_slide,int32_t player_castle_state,int32_t battle_frame,KbcsSceneLayout*,KbcsDrawCommand*,int32_t,int32_t*);
 uint32_t kbcs_core_scene_transform(const KbcsSceneLayout*,const KbcsDrawCommand*,double,double,double,KbcsDrawCommand*);
 typedef struct { double rect[4],angle,opacity; int32_t texture,layer,blend,cut[4]; } KbcsSpriteInput;
 uint32_t kbcs_core_scene_sprite(const KbcsSceneLayout*,const KbcsSpriteInput*,KbcsDrawCommand*);

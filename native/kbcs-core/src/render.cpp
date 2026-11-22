@@ -284,7 +284,7 @@ extern "C" uint32_t kbcs_core_scene_sprite(const KbcsSceneLayout *layout,const K
   std::copy_n(in->cut,4,command.cut);
   return kbcs_core_scene_transform(layout,&command,in->rect[0],in->rect[1],in->angle,out);
 }
-extern "C" uint32_t kbcs_core_battle_scene_paint(const KbcsPaintInput *in,int32_t slot_slide,KbcsSceneLayout *layout,KbcsDrawCommand *out,int32_t capacity,int32_t *written) {
+extern "C" uint32_t kbcs_core_live_scene_paint(const KbcsPaintInput *in,int32_t slot_slide,int32_t player_castle_state,int32_t battle_frame,KbcsSceneLayout *layout,KbcsDrawCommand *out,int32_t capacity,int32_t *written) {
   if(!in||!layout||!out||!written||capacity<1||capacity>16384)return 1;
   try {
   KbcsSceneLayout camera{};const auto code=kbcs_core_battle_scene_layout(&in->scene,slot_slide,&camera);if(code)return code;
@@ -313,16 +313,22 @@ extern "C" uint32_t kbcs_core_battle_scene_paint(const KbcsPaintInput *in,int32_
     const double size=in->scene.castle[2];const int32_t cut[4]={0,0,-1,-1};
     sprite(1,2,cut,std::trunc((3200-std::trunc(size*1180/100))/10)+std::trunc(size*in->scene.castle[0]/100),440-std::trunc(size*255/100)+std::trunc(size*in->scene.castle[1]/100),std::trunc(size*127/100),std::trunc(size*255/100));
   }
+  // 007082e8: 自城の状態が非ゼロの間は、戦闘の奇数フレームで描画位置だけをずらす。
+  const double player_x=camera.width-320+(player_castle_state!=0&&battle_frame%2==1?4:0);
   if(in->show_player)for(int i=0;i<3;++i){
     if(in->self_sizes[i*2]<=0||in->self_sizes[i*2+1]<=0)continue;
     const int32_t cut[4]={0,0,in->self_sizes[i*2],in->self_sizes[i*2+1]};
-    sprite(2+i,2,cut,camera.width-320,i==2?117:280,std::trunc(cut[2]*1.27),std::trunc(cut[3]*1.27));
+    sprite(2+i,2,cut,player_x,i==2?117:280,std::trunc(cut[2]*1.27),std::trunc(cut[3]*1.27));
   }
   if(in->overlay[6]>=0)gradient(in->overlay,in->overlay+3,0,640,double(in->overlay[6])/255,4);
   if(commands.size()>size_t(capacity))return 2;
   std::copy(commands.begin(),commands.end(),out);*written=int32_t(commands.size());*layout=camera;return 0;
   } catch(...) { return 3; }
 }
+extern "C" uint32_t kbcs_core_battle_scene_paint(const KbcsPaintInput *in,int32_t slot_slide,KbcsSceneLayout *layout,KbcsDrawCommand *out,int32_t capacity,int32_t *written) {
+  return kbcs_core_live_scene_paint(in,slot_slide,0,0,layout,out,capacity,written);
+}
+
 extern "C" uint32_t kbcs_core_scene_paint(const KbcsPaintInput *in,KbcsSceneLayout *layout,KbcsDrawCommand *out,int32_t capacity,int32_t *written) {
   return kbcs_core_battle_scene_paint(in,0,layout,out,capacity,written);
 }
