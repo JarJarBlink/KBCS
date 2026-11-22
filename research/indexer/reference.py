@@ -191,7 +191,6 @@ def verify_reference_links(root):
 
 
 def generate_cache(cache, output, *, structure=None, addresses=None):
-    started = time.perf_counter()
     cache, output = cache.resolve(), output.resolve()
     if output == cache or cache in output.parents:
         raise ValueError('Output must be outside the source cache')
@@ -368,13 +367,11 @@ GitHub連携の検索結果が不十分なら、既知のファイルパスを�
                                      'page_limit_bytes': GIT_FILE_LIMIT, 'format': REFERENCE_FORMAT}
     save(Path('manifest.json'), json.dumps(summary, ensure_ascii=False, indent=2) + '\n', count=False)
     write_reference_index(output)
-    from matcher.report import peak_memory
-    print(json.dumps({'root': str(root), 'generation_seconds': time.perf_counter() - started,
-                      'peak_working_set_bytes': peak_memory(), **summary}, ensure_ascii=False, indent=2))
     return root, summary
 
 
 def export_cache(cache, output, *, structure=None, addresses=None):
+    started = time.perf_counter()
     cache, output = cache.resolve(), output.resolve()
     if output == cache or output.is_relative_to(cache):
         raise ValueError('Output must be outside the source cache')
@@ -393,9 +390,9 @@ def export_cache(cache, output, *, structure=None, addresses=None):
                 from matcher.comparison_pages import carry_function_comparisons
                 carry_function_comparisons(target, root, output.parent.parent)
             replace_reference(root, output, move=True)
-    if addresses:
-        # 部分プレビューは公開用索引・完了manifestを作らない。
-        return target, summary
+    from matcher.report import peak_memory
+    print(json.dumps({'root': str(target), 'generation_seconds': time.perf_counter() - started,
+                      'peak_working_set_bytes': peak_memory(), **summary}, ensure_ascii=False, indent=2))
     return target, summary
 
 
