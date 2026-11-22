@@ -71,6 +71,9 @@ class CiTests(unittest.TestCase):
               patch.object(ci_tracking, 'asset_record', side_effect=[{}, None, {}, {}, {}, {}])):
             self.assertEqual(ci_tracking.missing_structures('new'), ['middle'])
             self.assertEqual(ci_tracking.missing_structures('new'), [])
+        with (patch.object(ci_tracking, 'window_tags', side_effect=AssertionError('references needs only its own source')),
+              patch.object(ci_tracking, 'asset_record', return_value=None)):
+            self.assertEqual(ci_tracking.missing_structures('new', current_only=True), ['new'])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             asset = root / 'structure.tar'
