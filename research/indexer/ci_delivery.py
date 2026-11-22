@@ -5,7 +5,7 @@ from pathlib import Path
 from indexer.ci import public_only, restore
 from indexer.reference import export_cache, reference_path, replace_reference
 from indexer.store import LOCAL, read_json, write_json
-from matcher.comparison_pages import DIRECTIONS, carry_function_comparisons, disconnect
+from matcher.comparison_pages import DIRECTIONS, carry_function_comparisons, disconnect, preserve_published_links
 
 
 def checkpoint_key(tag):
@@ -34,7 +34,7 @@ def same_reference(manifest, expected):
     return all(manifest.get(key) == value for key, value in expected.items())
 
 
-def stage_materials(cache, data, structure, output, reference=None):
+def stage_materials(cache, data, structure, output, reference=None, *, base_url=None):
     source, report = export_cache(cache, output, structure=structure)
     report.update(source_archive_sha256=data['archiveSha256'], source_version_code=data['versionCode'],
                   comparison_state='pending')
@@ -42,11 +42,14 @@ def stage_materials(cache, data, structure, output, reference=None):
     if reference is None:
         return source
     destination = reference / reference_path(report)
+    keys = ('source_database_sha256', 'analysis_revision', 'source_archive_sha256', 'source_version_code')
+    expected = {key: report[key] for key in keys}
     previous = destination / 'manifest.json'
-    if previous.is_file() and same_reference(read_json(previous), {
-            key: report[key] for key in ('source_database_sha256', 'analysis_revision', 'source_archive_sha256', 'source_version_code')}):
+    if previous.is_file() and same_reference(read_json(previous), expected):
         carry_function_comparisons(destination, source, reference.parent.parent)
     for replaced in destination.parent.glob('*/manifest.json'):
+        if base_url and (replaced != previous or not same_reference(read_json(replaced), expected)):
+            preserve_published_links(reference.parent.parent, replaced.parent, base_url)
         for direction in DIRECTIONS:
             disconnect(reference, replaced.parent, direction, replacing=True)
     replace_reference(source, reference, move=True)

@@ -20,7 +20,7 @@ from indexer.reference_structure import listing
 from indexer.run import headless
 from indexer.store import LOCAL, connect, digest, read_json, write_json
 from matcher import blocks, instruction_matcher, logic, structure, tracking, tracking_pages, tracking_pair
-from matcher.comparison_pages import carry_function_comparisons, comparison_catalog, comparison_identity, valid_comparison_entries, catalog_path, function_comparison_links, render_links
+from matcher.comparison_pages import carry_function_comparisons, comparison_catalog, comparison_identity, valid_comparison_entries, catalog_path, function_comparison_links, preserve_published_links, render_links
 
 
 def op(name, *values, output=None):
@@ -85,6 +85,24 @@ class TrackingTests(unittest.TestCase):
             self.assertEqual(href, target.as_uri())
             page.write_text(f'[function]({href})', encoding='utf-8')
             self.assertEqual(tracking_pages.verify_links(preview, root, None, None), 1)
+
+    def test_archived_comparison_keeps_exact_replaced_reference(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            previous = root / 'research/reference/1.0.0/arm64-v8a' / ('a' * 64)
+            function = previous / function_path('00001000')
+            function.parent.mkdir(parents=True)
+            function.touch()
+            page = root / 'research/comparisons/arm64-v8a/run/0-1/review.md'
+            href = tracking_pages.link(function, page)
+            text = f'[function]({href})\n\n~~~text\n[quoted]({href})\n~~~\n'
+            page.parent.mkdir(parents=True)
+            page.write_text(text, encoding='utf-8-sig')
+            base = 'https://example.invalid/commit/'
+            preserve_published_links(root, previous, base)
+            final = page.read_text(encoding='utf-8-sig')
+            self.assertIn(f'[function]({base}{function.relative_to(root).as_posix()})', final)
+            self.assertIn(f'[quoted]({href})', final)
 
     def test_unmatched_function_links_to_review_and_pair_index(self):
         with tempfile.TemporaryDirectory() as temporary:
