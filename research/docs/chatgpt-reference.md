@@ -1,5 +1,7 @@
 ﻿# 普段のChatGPTからネイティブ解析資料を参照する
 
+現行の構造データ・範囲別ページ・連続版リンクの生成は[ネイティブ関数資料の手順](../indexer/docs/native-reference.md)、3版の実測は[2026-11-22の検証](../indexer/docs/native-reference-validation.md)を参照してください。
+
 ## 目的と保存先
 
 KBCSの通常のGitファイルへ関数別のMarkdownとアドレス索引を書き出します。Web版・スマホ版のChatGPTでGitHub連携を使い、必要な関数だけ検索・取得する用途を想定します。
@@ -21,7 +23,7 @@ research/reference/
 
 各関数ページには版・ライブラリ・SO SHA-256・アドレス・名前・状態・確度、呼び出し元／先のリンク、関連文字列、疑似コードを保持します。失敗関数は理由と逆アセンブル、外部関数は実装が対象SOにないことを状態で区別します。名前や型、文字列の意味は未確認で、追加設定による復旧はlowです。
 
-MarkdownはBOM付きUTF-8で1関数1ファイルです。旧形式で分割に使った64 KiBは書き出しツール側の上限でした。現在は全文をまとめ、GitHubの100 MiBの上限を超えるファイルがあれば書き出しを停止します。GitHubのプレビューが省略された場合はRawを使います。[GitHubのファイルと表示の上限](https://docs.github.com/en/repositories/creating-and-managing-repositories/repository-limits)
+MarkdownはBOM付きUTF-8で、擬似コードは1関数1ファイルです。構造詳細の大きい一覧は、関数ページから命令範囲別のassembly/blocks/references/dataページへ進みます。旧形式で分割に使った64 KiBは書き出しツール側の上限でした。現在は全文をまとめ、GitHubの100 MiBの上限を超えるファイルがあれば書き出しを停止します。GitHubのプレビューが省略された場合はRawを使います。[GitHubのファイルと表示の上限](https://docs.github.com/en/repositories/creating-and-managing-repositories/repository-limits)
 
 疑似コードの見出しにあるUTF-8バイト数が原文の長さです。コードフェンスの直後からそのバイト数を読み、`source_text_sha256` と照合できます。`source_sha256` は元ファイルのBOMを含むハッシュです。`.gitattributes` がGitの改行変換を止めます。
 
@@ -47,18 +49,19 @@ ChatGPTのGitHub連携で `sinsuirakv0/KBCS` へのアクセスを許可しま�
 
 ```powershell
 $env:PYTHONPATH = (Resolve-Path research).Path
-python -m indexer.reference --output research/.local/chatgpt-reference-v2
+python -m indexer.reference --cache <完成キャッシュ> --structure <検証済みstructure.jsonl.gz> --output research/.local/chatgpt-reference-v3
+python -m indexer.reference --cache <完成キャッシュ> --structure <structure.jsonl.gz> --address 00a15d8c --output research/.local/preview-00a15d8c
 python -m unittest indexer.test_reference
 ```
 
-`--cache` を省くと既定の完成済みキャッシュを使用します。SQLiteはmode=roで開きます。未完了の状態やキャッシュ外を指す原本パスは拒否します。形式やDBハッシュが変わる場合は別の出力先へ生成し、公開側を入れ替えます。
+`--cache` を省くと既定の完成済みキャッシュを使用します。SQLiteはmode=roで開きます。未完了の状態やキャッシュ外を指す原本パスは拒否します。構造を省略する従来CLIも使えます。現行形式・入力SHA・生成器署名が一致する完成出力は再利用し、`--refresh` で再生成できます。検査済みの一式を同じ版・ABIへ切り替えます。
 
 - `export_cache`：読み取り専用DBから関数・解決済み呼出辺・関連文字列を集め、関数ページと索引を作る。元DBのSHA-256も終了時に再確認する。
 - `function_path`：アドレスから安定した相対パスを作る。`fenced` が原文に干渉しないフェンスを選び、`save` がBOMと上限を確認する。
 - `replace_reference`：同じ版・ABIを準備済みの資料へ切り替え、入口の索引を更新する。
 - `test_reference`：日本語・CRLF・長い1行・フェンスを含む原文の復元、リンク先、サイズ上限、状態区別、元DBの不変をまとめて確認する。
 
-manifestのpages/page_bytesは版別ディレクトリのMarkdownだけを集計し、manifest自身と共通の入口・属性ファイルを含みません。SQLiteの全参照788,895件はRelease側に保持し、この書き出しでは呼び出し関係と関連文字列を使います。命令単位の詳細参照が必要ならローカルCLIのrefsを使ってください。
+manifestのpages/page_bytesは版別ディレクトリのMarkdownだけを集計し、manifest自身と共通の入口・属性ファイルを含みません。従来の15.7.2のSQLiteでは全参照788,895件をReleaseへ保持しています。現行の構造付き書き出しは命令位置別参照も収録し、全本体範囲、命令バイト、CFG、参照先データの取得範囲と未解決理由を示します。ローカルCLIのrefsも引き続き利用できます。
 
 ## 1関数1ファイルの実測（2026-11-07）
 
