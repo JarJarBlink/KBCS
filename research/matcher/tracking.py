@@ -13,7 +13,7 @@ from pathlib import Path
 from indexer.reference import function_path, reference_path
 from indexer.run import headless, locked
 from indexer.store import LOCAL, configure_output, digest, read_json, write_json
-from matcher import logic, report, structure, tracking_pair
+from matcher import blocks, instruction_matcher, logic, report, structure, tracking_pair
 
 
 FORMAT = 2
@@ -51,6 +51,19 @@ CREATE TABLE layout(pair TEXT,old_start TEXT,old_end TEXT,new_start TEXT,new_end
 CREATE TABLE cycles(older INTEGER,middle INTEGER,newer INTEGER,old TEXT,middle_address TEXT,via TEXT,direct TEXT,
     state TEXT,temporal TEXT,evidence TEXT,PRIMARY KEY(older,middle,newer,old));
 CREATE TABLE conflict_edges(pair TEXT,old TEXT,new TEXT,PRIMARY KEY(pair,old,new));
+CREATE TABLE instruction_alignment(pair TEXT,old TEXT,new TEXT,alignment BLOB,evidence TEXT,
+    PRIMARY KEY(pair,old,new),FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE INDEX instruction_alignment_new ON instruction_alignment(pair,new);
+CREATE TABLE instruction_candidates(pair TEXT,old TEXT,new TEXT,rank INTEGER,score REAL,eligible INTEGER,
+    accepted INTEGER,evidence TEXT,PRIMARY KEY(pair,old,new),FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE INDEX instruction_candidates_new ON instruction_candidates(pair,new,score DESC);
+CREATE TABLE search_scope(pair TEXT,side INTEGER,address TEXT,evidence TEXT,
+    PRIMARY KEY(pair,side,address),FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE TABLE entry_states(pair TEXT,side INTEGER,address TEXT,state TEXT,evidence TEXT,
+    PRIMARY KEY(pair,side,address),FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE TABLE processing_locations(pair TEXT,side INTEGER,address TEXT,target TEXT,kind TEXT,
+    source_instructions INTEGER,target_instructions INTEGER,evidence TEXT,PRIMARY KEY(pair,side,address,target),
+    FOREIGN KEY(pair) REFERENCES pairs(pair));
 CREATE TABLE manual_decisions(pair TEXT,old TEXT,new TEXT,action TEXT,note TEXT,
     PRIMARY KEY(pair,old,new,action),FOREIGN KEY(pair) REFERENCES pairs(pair));
 """
@@ -75,10 +88,12 @@ def load_dataset(cache, binary, archive, metrics=None):
 
 
 def configuration(datasets, decisions):
-    modules = (structure, logic, logic.effects, tracking_pair, report, report.features, report.relations, report.engine)
+    modules = (structure, blocks, instruction_matcher, logic, logic.effects, tracking_pair,
+               report, report.features, report.relations, report.engine)
     code = {Path(module.__file__).name: digest(Path(module.__file__)) for module in modules}
     code[Path(__file__).name] = digest(Path(__file__))
     code['tracking_pages.py'] = digest(Path(__file__).with_name('tracking_pages.py'))
+    code[blocks.POLICY_PATH.name] = digest(blocks.POLICY_PATH)
     reviews = {path.name: digest(path) for path in sorted(decisions.glob('*.json'))} if decisions else {}
     sources = [(reference_path(entry['identity']).as_posix(), entry['identity']['analysis_revision'],
                 digest(entry['cache'] / 'cache.sqlite'), digest(entry['archive'])) for entry in datasets]
@@ -156,6 +171,14 @@ def reconcile(db, pair_maps, count):
                        (i, i + 1, i + 2, a, b, via, c, state, temporal, structure.pack({
                            'logic_status': logic_status, 'other_middle': alt_b, 'other_old': alt_a,
                            'direct_other_old': inv_first.get(alt_b)})))
+    # 経路矛盾がある組を採用・追加削除の根拠から降格する。原判断と差分本文は保全する。
+    for pair, old, new in db.execute('SELECT pair,old,new FROM conflict_edges').fetchall():
+        db.execute("UPDATE relations SET verdict='held_conflict' WHERE pair=? AND old=? AND new=? AND verdict='accepted'", (pair, old, new))
+        for side, address, other in ((0, old, new), (1, new, old)):
+            db.execute('INSERT OR REPLACE INTO entry_states VALUES(?,?,?,?,?)',
+                       (pair, side, address, 'path_conflict', structure.pack({'processing': 'under_investigation'})))
+            db.execute('INSERT INTO review VALUES(?,?,?,?,?,?)',
+                       (pair, side, address, 'path_conflict', structure.pack([other]), structure.pack({'reason': 'direct_and_adjacent_routes_disagree'})))
     return dict(totals)
 
 
@@ -201,7 +224,7 @@ def initial_pair(datasets, i, j, output, pair_dbs, decisions):
     if initial is None:
         initial = report.build(Namespace(old_cache=left['cache'], new_cache=right['cache'],
             old_binary=left['binary'], new_binary=right['binary'], features=output / 'features',
-            output=None, decisions=choice, validate=True, reuse=True))
+            output=None, matching_root=output / 'pairs', decisions=choice, validate=True, reuse=True))
     with structure.reader(initial) as db:
         metadata = {k: json.loads(v) for k, v in db.execute('SELECT key,value FROM metadata')}
     for side, dataset in (('old', left), ('new', right)):
@@ -218,6 +241,7 @@ def initial_pair(datasets, i, j, output, pair_dbs, decisions):
 
 def build(datasets, output, *, decisions=None, pair_dbs=None):
     started = time.monotonic()
+    cpu_started = time.process_time()
     datasets = sorted(datasets, key=lambda entry: version_key(entry['identity']))
     if len(datasets) < 2 or len({entry['identity']['version'] for entry in datasets}) != len(datasets):
         raise ValueError('Tracking requires at least two distinct versions')
@@ -281,7 +305,8 @@ def build(datasets, output, *, decisions=None, pair_dbs=None):
             metadata = {'format': FORMAT, 'run': run, 'configuration': config_id, 'complete': True, 'sources': sources, 'engine': code,
                         'pairs': summaries, 'cycles': cycles,
                         'structure': [entry['structure'] | {'process_metrics': entry['metrics']} for entry in datasets],
-                        'seconds': time.monotonic() - started, 'peak_rss_bytes': report.peak_memory()}
+                        'seconds': time.monotonic() - started, 'cpu_seconds': time.process_time() - cpu_started,
+                        'peak_rss_bytes': report.peak_memory()}
             db.execute('INSERT INTO metadata VALUES(?,?)', ('result', structure.pack(metadata)))
             db.commit()
             if db.execute('PRAGMA quick_check').fetchone()[0] != 'ok' or db.execute('PRAGMA foreign_key_check').fetchone():
@@ -361,7 +386,19 @@ def show(path, version, address, limit):
         refs = [dict(row) for row in db.execute("""SELECT owner,site,target,kind,source,callee,symbol,datatype
             FROM xrefs WHERE dataset=? AND (owner=? OR callee=?) ORDER BY owner,site LIMIT ?""",
             (dataset, address, address, limit))]
-        return {'function': dict(item), 'relations': links, 'references': refs, 'limit': limit}
+        output = {'function': dict(item), 'relations': links, 'references': refs, 'limit': limit}
+        tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if 'instruction_candidates' in tables:
+            output['instruction_candidates'] = [dict(row) for row in db.execute("""
+                SELECT pair,old,new,rank,score,eligible,accepted,evidence FROM instruction_candidates JOIN pairs USING(pair)
+                WHERE (older=? AND old=?) OR (newer=? AND new=?) ORDER BY score DESC,pair,old,new LIMIT ?""",
+                (dataset, address, dataset, address, limit))]
+            output['entry_states'] = [dict(row) for row in db.execute("""
+                SELECT pair,state,evidence FROM entry_states JOIN pairs USING(pair) WHERE address=?
+                AND ((older=? AND side=0) OR (newer=? AND side=1)) ORDER BY pair LIMIT ?""", (address, dataset, dataset, limit))]
+            for record in output['instruction_candidates'] + output['entry_states']:
+                record['evidence'] = json.loads(record['evidence'])
+        return output
 
 
 def main():

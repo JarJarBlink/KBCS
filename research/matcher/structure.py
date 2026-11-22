@@ -96,7 +96,8 @@ def load_row(db, address):
     hit = db.execute('SELECT metadata,instructions FROM functions WHERE address=?', (address,)).fetchone()
     if hit is None:
         return None
-    return json.loads(hit[0]) | {'instructions': json.loads(zlib.decompress(hit[1]))}
+    payload = json.loads(zlib.decompress(hit[1]))
+    return json.loads(hit[0]) | (payload if isinstance(payload, dict) else {'instructions': payload})
 
 
 def structure_header(archive):
@@ -108,6 +109,8 @@ def structure_header(archive):
 
 
 def build_index(archive, cache, output):
+    from indexer.reference_structure import provenance, validate
+    from matcher import blocks
     archive, cache, output = archive.resolve(), cache.resolve(), output.resolve()
     if output.is_relative_to(cache) or output == archive:
         raise ValueError('Structure index must be separate from analysis inputs')
@@ -115,12 +118,19 @@ def build_index(archive, cache, output):
         expected = dict(source.execute('SELECT address,size FROM functions WHERE external=0'))
     with (cache / 'index.jsonl').open(encoding='utf-8-sig') as stream:
         original = json.loads(stream.readline())
+        ranges = {record['address']: record['ranges'] for line in stream if line.strip()
+                  for record in (json.loads(line),) if record.get('type') == 'function' and 'ranges' in record}
     header = structure_header(archive)
     if (header['sha256'], header['language'], header['image_base']) != (
             original['sha256'], original['language'], original['image_base']):
         raise ValueError('Structure export does not match the indexed program')
+    identity_path = cache / 'identity.json'
+    proof = provenance(cache, archive, json.loads(identity_path.read_text(encoding='utf-8-sig'))) if identity_path.is_file() else 'unverified'
     source = {'cache_sha256': digest(cache / 'cache.sqlite'), 'structure_sha256': digest(archive),
-              'schema': SCHEMA, 'indexer_sha256': digest(Path(__file__))}
+              'index_sha256': digest(cache / 'index.jsonl'), 'provenance': proof,
+              'reference_validator_sha256': digest(Path(__file__).parents[1] / 'indexer/reference_structure.py'),
+              'schema': SCHEMA, 'indexer_sha256': digest(Path(__file__)),
+              'block_engine_sha256': digest(Path(blocks.__file__)), 'policy_sha256': digest(blocks.POLICY_PATH)}
     output.mkdir(parents=True, exist_ok=True)
     target = output / (fingerprint(source)[:24] + '.sqlite')
     with locked(target.with_suffix('.lock')):
@@ -139,6 +149,9 @@ def build_index(archive, cache, output):
                 CREATE TABLE functions(address TEXT PRIMARY KEY,state TEXT NOT NULL,shape TEXT NOT NULL,
                     operations INTEGER NOT NULL, cfg TEXT NOT NULL, bytes_sha256 TEXT NOT NULL,
                     metadata TEXT NOT NULL,instructions BLOB NOT NULL);
+                CREATE TABLE search_keys(kind TEXT,signature TEXT,address TEXT,
+                    PRIMARY KEY(kind,signature,address));
+                CREATE INDEX search_keys_owner ON search_keys(address);
             """)
             stream.readline(MAX_ROW)
             seen, counts, complete = set(), defaultdict(int), None
@@ -153,6 +166,8 @@ def build_index(archive, cache, output):
                 if row['type'] != 'function' or not ADDRESS.fullmatch(address) or address in seen:
                     raise ValueError('Invalid or duplicate structure function')
                 seen.add(address)
+                if header.get('disassembly'):
+                    validate(row)
                 if address not in expected:
                     counts['extra_in_backfill'] += 1
                     continue
@@ -160,23 +175,27 @@ def build_index(archive, cache, output):
                 ops = operations(row, search=True)
                 if not row['instruction_count'] or not ops:
                     state = 'no_instructions'
-                elif row['instruction_bytes'] != row['body_bytes'] or row['body_bytes'] != expected[address]:
+                elif (row['instruction_bytes'] != row['body_bytes'] or row['body_bytes'] != expected[address]
+                      or address in ranges and ranges[address] != row['ranges']):
                     state = 'boundary_mismatch'
                 else:
                     state = 'available'
                 counts[state] += 1
                 counts['indirect_flows'] += row['indirect']
                 counts['unresolved_indirect_flows'] += row['unresolved']
+                keys = blocks.search_keys(row)
+                db.executemany('INSERT INTO search_keys VALUES(?,?,?)', ((kind, key, address) for kind, key in keys))
                 instructions = row.pop('instructions')
-                row.pop('disassembly', None)
-                row.pop('read_only_data', None)
-                row.pop('reference_details', None)
+                payload = {'instructions': instructions, **{key: row.pop(key) for key in
+                           ('disassembly', 'read_only_data', 'reference_details') if key in row}}
+                row['index_boundary_verification'] = ('ranges_match' if address in ranges and ranges[address] == row['ranges'] else 'same_program_size_only' if header.get('program_id')
+                    and header.get('program_id') == original.get('program_id') else 'legacy_boundary_unverified')
                 row['call_positions'] = [(site, flow) for site, _, flow, pcode in instructions
                                          if 'CALL' in flow or any(op[0] in ('CALL', 'CALLIND') for op in pcode)]
                 db.execute('INSERT INTO functions VALUES(?,?,?,?,?,?,?,?)',
                            (address, state, fingerprint([graph, [op for _, op in ops]]), len(ops),
                             pack(graph), row['bytes_sha256'], pack(row),
-                            zlib.compress(pack(instructions).encode(), 3)))
+                            zlib.compress(pack(payload).encode(), 3)))
             if complete is None or complete['functions'] != len(seen):
                 raise ValueError('Incomplete structure export')
             counts['missing_in_backfill'] = len(expected.keys() - seen)
