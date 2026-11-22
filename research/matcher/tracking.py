@@ -133,6 +133,21 @@ def backfill(cache, binary, config, output):
 
 def reconcile(db, pair_maps, count):
     totals = Counter()
+    reopened = set()
+
+    def hold_entry(pair, side, address, route):
+        row = db.execute('SELECT state,evidence FROM entry_states WHERE pair=? AND side=? AND address=?',
+                         (pair, side, address)).fetchone()
+        if not row or row[0] not in ('addition_within_inspected_scope', 'deletion_within_inspected_scope'):
+            return
+        key = (pair, side, address)
+        evidence = json.loads(row[1]) | {'processing': 'correspondence_in_nonadjacent_version', 'direct_route': route}
+        db.execute("UPDATE entry_states SET state='held_direct_route',evidence=? WHERE pair=? AND side=? AND address=?",
+                   (structure.pack(evidence), *key))
+        db.execute('DELETE FROM review WHERE pair=? AND side=? AND address=? AND kind=?', (*key, row[0]))
+        db.execute('INSERT INTO review VALUES(?,?,?,?,?,?)', (*key, 'held_direct_route', '[]', structure.pack(evidence)))
+        reopened.add(pair)
+
     for i in range(count - 2):
         ab, bc, ac = (key(i, i + 1), key(i + 1, i + 2), key(i, i + 2))
         first, second, direct = (pair_maps[pair] for pair in (ab, bc, ac))
@@ -160,6 +175,16 @@ def reconcile(db, pair_maps, count):
                 state = 'gap_candidate'
             else:
                 state = 'partial'
+            if not mismatch and c is not None and via is None:
+                route = {'pair': ac, 'old': a, 'new': c}
+                if b is None:
+                    hold_entry(ab, 0, a, route)
+                    if alt_b is not None:
+                        hold_entry(ab, 1, alt_b, route)
+                if alt_b is None:
+                    hold_entry(bc, 1, c, route)
+                    if b is not None:
+                        hold_entry(bc, 0, b, route)
             logic_status = (statuses[ab].get(a), statuses[bc].get(b), statuses[ac].get(a))
             temporal = ('temporary_change_candidate' if state == 'consistent'
                         and logic_status[:2] == ('logic_change_candidate',) * 2
@@ -179,6 +204,13 @@ def reconcile(db, pair_maps, count):
                        (pair, side, address, 'path_conflict', structure.pack({'processing': 'under_investigation'})))
             db.execute('INSERT INTO review VALUES(?,?,?,?,?,?)',
                        (pair, side, address, 'path_conflict', structure.pack([other]), structure.pack({'reason': 'direct_and_adjacent_routes_disagree'})))
+        reopened.add(pair)
+    for pair in reopened:
+        row = db.execute('SELECT summary FROM pairs WHERE pair=?', (pair,)).fetchone()
+        if row:
+            summary = json.loads(row[0])
+            summary['review'] = dict(db.execute('SELECT kind,COUNT(*) FROM review WHERE pair=? GROUP BY kind', (pair,)))
+            db.execute('UPDATE pairs SET summary=? WHERE pair=?', (structure.pack(summary), pair))
     return dict(totals)
 
 
@@ -302,6 +334,7 @@ def build(datasets, output, *, decisions=None, pair_dbs=None):
                 summaries[pair]['initial_timing'] = metadata.get('timing')
                 db.execute('UPDATE pairs SET summary=? WHERE pair=?', (structure.pack(summaries[pair]), pair))
             cycles = reconcile(db, pair_maps, len(datasets))
+            summaries = {pair: json.loads(raw) for pair, raw in db.execute('SELECT pair,summary FROM pairs')}
             metadata = {'format': FORMAT, 'run': run, 'configuration': config_id, 'complete': True, 'sources': sources, 'engine': code,
                         'pairs': summaries, 'cycles': cycles,
                         'structure': [entry['structure'] | {'process_metrics': entry['metrics']} for entry in datasets],
