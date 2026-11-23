@@ -4,6 +4,19 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
+<!-- kbcs-version-function-tracking -->
+## 連続バージョンの比較
+
+- [v16.0.1 → v16.0.2](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/0-1/high-0009.md#compare-f10783e5c3fc7ec2979b390bdc488541)
+- [v16.0.2 → v16.0.3](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/1-2/high-0009.md#compare-d415b2108a4566c0e0c3eab16d6309b0)
+<!-- /kbcs-version-function-tracking -->
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +30,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "3b73fb7cf56745475ff8d153ac3cb4ba2dbcb8df79db723151b4665dfec27b16",
-  "source_text_sha256": "3b73fb7cf56745475ff8d153ac3cb4ba2dbcb8df79db723151b4665dfec27b16"
+  "source_text_sha256": "3b73fb7cf56745475ff8d153ac3cb4ba2dbcb8df79db723151b4665dfec27b16",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "00bcde7c",
+        "00bcde87"
+      ]
+    ],
+    "bytes_sha256": "4380a8745a201e9566115cffbb63b4ab965d881a5c442b5677e65a6e0e339982",
+    "instruction_count": 3,
+    "instruction_bytes": 12,
+    "body_bytes": 12,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -29,6 +62,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
 解決済みの記録なし。
 
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
+
 ## 疑似コード / UTF-8 99 bytes
 
 ~~~c
@@ -39,4 +76,44 @@ undefined8 _ZN8firebase4auth21jni_id_token_listener8GetClassEv(void)
   return DAT_011278d8;
 }
 
+~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-00bcde7c"></a> `00bcde7c` | `c8 2a 00 d0` | adrp x8,0x1127000 | `FALL_THROUGH`
+<a id="insn-00bcde80"></a> `00bcde80` | `00 6d 44 f9` | ldr x0,[x8, #0x8d8] | `FALL_THROUGH`
+<a id="insn-00bcde84"></a> `00bcde84` | `c0 03 5f d6` | ret | `TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`00bcde7c`](#insn-00bcde7c) 範囲 `[['00bcde7c', '00bcde87']]`
+
+## 命令位置別の参照
+
+- [`00bcde80`](#insn-00bcde80) → `011278d8`（関数外または未収録） · `READ` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `undefined8`
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+
+- 参照命令 [`00bcde80`](#insn-00bcde80)
+
+~~~json
+{
+  "source": "00bcde80",
+  "target": "011278d8",
+  "target_space": "ram",
+  "resolution": "defined_data",
+  "start": "011278d8",
+  "offset": 0,
+  "size": 8,
+  "datatype": "undefined8",
+  "capture_state": "not_readonly_initialized_data"
+}
 ~~~

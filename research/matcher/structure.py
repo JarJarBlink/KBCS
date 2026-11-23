@@ -168,6 +168,9 @@ def build_index(archive, cache, output):
                 counts['indirect_flows'] += row['indirect']
                 counts['unresolved_indirect_flows'] += row['unresolved']
                 instructions = row.pop('instructions')
+                row.pop('disassembly', None)
+                row.pop('read_only_data', None)
+                row.pop('reference_details', None)
                 row['call_positions'] = [(site, flow) for site, _, flow, pcode in instructions
                                          if 'CALL' in flow or any(op[0] in ('CALL', 'CALLIND') for op in pcode)]
                 db.execute('INSERT INTO functions VALUES(?,?,?,?,?,?,?,?)',

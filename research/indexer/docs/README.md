@@ -16,8 +16,12 @@
 
 - `materials.selected_files/main`：保存対象を限定し、重複プロジェクト・一時物を除いたアーカイブとSHA-256一覧を作る。アップロードは行わない。
 
-- `reference.export_cache`：完成済みSQLiteを読み取り専用で開き、GitHub連携向けの関数・索引ページを生成する。`split_text/fenced/paginate`が欠落のない分割とページ上限を担い、`function_path/page_path`が相互リンクを共通化する。[手順と設計](../../docs/chatgpt-reference.md)。
+- `reference.export_cache`：完成済みSQLiteを読み取り専用で開き、GitHub連携向けの関数・索引ページを生成する。`reference_structure.records/validate`が構造と命令バイトの検査、`structure_sections`が命令範囲別の表示、`function_path`が相互リンクを担う。[手順と設計](../../docs/chatgpt-reference.md)。
 
 - `ci`：Publicの標準Actionsでの再生成、テキストだけのRelease checkpoint、解析リビジョンの追記を制御する。[処理・無料条件・再開](../../docs/actions-analysis.md)。
 - `ci_structure.structure_checkpoint`：現行解析のプロジェクトを読み取り専用で開く。旧版は隔離プロジェクトを作って構造を復元し、SO・索引・エクスポーターに結び付けたReleaseアセットを照合して再利用する。
 - `ci_tracking.publish_tracking`：同じABIの最大3版を復元し、追跡DBと公開Markdownを作る。新資料とリンクを検証した後、置き換え対象の旧比較資料を同じコミットで廃止する。
+
+[ネイティブ関数資料と連続版比較の生成](native-reference.md)に、出典契約と生成関数の関係、実行方法、再生成・検証の手順を記録する。
+
+[16.0.1〜16.0.3の実データ検証](native-reference-validation.md)に件数・速度・容量・メモリ・比較導線の確認範囲を記録する。

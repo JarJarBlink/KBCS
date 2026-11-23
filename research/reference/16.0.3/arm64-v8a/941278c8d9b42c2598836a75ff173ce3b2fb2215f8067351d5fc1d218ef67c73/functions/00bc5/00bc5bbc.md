@@ -4,6 +4,19 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
+<!-- kbcs-version-function-tracking -->
+## 連続バージョンの比較
+
+- [v16.0.1 → v16.0.2](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/0-1/detail_skipped-0008.md#compare-e0d0096ff26f542cc61aadab161cd5b3)
+- [v16.0.2 → v16.0.3](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/1-2/detail_skipped-0007.md#compare-a081d357e5b01eb01a09cdda1b1e7a99)
+<!-- /kbcs-version-function-tracking -->
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +30,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "764e26167b4431b9a1e02d10842c7068e6e4b96622bb95044d19dc2f656452c3",
-  "source_text_sha256": "764e26167b4431b9a1e02d10842c7068e6e4b96622bb95044d19dc2f656452c3"
+  "source_text_sha256": "764e26167b4431b9a1e02d10842c7068e6e4b96622bb95044d19dc2f656452c3",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "00bc5bbc",
+        "00bc5bcb"
+      ]
+    ],
+    "bytes_sha256": "8528ae01b10b6da611a36e7457d9c7c90456f384f6e0817e1c6341750ebc1384",
+    "instruction_count": 4,
+    "instruction_bytes": 16,
+    "body_bytes": 16,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -28,6 +61,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 ## 呼び出し先
 
 解決済みの記録なし。
+
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
 
 ## 疑似コード / UTF-8 143 bytes
 
@@ -40,3 +77,28 @@ bool _ZNK8firebase13remote_config8internal20RemoteConfigInternal11InitializedEv(
 }
 
 ~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-00bc5bbc"></a> `00bc5bbc` | `08 cc 40 f9` | ldr x8,[x0, #0x198] | `FALL_THROUGH`
+<a id="insn-00bc5bc0"></a> `00bc5bc0` | `1f 01 00 f1` | cmp x8,#0x0 | `FALL_THROUGH`
+<a id="insn-00bc5bc4"></a> `00bc5bc4` | `e0 07 9f 1a` | cset w0,ne | `FALL_THROUGH`
+<a id="insn-00bc5bc8"></a> `00bc5bc8` | `c0 03 5f d6` | ret | `TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`00bc5bbc`](#insn-00bc5bbc) 範囲 `[['00bc5bbc', '00bc5bcb']]`
+
+## 命令位置別の参照
+
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+

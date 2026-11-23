@@ -6,7 +6,7 @@ from pathlib import Path
 from indexer.ci import public_only, publish_worktree, reference_worktree, restore
 from indexer.reference import export_cache, reference_path, replace_reference
 from indexer.store import LOCAL, digest, read_json, write_json
-from matcher.comparison_pages import COMPARISON_LINK, DIRECTIONS, carry_links, disconnect, overlay
+from matcher.comparison_pages import COMPARISON_LINK, DIRECTIONS, carry_function_comparisons, carry_links, disconnect, overlay
 from matcher.tracking_pages import link
 
 
@@ -45,12 +45,15 @@ def link_comparison(source):
 
 
 def publish_materials(tag, publish):
+    from indexer.ci_structure import structure_checkpoint
+
     public_only()
     LOCAL.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ci-materials-', dir=LOCAL) as directory:
         root = Path(directory) / 'cache'
         data, identity = restore_completed(tag, root)
-        source, report = export_cache(root, Path(directory) / 'reference')
+        structure, _ = structure_checkpoint(root, None, data, identity, tag, Path(directory) / 'structure', extract=False)
+        source, report = export_cache(root, Path(directory) / 'reference', structure=structure)
         report.update(source_archive_sha256=data['archiveSha256'], source_version_code=data['versionCode'],
                       comparison_state='pending')
         write_json(source / 'manifest.json', report)
@@ -64,7 +67,7 @@ def publish_materials(tag, publish):
             if previous and same_reference(previous, expected):
                 comparison = manifest.with_name('comparison.md')
                 if previous.get('tracking_format') == 2:
-                    keys = ('comparison_state', 'tracking_format', 'tracking_policy', 'tracking_run', 'tracking_page', 'tracking_sources')
+                    keys = ('comparison_state', 'tracking_format', 'tracking_policy', 'tracking_navigation_format', 'tracking_run', 'tracking_page', 'tracking_sources')
                     report.update({key: previous[key] for key in keys if key in previous})
                     if report.get('tracking_page'):
                         target = work / report['tracking_page']
@@ -78,6 +81,7 @@ def publish_materials(tag, publish):
                 elif previous.get('comparison_state') == 'no_baseline':
                     report['comparison_state'] = 'no_baseline'
                 carry_links(manifest.parent, source)
+                carry_function_comparisons(manifest.parent, source, work)
                 write_json(source / 'manifest.json', report)
             else:
                 for replaced in manifest.parent.parent.glob('*/manifest.json'):

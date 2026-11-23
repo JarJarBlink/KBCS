@@ -5,24 +5,40 @@
   "library": "libnative-lib.so",
   "ghidra": "12.1.2",
   "analysis_revision": "9afc4f9e264e1fda",
-  "pages": 26800,
-  "page_bytes": 85055377,
-  "max_page_bytes": 551863,
+  "pages": 26933,
+  "page_bytes": 700146249,
+  "max_page_bytes": 1048761,
   "cached": 26371,
   "failed": 0,
   "external": 295,
   "low_confidence": 3,
+  "disassembled": 26076,
+  "structure_unavailable": 295,
+  "instruction_count": 1943050,
+  "instruction_bytes": 7772200,
+  "legacy_boundary_unverified": 26371,
+  "structure_functions": 26371,
+  "structure_extra_functions": 0,
+  "verified_links": 3909841,
   "source_database_sha256": "84acc58a0616af1476985d2ca03eac5f2afd29c14960021f938b7373d14c2de0",
+  "source_index_sha256": "a4f8ba407d8820740963fc046921429605beaed6ae9000f61ffadf30e205ee72",
   "functions": 26666,
+  "source_structure_sha256": "0aee5d68dfde8f260846a79a9c791bb57dfa889e5a2e868110cd9bcdf751013e",
+  "reference_policy": "native-reference-v1",
+  "structure_provenance": "receipt_verified",
+  "structure_unavailable_reasons": {
+    "instruction_coverage_mismatch": 295
+  },
   "page_limit_bytes": 104857600,
   "format": 2,
+  "generator_signature": "9dd4569b2d1f962f0ca79c15923290577f0412600735449162d5ec2641410746",
   "source_archive_sha256": "a160e1a410d36d8b75ad992330790c1dc60e8c7c254898f5d7334b7aae7857be",
   "source_version_code": 1600030,
   "comparison_state": "complete",
   "tracking_format": 2,
   "tracking_policy": "observed-effects-v1",
-  "tracking_run": "26e7a8de0a7ec87003e6aefa",
-  "tracking_page": "research/comparisons/arm64-v8a/26e7a8de0a7ec87003e6aefa/README.md",
+  "tracking_run": "648ae6f970369597a09542a0",
+  "tracking_page": "research/comparisons/arm64-v8a/648ae6f970369597a09542a0/README.md",
   "tracking_sources": [
     {
       "version": "16.0.1",
@@ -42,5 +58,6 @@
       "sha256": "941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73",
       "analysis_revision": "9afc4f9e264e1fda"
     }
-  ]
+  ],
+  "tracking_navigation_format": 1
 }

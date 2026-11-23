@@ -4,6 +4,19 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
+<!-- kbcs-version-function-tracking -->
+## 連続バージョンの比較
+
+- [v16.0.1 → v16.0.2](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/0-1/no_difference_in_scope-0005.md#compare-ba0cd3f37255ed4b1de1dd92db79719e)
+- [v16.0.2 → v16.0.3](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/1-2/no_difference_in_scope-0005.md#compare-3899c76761d7d07bcda69cc93621a8dc)
+<!-- /kbcs-version-function-tracking -->
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +30,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "fbe62027b3bc584fc48eacaeb8d3eab9fa7c8c2ee5ffddf8217885e551cd14ee",
-  "source_text_sha256": "fbe62027b3bc584fc48eacaeb8d3eab9fa7c8c2ee5ffddf8217885e551cd14ee"
+  "source_text_sha256": "fbe62027b3bc584fc48eacaeb8d3eab9fa7c8c2ee5ffddf8217885e551cd14ee",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "006bedac",
+        "006bedf3"
+      ]
+    ],
+    "bytes_sha256": "1f3c3d03f4a786536d03bed0de117e5e5b362eea285e9ca5e05e70f2189fb066",
+    "instruction_count": 18,
+    "instruction_bytes": 72,
+    "body_bytes": 72,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -43,6 +76,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
 解決済みの記録なし。
 
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
+
 ## 疑似コード / UTF-8 361 bytes
 
 ~~~c
@@ -60,3 +97,42 @@ uint FUN_006bedac(long param_1,long param_2)
 }
 
 ~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-006bedac"></a> `006bedac` | `08 08 01 8b` | add x8,x0,x1, LSL #0x2 | `FALL_THROUGH`
+<a id="insn-006bedb0"></a> `006bedb0` | `0a a8 40 39` | ldrb w10,[x0, #0x2a] | `FALL_THROUGH`
+<a id="insn-006bedb4"></a> `006bedb4` | `0b ac 40 39` | ldrb w11,[x0, #0x2b] | `FALL_THROUGH`
+<a id="insn-006bedb8"></a> `006bedb8` | `09 09 40 39` | ldrb w9,[x8, #0x2] | `FALL_THROUGH`
+<a id="insn-006bedbc"></a> `006bedbc` | `0c 05 40 39` | ldrb w12,[x8, #0x1] | `FALL_THROUGH`
+<a id="insn-006bedc0"></a> `006bedc0` | `49 01 09 4a` | eor w9,w10,w9 | `FALL_THROUGH`
+<a id="insn-006bedc4"></a> `006bedc4` | `0a 0d 40 39` | ldrb w10,[x8, #0x3] | `FALL_THROUGH`
+<a id="insn-006bedc8"></a> `006bedc8` | `08 01 40 39` | ldrb w8,[x8] | `FALL_THROUGH`
+<a id="insn-006bedcc"></a> `006bedcc` | `29 3d 10 53` | lsl w9,w9,#0x10 | `FALL_THROUGH`
+<a id="insn-006bedd0"></a> `006bedd0` | `6a 01 0a 4a` | eor w10,w11,w10 | `FALL_THROUGH`
+<a id="insn-006bedd4"></a> `006bedd4` | `0b a4 40 39` | ldrb w11,[x0, #0x29] | `FALL_THROUGH`
+<a id="insn-006bedd8"></a> `006bedd8` | `29 61 0a 2a` | orr w9,w9,w10, LSL #0x18 | `FALL_THROUGH`
+<a id="insn-006beddc"></a> `006beddc` | `0a a0 40 39` | ldrb w10,[x0, #0x28] | `FALL_THROUGH`
+<a id="insn-006bede0"></a> `006bede0` | `6b 01 0c 4a` | eor w11,w11,w12 | `FALL_THROUGH`
+<a id="insn-006bede4"></a> `006bede4` | `29 21 0b 2a` | orr w9,w9,w11, LSL #0x8 | `FALL_THROUGH`
+<a id="insn-006bede8"></a> `006bede8` | `48 01 08 4a` | eor w8,w10,w8 | `FALL_THROUGH`
+<a id="insn-006bedec"></a> `006bedec` | `20 01 08 2a` | orr w0,w9,w8 | `FALL_THROUGH`
+<a id="insn-006bedf0"></a> `006bedf0` | `c0 03 5f d6` | ret | `TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`006bedac`](#insn-006bedac) 範囲 `[['006bedac', '006bedf3']]`
+
+## 命令位置別の参照
+
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+

@@ -384,6 +384,15 @@ impl Scene {
         Ok(())
     }
     pub fn draw(&mut self, database: &Database, input: &Input) -> Result<Frame<'_>> {
+        self.draw_with_castle_state(database, input, 0)
+    }
+
+    pub(crate) fn draw_with_castle_state(
+        &mut self,
+        database: &Database,
+        input: &Input,
+        player_castle_state: i32,
+    ) -> Result<Frame<'_>> {
         let started = std::time::Instant::now();
         ensure!(
             (0..=1000000).contains(&input.frame),
@@ -415,7 +424,7 @@ impl Scene {
         } else {
             [0, 0, 0, 0, 0, 0, -1]
         };
-        let (layout, background_commands) = render::battle_paint(
+        let (layout, background_commands) = render::live_paint(
             &PaintInput {
                 scene: SceneInput {
                     width: input.width,
@@ -445,6 +454,8 @@ impl Scene {
                 show_player: i32::from(input.show_player),
             },
             input.battle_slide,
+            player_castle_state,
+            input.frame,
             &mut self.paint_buffer,
         )
         .map_err(core)?;

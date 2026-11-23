@@ -94,7 +94,7 @@ def backfill(cache, binary, config, output):
     directory = output / structure.fingerprint(source)[:24]
     directory.mkdir(parents=True, exist_ok=True)
     final, receipt = (directory / name for name in ('structure.jsonl.gz', 'structure-metrics.json'))
-    work = LOCAL / 'cache'
+    work = output
     work.mkdir(parents=True, exist_ok=True)
     with locked(directory / 'writer.lock'):
         if final.is_file() and receipt.is_file():

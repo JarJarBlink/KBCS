@@ -172,8 +172,12 @@ jobs:
 
   references:
     name: Generate reference documents
-    needs: analyze
-    if: needs.analyze.outputs.checkpoint != '' && needs.analyze.outputs.match_only != 'true' && inputs.stage != 'analyze' && inputs.stage != 'match' && inputs.stage != 'backfill'
+    needs: [analyze, structures]
+    if: >-
+      !cancelled() && needs.analyze.result == 'success' && needs.analyze.outputs.checkpoint != '' &&
+      needs.analyze.outputs.match_only != 'true' &&
+      needs.structures.result == 'success' &&
+      inputs.stage != 'analyze' && inputs.stage != 'match' && inputs.stage != 'backfill'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -194,7 +198,7 @@ jobs:
   structures:
     name: Prepare missing structure checkpoints
     needs: analyze
-    if: needs.analyze.outputs.checkpoint != '' && inputs.stage != 'analyze' && inputs.stage != 'references'
+    if: needs.analyze.outputs.checkpoint != '' && inputs.stage != 'analyze'
     runs-on: ubuntu-24.04
     timeout-minutes: 135
     permissions:
@@ -212,7 +216,11 @@ jobs:
           sparse-checkout-cone-mode: false
       - name: Check the structure asset inventory
         id: plan
-        run: python3 -m indexer.ci backfill-plan --checkpoint "$CHECKPOINT"
+        shell: bash
+        run: |
+          args=()
+          if [[ "${{ inputs.stage }}" == references ]]; then args+=(--current-only); fi
+          python3 -m indexer.ci backfill-plan --checkpoint "$CHECKPOINT" "${args[@]}"
       - name: Require permission to preserve missing checkpoints
         if: steps.plan.outputs.needed == 'true' && env.PUBLISH_REFERENCE != 'true'
         run: |
@@ -235,14 +243,18 @@ jobs:
         if: steps.plan.outputs.needed == 'true'
         env:
           BATTLECATS_APK_READ_TOKEN: ${{ secrets.BATTLECATS_APK_READ_TOKEN }}
-        run: python3 -m indexer.ci backfill --checkpoint "$CHECKPOINT" --publish
+        shell: bash
+        run: |
+          args=()
+          if [[ "${{ inputs.stage }}" == references ]]; then args+=(--current-only); fi
+          python3 -m indexer.ci backfill --checkpoint "$CHECKPOINT" --publish "${args[@]}"
 
   match:
     name: Track native functions across versions
     needs: [analyze, references, structures]
     if: >-
       !cancelled() && needs.analyze.result == 'success' && needs.structures.result == 'success' &&
-      inputs.stage != 'backfill' &&
+      inputs.stage != 'backfill' && inputs.stage != 'references' &&
       (needs.references.result == 'success' || inputs.stage == 'match' || needs.analyze.outputs.match_only == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 90

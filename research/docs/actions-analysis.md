@@ -75,7 +75,7 @@ KBCSはassetsの通知で受け取ったコミットから `current.json` と版
 
 checkpointにはGhidraプロジェクトを含めない。そのため未完了の再開時は元APKからプロジェクトを再解析する。以前と新しい索引を、実行パスや所要時間を除いた構造ハッシュで照合し、一致した場合だけ保存済み疑似コードを再利用する。不一致時は停止し、別ラベルで新規生成する。完了checkpointからの再開では、同じ解析IDの資料生成・反映から再試行できる。Actionsの結果と `ci-status.json` の `complete` で、関数処理と資料公開の状態を区別する。
 
-ジョブ上限は解析235分、資料作成30分、追跡90分、初回を含む構造補完135分。全sidecarが揃う通常更新では、構造の在庫確認を資料作成と並行して実施し、合計6時間以内を目標にする。初回移行やジョブ待機の時間は別途発生する。解析プロセスは60分、1関数は900秒。開始から210分を超えると次のバッチを控え、未完了の場合は再開を促す。中断時は最後に検証済みのcheckpointとsidecarを再利用する。[GitHub管理runnerの上限](https://docs.github.com/en/actions/reference/limits)
+ジョブ上限は解析235分、資料作成30分、追跡90分、初回を含む構造補完135分。全sidecarが揃う通常更新では、構造の在庫確認・不足補完を資料作成の前に実施し、合計6時間以内を目標にする。初回移行やジョブ待機の時間は別途発生する。解析プロセスは60分、1関数は900秒。開始から210分を超えると次のバッチを控え、未完了の場合は再開を促す。中断時は最後に検証済みのcheckpointとsidecarを再利用する。[GitHub管理runnerの上限](https://docs.github.com/en/actions/reference/limits)
 
 一時的な通信エラーは取得・公開とも最大3回の試行に抑える。認証エラーや原本ハッシュの不一致では停止する。アップロード応答が失われた場合はRelease側のsize/digestを照合し、完了済みならそのまま進む。片方しか届かなかった場合は別名で再送し、既存アセットを上書きしない。
 
@@ -88,6 +88,10 @@ Gitで閲覧する資料: `research/reference/<版>/<ABI>/<SO SHA>/`。1関数�
 Release: `native-analysis-<版>-<ABI>-<解析ID>`。checkpointアーカイブと全ファイルのSHA-256一覧をバッチ単位で追記する。以前のcheckpointを上書き・削除しない。
 
 同じ版・ABIの公開ツリーには今回のSO SHAの資料一式を置く。同一checkpointから資料を再生成する場合は追跡資料への導線を引き継ぐ。過去の追跡ウィンドウから関数資料へのリンクは公開時のGitコミットに固定する。過去のGitコミット、解析Releaseのcheckpoint、ローカルのGhidraプロジェクトを保全する。
+
+関数ページには、擬似コードに加えて命令バイト付きの逆アセンブリ、分岐、参照先を収録する。構造アーカイブのSHA-256を `manifest.json` の `source_structure_sha256` に記録し、完全な命令範囲を確認できた関数数も残す。比較結果は `research/comparisons/` に置き、関数ページに区間別のリンクを張る。
+
+旧版の関数ページを再生成する場合は、完成済みのReleaseタグを指定して `stage=all` を実行できる。個別に行う場合は同じタグで `backfill` → `references` → `match` の順。従来の構造アセットには命令の表示文字列とバイト列がないため、現行のエクスポータで構造を補完する。擬似コードは完成checkpointから復元する。
 
 資料だけのmain更新でアプリの版が上がらないよう、アプリbuildのpush/pull_requestに `research/reference/**` のpaths-ignoreを追加する。手動のアプリビルドや、解析ツール自体の変更時の従来ビルドは維持する。
 
@@ -115,3 +119,7 @@ Release: `native-analysis-<版>-<ABI>-<解析ID>`。checkpointアーカイブと
 3段階への分離後は、両版の実checkpointと保存済み照合結果を使って、資料公開、照合失敗時の `pending` 維持、照合だけの再実行、SQLite配布と `complete` 更新をローカルで確認した。GitHubへの送信は模擬した。
 
 v2の検査範囲、結果の読み方、独立したARM64 ELFの試験は [追跡v2](../matcher/docs/tracking-v2.md) を参照。
+
+## 命令資料と連続区間リンクの再生成
+
+新しい関数資料の入力契約、16.0.1〜16.0.3の移行タグ、ローカルプレビューとActions各段階の依存関係は[生成手順](../indexer/docs/native-reference.md)を参照。`references` 単独実行でも対象構造の不足を先に補完する。資料形式が古い場合は `references_pending` として完成チェックポイントから再開する。

@@ -55,9 +55,9 @@ class CiTests(unittest.TestCase):
                    'sha256': data['librarySha256'], 'analysis_revision': 'a' * 16}
         previous = current | {'version': '15.7.3', 'analysis_revision': 'b' * 16}
         self.assertEqual(upstream.publication_state(data, None, ci.REPO), 'new')
-        self.assertEqual(upstream.publication_state(data, current | {'comparison_state': 'complete'}, ci.REPO), 'pending')
-        published = current | {'comparison_state': 'complete', 'tracking_format': 2,
-                               'tracking_policy': upstream.TRACKING_POLICY,
+        self.assertEqual(upstream.publication_state(data, current | {'comparison_state': 'complete'}, ci.REPO), 'references_pending')
+        published = current | {'generator_signature': upstream.reference_signature(), 'reference_policy': 'native-reference-v1', 'comparison_state': 'complete', 'tracking_format': 2,
+                               'tracking_policy': upstream.TRACKING_POLICY, 'tracking_navigation_format': 1,
                                'tracking_sources': upstream.tracking_sources([previous, current])}
         with patch.object(upstream, 'previous_references', return_value=[previous]):
             self.assertEqual(upstream.publication_state(data, published, ci.REPO), 'complete')
@@ -71,6 +71,9 @@ class CiTests(unittest.TestCase):
               patch.object(ci_tracking, 'asset_record', side_effect=[{}, None, {}, {}, {}, {}])):
             self.assertEqual(ci_tracking.missing_structures('new'), ['middle'])
             self.assertEqual(ci_tracking.missing_structures('new'), [])
+        with (patch.object(ci_tracking, 'window_tags', side_effect=AssertionError('references needs only its own source')),
+              patch.object(ci_tracking, 'asset_record', return_value=None)):
+            self.assertEqual(ci_tracking.missing_structures('new', current_only=True), ['new'])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             asset = root / 'structure.tar'

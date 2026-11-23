@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+﻿use serde::{Deserialize, Serialize};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -162,9 +162,11 @@ unsafe extern "C" {
         key_count: i32,
         out: *mut i32,
     ) -> u32;
-    fn kbcs_core_battle_scene_paint(
+    fn kbcs_core_live_scene_paint(
         input: *const PaintInput,
         slot_slide: i32,
+        player_castle_state: i32,
+        battle_frame: i32,
         layout: *mut Layout,
         output: *mut Command,
         capacity: i32,
@@ -195,12 +197,24 @@ pub fn battle_paint<'a>(
     slot_slide: i32,
     output: &'a mut [Command],
 ) -> Result<(Layout, &'a [Command]), u32> {
+    live_paint(input, slot_slide, 0, 0, output)
+}
+
+pub fn live_paint<'a>(
+    input: &PaintInput,
+    slot_slide: i32,
+    player_castle_state: i32,
+    battle_frame: i32,
+    output: &'a mut [Command],
+) -> Result<(Layout, &'a [Command]), u32> {
     let mut layout = Layout::default();
     let mut written = 0;
     let code = unsafe {
-        kbcs_core_battle_scene_paint(
+        kbcs_core_live_scene_paint(
             input,
             slot_slide,
+            player_castle_state,
+            battle_frame,
             &mut layout,
             output.as_mut_ptr(),
             output.len() as i32,
@@ -212,6 +226,58 @@ pub fn battle_paint<'a>(
     }
     Ok((layout, output.get(..written as usize).ok_or(2u32)?))
 }
+
+#[test]
+fn player_castle_shakes_on_odd_battle_frames() {
+    let input = PaintInput {
+        scene: SceneInput {
+            width: 5000.,
+            center: 1000.,
+            zoom: 0.5,
+            cut_height: 510,
+            castle: [0, 0, 100],
+            focus: 4,
+            viewport_width: 960,
+            battle_rows: 0,
+        },
+        cut: [0, 0, 960, 510],
+        top: [0; 4],
+        colors: [0; 12],
+        overlay: [0, 0, 0, 0, 0, 0, -1],
+        self_sizes: [100; 6],
+        show_enemy: 1,
+        show_player: 1,
+    };
+    let mut baseline = vec![Command::default(); 16];
+    let (_, baseline) = paint(&input, &mut baseline).unwrap();
+    assert_eq!(
+        baseline
+            .iter()
+            .filter(|c| (2..=4).contains(&c.texture))
+            .count(),
+        3
+    );
+    let mut output = vec![Command::default(); 16];
+    for (state, frame, shift) in [(0, 1, 0.), (1, 1, 2.), (2, 2, 0.), (2, 3, 2.)] {
+        let (_, actual) = live_paint(&input, 0, state, frame, &mut output).unwrap();
+        assert_eq!(actual.len(), baseline.len());
+        for (base, command) in baseline.iter().zip(actual) {
+            assert_eq!(command.texture, base.texture);
+            let dx = if (2..=4).contains(&base.texture) {
+                shift
+            } else {
+                0.
+            };
+            for i in 0..8 {
+                assert_eq!(
+                    command.points[i],
+                    base.points[i] + if i % 2 == 0 { dx } else { 0. }
+                );
+            }
+        }
+    }
+}
+
 pub fn sprite(layout: &Layout, input: &SpriteInput) -> Result<Command, u32> {
     let mut command = Command::default();
     let code = unsafe { kbcs_core_scene_sprite(layout, input, &mut command) };

@@ -118,7 +118,7 @@ extern "C" uint32_t kbcs_core_battle_sniper_draw(const KbcsBattle *battle,const 
   sprite(0,6,x,y+114.56f,53.7f,161.1f);sprite(0,6,x+132.46f,y+114.56f,53.7f,161.1f,true);
   sprite(0,s.firing?5:4,x+(s.firing?53.7f:51.91f),y+202.27f+(s.firing?s.gun_recoil:0),82.34f,91.29f);
   sprite(0,3,x+42.96f,y+286.4f,91.29f,42.96f);
-  sprite(0,2,x+34.01f,y+288.19f,93.08f,57.28f,false,s.angle,68.f,26.f);
+  sprite(0,2,x+34.01f,y+288.19f,93.08f,57.28f,false,-s.angle,68.f,26.f);
   sprite(0,1,x+34.01f,y+268.5f,118.14f,59.07f);
   sprite(0,0,x,y,93.08f,187.95f);sprite(0,0,x+93.08f,y,93.08f,187.95f,true);
   sprite(0,9,x+(s.firing?51.91f:50.12f),y+(s.firing?186.16f+s.gun_recoil:193.32f),89.5f,69.81f);

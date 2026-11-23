@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, ensure};
+﻿use anyhow::{Context, Result, ensure};
 use kbcs_bridge::{actor, battle, battle_screen, production, render, stage};
 use kbcs_data::{equipment, formations::Document, store::Database};
 use serde::Deserialize;
@@ -1475,7 +1475,7 @@ impl Session {
         let references = native(self.core.active_actors())?;
         let mut frame = self
             .scene
-            .draw(&self.database, input)
+            .draw_with_castle_state(&self.database, input, actors[0][0].words[1])
             .context("戦闘背景の描画")?;
         let mut order = Vec::new();
         for side in [1, 0] {
@@ -1889,8 +1889,10 @@ impl Session {
             && native(self.core.outcome())?.mode == 2
         {
             let mut lines = lines.clone();
-            if let Some(boss) = &boss_line {
-                lines.push(format!("({boss})"));
+            if let Some(boss) = &boss_line
+                && let Some(last_line) = lines.last_mut()
+            {
+                last_line.push_str(&format!("({boss})"));
             }
             json!({"layout":native(self.core.continue_view())?,"cost":kbcs_data::inventory::CONTINUE_CAT_FOOD_COST,"balance":self.continue_balance,"error":self.continue_error,"lines":lines})
         } else {
