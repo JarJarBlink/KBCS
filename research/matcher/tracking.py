@@ -13,10 +13,10 @@ from pathlib import Path
 from indexer.reference import function_path, reference_path
 from indexer.run import headless, locked
 from indexer.store import LOCAL, configure_output, digest, read_json, write_json
-from matcher import blocks, instruction_matcher, logic, report, structure, tracking_pair
+from matcher import blocks, instruction_matcher, interval_alignment, logic, report, structure, tracking_pair
 
 
-FORMAT = 2
+FORMAT = 3
 DDL = """
 CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
 CREATE TABLE datasets(id INTEGER PRIMARY KEY,version TEXT,abi TEXT,sha256 TEXT,revision TEXT,
@@ -48,6 +48,8 @@ CREATE TABLE review(pair TEXT,side INTEGER,address TEXT,kind TEXT,targets TEXT,e
 CREATE INDEX review_address ON review(pair,side,address);
 CREATE TABLE layout(pair TEXT,old_start TEXT,old_end TEXT,new_start TEXT,new_end TEXT,status TEXT,old_count INTEGER,new_count INTEGER,
     FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE TABLE interval_evidence(pair TEXT,old_start TEXT,old_end TEXT,new_start TEXT,new_end TEXT,evidence TEXT,
+    PRIMARY KEY(pair,old_start,old_end), FOREIGN KEY(pair) REFERENCES pairs(pair));
 CREATE TABLE cycles(older INTEGER,middle INTEGER,newer INTEGER,old TEXT,middle_address TEXT,via TEXT,direct TEXT,
     state TEXT,temporal TEXT,evidence TEXT,PRIMARY KEY(older,middle,newer,old));
 CREATE TABLE conflict_edges(pair TEXT,old TEXT,new TEXT,PRIMARY KEY(pair,old,new));
@@ -88,11 +90,12 @@ def load_dataset(cache, binary, archive, metrics=None):
 
 
 def configuration(datasets, decisions):
-    modules = (structure, blocks, instruction_matcher, logic, logic.effects, tracking_pair,
+    modules = (structure, blocks, instruction_matcher, interval_alignment, logic, logic.effects, tracking_pair,
                report, report.features, report.relations, report.engine)
     code = {Path(module.__file__).name: digest(Path(module.__file__)) for module in modules}
     code[Path(__file__).name] = digest(Path(__file__))
-    code['tracking_pages.py'] = digest(Path(__file__).with_name('tracking_pages.py'))
+    for source in ('tracking_pages.py', 'comparison_pages.py', 'publication_gate.py'):
+        code[source] = digest(Path(__file__).with_name(source))
     code[blocks.POLICY_PATH.name] = digest(blocks.POLICY_PATH)
     reviews = {path.name: digest(path) for path in sorted(decisions.glob('*.json'))} if decisions else {}
     sources = [(reference_path(entry['identity']).as_posix(), entry['identity']['analysis_revision'],
@@ -406,11 +409,18 @@ def show(path, version, address, limit):
             raise ValueError('No function at the requested version and address')
         dataset = item['dataset']
         links = [dict(row) for row in db.execute("""
-            SELECT pair,old,new,reason,verdict,evidence FROM relations JOIN pairs USING(pair)
+            SELECT pair,old,new,reason,verdict,evidence,role,older,newer FROM relations JOIN pairs USING(pair)
             WHERE (older=? AND old=?) OR (newer=? AND new=?) ORDER BY verdict,pair LIMIT ?""",
             (dataset, address, dataset, address, limit))]
         for relation in links:
             relation['evidence'] = json.loads(relation['evidence'])
+            endpoints = []
+            for side, number in (('old', 'older'), ('new', 'newer')):
+                endpoint = db.execute('''SELECT version,abi,sha256 AS library_sha256,revision AS analysis_revision,address,nodes.reference
+                    FROM nodes JOIN datasets ON dataset=id WHERE dataset=? AND address=?''',
+                    (relation[number], relation[side])).fetchone()
+                endpoints.append(dict(endpoint))
+            relation['endpoints'] = endpoints
             difference = db.execute('SELECT evidence FROM logic WHERE pair=? AND old=? AND new=?',
                                      (relation['pair'], relation['old'], relation['new'])).fetchone()
             if difference:

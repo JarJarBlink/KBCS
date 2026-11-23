@@ -3,7 +3,7 @@ import time
 from collections import Counter, defaultdict
 from functools import lru_cache
 
-from matcher import blocks, instruction_matcher, logic
+from matcher import blocks, instruction_matcher, interval_alignment, logic
 from matcher.report import peak_memory
 from matcher.structure import load_metadata, load_row, operations, pack, reader
 
@@ -24,11 +24,12 @@ def catalogs(db):
     return shapes, outgoing, incoming
 
 
-def refine(accepted, structure, graphs, get, rejected, max_rounds=5):
-    anchors = {a: b for a, (b, _, _) in accepted.items()}
+def refine(accepted, structure, graphs, get, rejected, max_rounds=5, *, trusted=None):
+    anchors = ({a: b for a, (b, _, _) in accepted.items()} if trusted is None
+               else {a: b for a, (b, _) in trusted.items()})
     initial = set(anchors)
     left, right = structure
-    taken = set(anchors.values())
+    taken = {row[0] for row in accepted.values()}
     groups = []
     for source in structure:
         by_shape = defaultdict(list)
@@ -43,7 +44,7 @@ def refine(accepted, structure, graphs, get, rejected, max_rounds=5):
         if not new:
             continue
         if len(old) != 1 or len(new) != 1:
-            free_left = [a for a in old if a not in initial]
+            free_left = [a for a in old if a not in accepted]
             free_right = [b for b in new if b not in taken]
             collisions['old'] += len(free_left) if free_right else 0
             collisions['new'] += len(free_right) if free_left else 0
@@ -129,6 +130,33 @@ def intervals(functions, accepted):
     return layouts, neighborhoods, moved
 
 
+def interval_candidates(functions, trusted, structures, rejected):
+    layouts, _, _ = intervals(functions, trusted)
+    suggestions, records = set(), []
+    old, new = structures
+    for a, c, b, d, state, old_count, new_count in layouts:
+        usable = state != 'reordered' and max(old_count, new_count) <= interval_alignment.MAX_INTERVAL
+        # 小区間用の旧近傍とは別に、この上限内の関数列を位置で取り出す。
+        records.append((a, c, b, d, {'old_count': old_count, 'new_count': new_count,
+            'count_delta': new_count - old_count, 'anchor_origins': [trusted[a][1], trusted[c][1]],
+            'anchor_deltas': [int(b, 16)-int(a, 16), int(d, 16)-int(c, 16)],
+            'crossing': state == 'reordered', 'search_scope': 'weighted_interval' if usable else 'global',
+            'truncated': not usable, 'position_is_auxiliary': True}))
+    lists = [ordered(items) for items in functions]
+    ranks = [{address: i for i, address in enumerate(items)} for items in lists]
+    for a, c, b, d, entry in records:
+        entry['anchor_ranks'] = [[ranks[0][a], ranks[0][c]], [ranks[1][b], ranks[1][d]]]
+        if entry['truncated']:
+            continue
+        left = lists[0][ranks[0][a]+1:ranks[0][c]]
+        right = lists[1][ranks[1][b]+1:ranks[1][d]]
+        selected = interval_alignment.align(left, right, lambda x, y: 0 if (x,y) in rejected else
+            interval_alignment.weights(old.get(x, interval_alignment.UNAVAILABLE), new.get(y, interval_alignment.UNAVAILABLE)))
+        suggestions.update(selected)
+        entry['suggested'] = sorted(selected)
+    return suggestions, records
+
+
 def residuals(side, address, alternatives, neighbors, map_to_other, taken, callers, pieces, *, callees=None):
     chunk, bounds = neighbors.get(address, ((), ()))
     pool = sorted((set(chunk) | alternatives.get(address, set())) - taken)[:24]
@@ -207,12 +235,24 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
             return logic.fragments(row) if row else set()
 
         # 未対応だけでなく、変更疑いと未対応の一段の呼出近傍を詳細調査する。
-        hits, proposed, refinement = refine(accepted, (old, new), (old_out, old_in, new_out, new_in), get, rejected)
+        graph = (old_out, old_in, new_out, new_in)
+        trusted, held = interval_alignment.audit(accepted, (old, new), graph, rejected)
+        for address in held:
+            accepted.pop(address)
+        blocked = rejected | {(a, b) for a, (b, _, _) in held.items()}
+        hits, proposed, refinement = refine(accepted, (old, new), graph, get, blocked, trusted=trusted)
         accepted.update(hits)
+        trusted = trusted | {a: (row[0], row[1]) for a, row in hits.items()}
+        ordered_candidates, interval_rows = interval_candidates(functions, trusted, (old, new), blocked)
+        target.executemany('INSERT INTO interval_evidence VALUES(?,?,?,?,?,?)',
+                           ((pair, a, c, b, d, pack(proof)) for a,c,b,d,proof in interval_rows))
         block_hits, block_rankings, scopes, block_stats = instruction_matcher.refine(
-            accepted, sources, (old, new), (old_out, old_in, new_out, new_in), get, rejected,
-            candidates, target, pair)
+            accepted, sources, (old, new), (old_out, old_in, new_out, new_in), get, blocked,
+            candidates, target, pair, trusted=trusted,
+            ordered_candidates=ordered_candidates)
         accepted.update(block_hits)
+        proposed.extend((a, b, method, 'needs_review', proof) for a, (b, method, proof) in held.items()
+                        if a not in accepted or accepted[a][0] != b)
         maps = ({a: row[0] for a, row in accepted.items()}, {row[0]: a for a, row in accepted.items()})
         new_targets = {b: b for b in maps[1]}
         alternatives = (defaultdict(set), defaultdict(set))
@@ -232,6 +272,12 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
                 reverse_rankings[item['new']].append(item | {'new': a})
         layouts, nearby, moved = intervals(functions, accepted)
         target.executemany('INSERT INTO layout VALUES(?,?,?,?,?,?,?,?)', ((pair, *row) for row in layouts))
+        ranks = [{address: i for i, address in enumerate(ordered(ledger), 1)} for ledger in functions]
+        for a, (b, _, proof) in accepted.items():
+            if a in ranks[0] and b in ranks[1]:
+                delta = int(b, 16) - int(a, 16)
+                proof.update(address_delta=delta, address_delta_hex=f'{delta:+#x}',
+                             old_rank=ranks[0][a], new_rank=ranks[1][b])
         target.executemany('INSERT INTO relations VALUES(?,?,?,?,?,?)',
                            ((pair, a, b, kind, verdict, pack(evidence)) for a, b, kind, verdict, evidence in proposed))
         target.executemany('INSERT INTO relations VALUES(?,?,?,?,?,?)',
@@ -270,7 +316,7 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
                     if reference_check:
                         inspection['forced_by_references'] += 1
             record['order_changed'] = (a, b) in moved
-            if a in old and b in new:
+            if not a.startswith('EXTERNAL:') and not b.startswith('EXTERNAL:'):
                 record['address_delta'] = int(b, 16) - int(a, 16)
             if record.get('cfg_changed'):
                 record['structural_candidate'] = ('boundary_candidate'
@@ -286,6 +332,11 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
         stage('pass3_logic')
         residual_counts = Counter()
         unresolved = []
+        audit_reviews = (defaultdict(list), defaultdict(list))
+        for a,b,_,verdict,proof in proposed:
+            if verdict == 'needs_review':
+                audit_reviews[0][a].append((b, proof))
+                audit_reviews[1][b].append((a, proof))
         for side, (incoming, outgoing) in enumerate(((old_in, old_out), (new_in, new_out))):
             unresolved.append(len(functions[side].keys() - maps[side].keys()))
             for address in sorted(functions[side].keys() - maps[side].keys()):
@@ -310,12 +361,14 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
                     if locations:
                         detailed_kinds = {item[0] for item in locations}
                         results = locations + [item for item in results if item[0] not in detailed_kinds]
-                entry_state, entry_proof = instruction_matcher.entry_evidence(
+                _, entry_proof = instruction_matcher.entry_evidence(
                     side, address, scopes[side].get(address, {}), (old, new), (old_out, old_in, new_out, new_in), maps, get, results)
+                for peer, proof in audit_reviews[side][address]:
+                    results.insert(0, ('initial_match_conflict', [peer], proof))
+                entry_state = 'needs_review' if any(kind != 'unresolved' for kind, _, _ in results) else 'unmatched'
+                entry_proof.update(processing='under_investigation', confirmed_counterpart=None)
                 target.execute('INSERT INTO entry_states VALUES(?,?,?,?,?)', (pair, side, address,
                     entry_state, pack(entry_proof)))
-                if entry_state != 'unmatched':
-                    results.append((entry_state, [], entry_proof))
                 for kind, candidates_for_function, proof in results:
                     residual_counts[kind] += 1
                     target.execute('INSERT INTO review VALUES(?,?,?,?,?,?)', (pair, side, address, kind,
@@ -327,7 +380,7 @@ def audit(initial, old_db, new_db, target, pair, emit=print, force_detail=()):
     held_out = answered + validation['abstained']
     rates = {'correct_among_answered': validation['correct'] / answered if answered else None,
              'abstention_rate': validation['abstained'] / held_out if held_out else None}
-    return maps[0], {'initial_accepted': initial_count, 'refined_accepted': len(hits) + len(block_hits),
+    return maps[0], {'initial_accepted': initial_count, 'initial_held': len(held), 'refined_accepted': len(hits) + len(block_hits),
                     'instruction_matching': block_stats,
                     'logic': dict(counts), 'review': dict(residual_counts), 'validation': metadata['validation'],
                     'importance': dict(importance), 'inspection': dict(inspection), 'impacts': dict(impacts),

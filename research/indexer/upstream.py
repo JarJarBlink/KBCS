@@ -13,7 +13,7 @@ from indexer.store import LOCAL, read_json, write_json, reference_signature
 PACKAGE = 'jp.co.ponos.battlecats'
 ABI = 'arm64-v8a'
 LIBRARY = 'libnative-lib.so'
-TRACKING_POLICY = 'block-correspondence-v1'
+TRACKING_POLICY = 'audited-interval-correspondence-v3'
 SIGNER = 'baf876d554213331c6fe5f6bbf9ae9af2f95c20e82b14bc232b0ac3a77680cb1'
 
 
@@ -156,8 +156,8 @@ def publication_state(data, manifest, repository):
         return 'references_pending'
     state = manifest.get('comparison_state', 'pending')
     if state in ('complete', 'no_baseline') and (
-            manifest.get('tracking_format') == 2 and manifest.get('tracking_policy') == TRACKING_POLICY
-            and manifest.get('tracking_navigation_format') == 1):
+            manifest.get('tracking_format') == 3 and manifest.get('tracking_policy') == TRACKING_POLICY
+            and manifest.get('tracking_navigation_format') == 2 and manifest.get('validation_state') == 'validated'):
         expected = tracking_sources([*previous_references(data, repository), manifest])
         if manifest.get('tracking_sources') == expected:
             return state

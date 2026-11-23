@@ -1,8 +1,6 @@
 ﻿name: Native analysis pipeline
 
 on:
-  schedule:
-    - cron: '37 18 * * *'
   workflow_dispatch:
     inputs:
       source_manifest:
@@ -34,6 +32,14 @@ on:
         description: 'Replace the published reference for this version and ABI on main'
         type: boolean
         default: true
+      migration_branch:
+        description: 'Optional staging branch from the native tracking migration plan'
+        type: string
+        default: ''
+      expected_window:
+        description: 'Optional matching window SHA-256 from the migration plan'
+        type: string
+        default: ''
   repository_dispatch:
     types: [native-analysis-request]
 
@@ -48,7 +54,7 @@ env:
   PYTHONPATH: ${{ github.workspace }}/research
   PYTHONUTF8: '1'
   GH_TOKEN: ${{ github.token }}
-  PUBLISH_REFERENCE: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_reference) || (github.event_name == 'repository_dispatch' && github.event.client_payload.publish_reference == true) }}
+  PUBLISH_REFERENCE: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_reference) || (github.event_name == 'repository_dispatch' && github.event.client_payload.publish_reference == true) }}
 
 jobs:
   analyze:
@@ -80,8 +86,17 @@ jobs:
           ASSETS_COMMIT: ${{ inputs.assets_commit }}
           REQUESTED_CHECKPOINT: ${{ inputs.checkpoint }}
           STAGE: ${{ inputs.stage || 'all' }}
+          MIGRATION_BRANCH: ${{ inputs.migration_branch }}
+          EXPECTED_WINDOW: ${{ inputs.expected_window }}
         shell: bash
         run: |
+          if [[ -n "$MIGRATION_BRANCH" || -n "$EXPECTED_WINDOW" ]]; then
+            if [[ ! "$MIGRATION_BRANCH" =~ ^codex/native-migration-[a-f0-9]{16}$ || ! "$EXPECTED_WINDOW" =~ ^[a-f0-9]{64}$ ||
+                  "$STAGE" != references || "$PUBLISH_REFERENCE" != true || -z "$REQUESTED_CHECKPOINT" ]]; then
+              echo 'Invalid native reference migration inputs' >&2
+              exit 1
+            fi
+          fi
           if [[ -n "$REQUESTED_CHECKPOINT" ]]; then
             [[ "$REQUESTED_CHECKPOINT" =~ ^native-analysis-[0-9]+\.[0-9]+\.[0-9]+-[a-zA-Z0-9_-]+-[a-f0-9]{16}$ ]]
             if [[ -n "$INPUT_MANIFEST" || -n "$ASSETS_COMMIT" || "$STAGE" == analyze ]]; then
@@ -251,7 +266,7 @@ jobs:
 
   match:
     name: Track native functions across versions
-    needs: [analyze, references, structures]
+    needs: [analyze, structures]
     if: >-
       !cancelled() && needs.analyze.result == 'success' && needs.structures.result == 'success' &&
       inputs.stage != 'backfill' && inputs.stage != 'analyze' &&
@@ -275,6 +290,8 @@ jobs:
       - name: Track verified versions and publish results
         env:
           BATTLECATS_APK_READ_TOKEN: ${{ secrets.BATTLECATS_APK_READ_TOKEN }}
+          MIGRATION_BRANCH: ${{ inputs.migration_branch }}
+          EXPECTED_WINDOW: ${{ inputs.expected_window }}
         shell: bash
         run: |
           args=()

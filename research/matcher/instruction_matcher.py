@@ -30,16 +30,21 @@ def data_anchors(databases, anchors):
     return mapping, references
 
 
-def refine(accepted, databases, structures, graphs, get, rejected, initial_candidates, target, pair):
+def refine(accepted, databases, structures, graphs, get, rejected, initial_candidates, target, pair,
+           *, trusted=None, ordered_candidates=()):
     policy = blocks.POLICY
     # 局所的な順序だけで採った組を、独立した参照の基準にしない。
-    anchors = {a: row[0] for a, row in accepted.items() if row[1] != 'leaf_bytes_and_local_order'}
+    anchors = ({a: row[0] for a, row in accepted.items() if row[1] != 'leaf_bytes_and_local_order'}
+               if trusted is None else {a: row[0] for a, row in trusted.items()})
     maps = (anchors, {b: a for a, b in anchors.items()})
     used = set(row[0] for row in accepted.values())
     new_targets = {b: b for b in anchors.values()}
     graphs_by_side = ((graphs[0], graphs[1]), (graphs[2], graphs[3]))
     pools, search = defaultdict(Counter), ({}, {})
     for a, b, *_ in initial_candidates:
+        if a not in accepted and (a, b) not in rejected:
+            pools[a][b] += 1
+    for a, b in ordered_candidates:
         if a not in accepted and (a, b) not in rejected:
             pools[a][b] += 1
 
@@ -150,6 +155,7 @@ def refine(accepted, databases, structures, graphs, get, rejected, initial_candi
             proof['unexplained_critical_count'] = [len(items) for items in alignment['unexplained_critical']]
             proof['unexplained_critical'] = [items[:8] for items in alignment['unexplained_critical']]
             proof.update(sources=['instruction_def_use_projection', 'cfg', 'independent_mapped_references'],
+                         weighted_interval_hint=(a, b) in ordered_candidates,
                          call_support_count=len(support),
                          call_support=[{'relation': kind, 'old': old, 'new': anchors[old]} for kind, old in sorted(support)[:16]],
                          mapped_data=len(shared_data), held=held,

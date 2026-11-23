@@ -1,7 +1,9 @@
 ﻿import hashlib
 import io
+import ast
 import json
 import os
+import re
 import shutil
 import subprocess
 import tarfile
@@ -10,8 +12,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from indexer import ci, ci_structure, ci_tracking, memory, network, upstream
-from indexer.store import connect
+from indexer import ci, ci_structure, ci_tracking, memory, network, tracking_migration, upstream
+from indexer.reference import reference_path
+from indexer.store import connect, read_json, write_json
 
 
 class CiTests(unittest.TestCase):
@@ -49,18 +52,18 @@ class CiTests(unittest.TestCase):
             reference['comparison_state'] = 'pending'
             self.assertEqual(upstream.matching_publication(source, ci.REPO, ci.RESEARCH / 'inputs')['comparison_state'], 'pending')
 
-    def test_notification_and_daily_recovery_share_published_identity(self):
+    def test_dispatch_uses_validated_published_identity(self):
         data = ci.load_input(ci.RESEARCH / 'inputs/jp-1507040.json')
         current = {'version': data['versionName'], 'architecture': data['architecture'],
                    'sha256': data['librarySha256'], 'analysis_revision': 'a' * 16}
         previous = current | {'version': '15.7.3', 'analysis_revision': 'b' * 16}
         self.assertEqual(upstream.publication_state(data, None, ci.REPO), 'new')
         self.assertEqual(upstream.publication_state(data, current | {'comparison_state': 'complete'}, ci.REPO), 'references_pending')
-        published = current | {'generator_signature': upstream.reference_signature(), 'reference_policy': 'native-reference-v1', 'comparison_state': 'complete', 'tracking_format': 2,
-                               'tracking_policy': upstream.TRACKING_POLICY, 'tracking_navigation_format': 1,
+        published = current | {'generator_signature': upstream.reference_signature(), 'reference_policy': 'native-reference-v1', 'comparison_state': 'complete', 'tracking_format': 3,
+                               'tracking_policy': upstream.TRACKING_POLICY, 'tracking_navigation_format': 2, 'validation_state': 'validated',
                                'tracking_sources': upstream.tracking_sources([previous, current])}
         with patch.object(upstream, 'previous_references', return_value=[previous]):
-            self.assertEqual(upstream.publication_state(data, published, ci.REPO), 'complete')
+            self.assertEqual(upstream.publication_state(data, published | {'validation_state': 'pending_full_validation'}, ci.REPO), 'pending')
             self.assertEqual(upstream.publication_state(data, published, ci.REPO), 'complete')
         with patch.object(upstream, 'previous_references', return_value=[previous | {'analysis_revision': 'c' * 16}]):
             self.assertEqual(upstream.publication_state(data, published, ci.REPO), 'pending')
@@ -71,6 +74,75 @@ class CiTests(unittest.TestCase):
               patch.object(ci_tracking, 'asset_record', side_effect=[{}, None, {}, {}, {}, {}])):
             self.assertEqual(ci_tracking.missing_structures('new'), ['middle'])
             self.assertEqual(ci_tracking.missing_structures('new'), [])
+
+    def test_publication_conflict_does_not_force_the_remote_branch(self):
+        branch = 'codex/native-migration-' + 'a' * 16
+        with (patch.object(ci, 'public_only'), patch.object(ci.subprocess, 'run') as run,
+              patch.object(ci, 'retry', side_effect=lambda operation, _: operation())):
+            run.return_value.returncode = 1
+
+            def response(args, **_):
+                if 'push' in args:
+                    self.assertEqual(args[-2:], ['origin', f'HEAD:refs/heads/{branch}'])
+                    raise subprocess.CalledProcessError(1, args, stderr=b'non-fast-forward')
+                return run.return_value
+
+            run.side_effect = response
+            with self.assertRaisesRegex(RuntimeError, 'publication branch advanced'):
+                ci.publish_worktree(Path('isolated'), 'Fixture', branch=branch)
+
+    def test_native_workflow_stage_conditions(self):
+        workflow = (ci.RESEARCH.parent / '.github/workflows/native-analysis.yml').read_text(encoding='utf-8-sig')
+        self.assertNotIn('\n  schedule:', workflow)
+        self.assertIn('types: [native-analysis-request]', workflow)
+        for job, needs in (('structures', 'analyze'), ('references', '[analyze, structures]'), ('match', '[analyze, structures]')):
+            self.assertRegex(workflow, rf'(?m)^  {job}:\n    name: [^\n]+\n    needs: {re.escape(needs)}$')
+
+        def condition(job, stage, publish, checkpoint, cancelled=False, structures='success'):
+            block = workflow.split(f'\n  {job}:\n')[1].split('    runs-on:')[0]
+            expression = ' '.join(line.strip() for line in block.split('    if:')[1].strip(' >-\n').splitlines())
+            flags = {'cancelled()': cancelled, 'inputs.stage': stage, 'inputs.publish_reference': publish,
+                     'needs.analyze.result': 'success', 'needs.analyze.outputs.match_only': '',
+                     'needs.analyze.outputs.checkpoint': checkpoint, 'needs.structures.result': structures}
+            pattern = '|'.join(re.escape(key) for key in flags)
+            expression = re.sub(pattern, lambda match: repr(flags[match[0]]), expression)
+            expression = expression.replace('&&', ' and ').replace('||', ' or ')
+            expression = re.sub(r'!(?!=)', 'not ', expression).strip()
+            parsed = ast.parse(expression, mode='eval')
+            allowed = (ast.Expression, ast.BoolOp, ast.UnaryOp, ast.Compare, ast.Constant, ast.Not, ast.And, ast.Or, ast.Eq, ast.NotEq)
+            self.assertTrue(all(isinstance(node, allowed) for node in ast.walk(parsed)))
+            return bool(eval(compile(parsed, '<workflow-fixture>', 'eval'), {'__builtins__': {}}))
+
+        for stage, publish, expected in (('all', True, (True, False, True)), ('all', False, (True, False, True)),
+                                          ('analyze', True, (False, False, False)), ('references', False, (True, True, False)),
+                                          ('references', True, (True, False, True)), ('match', True, (True, False, True)),
+                                          ('match', False, (True, False, True)), ('backfill', True, (True, False, False)),
+                                          ('', True, (True, False, True))):
+            self.assertEqual(tuple(condition(job, stage, publish, 'verified') for job in ('structures', 'references', 'match')), expected)
+        self.assertFalse(condition('match', 'all', True, ''))
+        self.assertFalse(condition('match', 'match', True, 'verified', structures='skipped'))
+        self.assertFalse(condition('match', 'match', True, 'verified', cancelled=True))
+
+    def test_migration_resume_checks_source_and_per_version_receipts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            identity = {'architecture': upstream.ABI, 'library': upstream.LIBRARY, 'sha256': 'a' * 64,
+                        'analysis_revision': 'b' * 16, 'source_database_sha256': 'c' * 64}
+            paths = []
+            for number in range(5):
+                source = identity | {'version': f'16.0.{number}'}
+                path = root / 'research/reference' / reference_path(source) / 'manifest.json'
+                write_json(path, source)
+                paths.append(path)
+            plan = tracking_migration.migration(root, upstream.ABI, upstream.LIBRARY, base='d' * 40)
+            self.assertEqual(plan['steps'][2]['window'], ['16.0.0', '16.0.1', '16.0.2', '16.0.3'])
+            self.assertTrue(tracking_migration.staging_branch(plan['branch']))
+            write_json(paths[0], read_json(paths[0]) | {'validation_state': 'validated', 'tracking_policy': upstream.TRACKING_POLICY,
+                'generator_signature': plan['generator_signature'], 'migration_window': plan['steps'][0]['inputs']['expected_window']})
+            self.assertEqual([step['complete'] for step in tracking_migration.resume(root, plan)['steps']], [True, False, False, False, False])
+            write_json(paths[0], read_json(paths[0]) | {'source_database_sha256': 'e' * 64})
+            with self.assertRaisesRegex(ValueError, 'sources or generator changed'):
+                tracking_migration.resume(root, plan)
         with (patch.object(ci_tracking, 'window_tags', side_effect=AssertionError('references needs only its own source')),
               patch.object(ci_tracking, 'asset_record', return_value=None)):
             self.assertEqual(ci_tracking.missing_structures('new', current_only=True), ['new'])
