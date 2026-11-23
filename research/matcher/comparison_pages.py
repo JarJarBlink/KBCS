@@ -64,6 +64,8 @@ def overlay(path, direction, link, heading):
     start, end = f'<!-- kbcs-version-{direction} -->', f'<!-- /kbcs-version-{direction} -->'
     block = f'{start}\n{link}\n{end}\n\n' if link else ''
     header, replaced = re.subn(rf'^{start}\n.*?^{end}\n\n', lambda _: block, header, flags=re.MULTILINE | re.DOTALL)
+    if replaced > 1:
+        raise ValueError(f'Duplicate navigation blocks: {path}')
     if not replaced:
         header += block
     content = (header + separator + body).encode('utf-8-sig')
@@ -82,7 +84,11 @@ def function_comparison_links(page):
         header = ''.join(takewhile(lambda line: line != FUNCTION_HEADING, source))
     block = header.partition(f'<!-- kbcs-version-{FUNCTION_TRACKING} -->\n')[2]
     block = block.partition(f'<!-- /kbcs-version-{FUNCTION_TRACKING} -->')[0]
-    return {match[1]: match[2] for match in re.finditer(r'^- \[([^\]]+)\]\((.+)$', block, re.MULTILINE)}
+    entries = re.findall(r'^- \[([^\]]+)\]\((.+)$', block, re.MULTILINE)
+    links = dict(entries)
+    if len(links) != len(entries):
+        raise ValueError(f'Duplicate comparison links: {page}')
+    return links
 
 
 def attach_function_comparisons(page, links):
