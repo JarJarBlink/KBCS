@@ -2,6 +2,8 @@
 
 JAR評価：満点の作品
 
+分類：[永遠の書庫塔](https://github.com/JarJarBlink/KBCS/tree/main/research/comparisons/arm64-v8a)（永恆書庫之塔 / Tower of the Eternal Archive）
+
 KBCS（Kenkou Battle Cats Simulator）は、『にゃんこ大戦争』日本版の戦闘を正確に再現することを目指す、Windows・macOS向けのシミュレーターです。
 
 <p align="center">
