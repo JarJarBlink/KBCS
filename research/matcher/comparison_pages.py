@@ -91,6 +91,84 @@ def function_comparison_links(page):
     return links
 
 
+def versions(reference, identity):
+    abi, library = identity['architecture'], identity.get('library')
+    found = {}
+    for path in reference.glob(f'*/{abi}/*/manifest.json'):
+        manifest = read_json(path)
+        if library is not None and manifest.get('library') != library:
+            continue
+        directory = path.parent
+        if directory != reference / reference_path(manifest) or manifest['version'] in found:
+            raise ValueError(f'Ambiguous published reference: {directory}')
+        found[manifest['version']] = (directory, manifest)
+    return [found[v] for v in sorted(found, key=lambda v: tuple(map(int, v.split('.'))))]
+
+
+def confirmed_peer(identity, address, entry):
+    if 'match' not in entry:
+        return None
+    a, b = entry['match']
+    if entry['kind'] != 'accepted':
+        raise ValueError('Review entries cannot name a confirmed counterpart')
+    if entry['older'] == identity and a == address:
+        return entry['newer'], b
+    if entry['newer'] == identity and b == address:
+        return entry['older'], a
+    raise ValueError('Function comparison counterpart has the wrong endpoint')
+
+
+def tracking_content(source, address, entries, repository, neighbors, *, identity):
+    page = source / function_path(address)
+    lines = ['## バージョン間の関数追跡', '']
+    by_interval = {(entry['older']['version'], entry['newer']['version']): entry for entry in entries}
+    for direction, neighbor in neighbors:
+        heading = '前の公開版' if direction == 'previous' else '次の公開版'
+        if neighbor is None:
+            lines.extend([f'- **{heading}** 公開版なし', ''])
+            continue
+        folder, manifest = neighbor
+        own, peer_version = identity['version'], manifest['version']
+        interval = (peer_version, own) if direction == 'previous' else (own, peer_version)
+        entry = by_interval.get(interval)
+        title = f'v{interval[0]} → v{interval[1]}'
+        lines.append(f'- **{heading} v{peer_version}**')
+        counterpart = confirmed_peer(identity, address, entry) if entry else None
+        if counterpart:
+            peer, peer_address = counterpart
+            if comparison_identity(manifest) != peer:
+                raise ValueError('Comparison counterpart uses a different published source')
+            destination = folder / function_path(peer_address)
+            delta = (f' · 移動量 `{int(entry["match"][1],16)-int(entry["match"][0],16):+#x}`'
+                     if all(not a.startswith('EXTERNAL:') for a in entry['match']) else '')
+            lines.append(f'  - 採用 · [関数詳細 `{peer_address}`]({relative_link(destination, page)}){delta}')
+        elif entry:
+            status = ('要確認' if entry['kind'] == 'review' else '対応未確定' if entry['kind'] == 'index'
+                      else '対応先詳細の検証待ち')
+            lines.append(f'  - {status}')
+        else:
+            status = '構造資料不足' if not manifest.get('source_structure_sha256') else '比較資料の生成待ち'
+            lines.append(f'  - {status}')
+        if entry:
+            target, marker, anchor = entry['target'].partition('#')
+            label = {'accepted': '当該関数比較', 'review': '候補と検査根拠', 'index': '版の比較一覧'}[entry['kind']]
+            lines.append(f'  - [{title} {label}]({relative_link(repository / target, page)}{marker}{anchor})')
+        lines.append(f'  - [v{peer_version}の関数一覧]({relative_link(folder / "README.md", page)})')
+        lines.append('')
+    lines.append(f'[版の関数一覧]({relative_link(source / "README.md", page)}) · '
+                 f'[全バージョン一覧]({relative_link(repository / "research/reference/README.md", page)})')
+    return '\n'.join(lines)
+
+
+def navigation_neighbors(source, repository):
+    entries = versions(repository / 'research/reference', read_json(source / 'manifest.json'))
+    for i, (path, manifest) in enumerate(entries):
+        if path == source:
+            return [('previous', entries[i-1] if i else None),
+                    ('next', entries[i+1] if i+1 < len(entries) else None)]
+    raise ValueError(f'Missing active published version: {source}')
+
+
 def attach_function_comparisons(page, links):
     if links:
         content = '\n'.join(f'- [{title}]({target}' for title, target in sorted(
@@ -124,7 +202,7 @@ def write_comparison_catalog(source, catalog):
         for entry in entries:
             key = entry['older']['version'] + '--' + entry['newer']['version']
             intervals[key] = {side: entry[side] for side in ('older', 'newer')}
-            rows[address].append({'interval': key, 'target': entry['target'], 'kind': entry['kind']})
+            rows[address].append({'interval': key, **{k: v for k,v in entry.items() if k not in ('older','newer')}})
     write_json(source / 'function-comparisons.json', catalog | {'intervals': intervals, 'rows': rows})
 
 
@@ -168,11 +246,17 @@ def valid_comparison_entries(catalog, source, repository):
 
 
 def render_comparison_catalog(source, catalog, repository, *, verify=False):
+    modern = catalog.get('navigation_format') == 2
+    neighbors = navigation_neighbors(source, repository) if modern else None
     for address, entries in catalog['rows'].items():
         page = source / function_path(address)
         if not page.is_file():
             if verify:
                 raise ValueError(f'Missing function page: {page}')
+            continue
+        if modern:
+            content = tracking_content(source, address, entries, repository, neighbors, identity=catalog['identity'])
+            overlay(page, FUNCTION_TRACKING, content, FUNCTION_HEADING)
             continue
         links = {}
         for entry in entries:
@@ -197,6 +281,10 @@ def carry_function_comparisons(previous, source, repository=None):
         return
     repository = repository or previous.parents[4]
     catalog['rows'] = valid_comparison_entries(catalog, previous, repository)
+    if catalog.get('navigation_format') == 2:
+        # 新しい関数一覧の確定後に、公開パスを基準とした導線を生成する。
+        write_comparison_catalog(source, catalog)
+        return
     # 生成先は公開ツリーと同じ深さなので、リンクは公開先を基準に作る。
     for page in source.glob('functions/*/*.md'):
         original = previous / page.relative_to(source)

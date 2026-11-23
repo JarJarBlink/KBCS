@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import shutil
 import tempfile
@@ -11,9 +11,10 @@ from indexer.ci_structure import asset_record, deliver_asset, get_asset, structu
 from indexer.network import gh_json
 from indexer.reference import reference_path
 from indexer.store import LOCAL, digest, read_json, reference_signature, write_json
+from indexer.tracking_migration import staging_branch, window_key
 from indexer.upstream import LIBRARY, TRACKING_POLICY, adjacent_references, tracking_sources
-from matcher import tracking, tracking_pages
-from matcher.comparison_pages import overlay
+from matcher import publication_gate, tracking, tracking_pages
+from matcher.comparison_pages import comparison_identity, overlay, render_comparison_catalog
 from matcher.structure import reader
 
 
@@ -74,39 +75,36 @@ def restore_window(data, identity, cache, tag, root, ref=None):
 def verify_result(database, config_id):
     with reader(database) as db:
         result = json.loads(db.execute("SELECT value FROM metadata WHERE key='result'").fetchone()[0])
-        if (result['format'], result['configuration'], result['complete']) != (2, config_id, True):
+        if (result['format'], result['configuration'], result['complete']) != (tracking.FORMAT, config_id, True):
             raise ValueError('Release contains an incompatible tracking result')
         if db.execute('PRAGMA quick_check').fetchone()[0] != 'ok' or db.execute('PRAGMA foreign_key_check').fetchone():
             raise ValueError('Tracking Release database failed integrity validation')
     return result
 
 
-def retire_old_reports(work, versions):
-    paths = []
-    if {'15.7.2', '15.7.4'} <= set(versions):
-        for path in ('research/docs/native-comparison-15.7.2-15.7.4.md',
-                     'research/matcher/docs/results-15.7.2-15.7.4.md'):
-            if (work / path).is_file():
-                (work / path).unlink()
-                paths.append(path)
-    return paths
-
-
 def publish_tracking(tag, publish, *, regenerate=False):
     import subprocess
 
     public_only()
+    branch, expected = os.environ.get('MIGRATION_BRANCH', ''), os.environ.get('EXPECTED_WINDOW', '')
+    if branch or expected:
+        if not (regenerate and publish and staging_branch(branch) and expected):
+            raise ValueError('Migration requires a staging branch, a window hash and a published references replay')
+    branch = branch or 'main'
     LOCAL.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ci-tracking-', dir=LOCAL) as temporary:
         root = Path(temporary)
         cache = root / 'cache'
         data, identity = restore_completed(tag, cache)
         revision = identity['analysis_revision']
-        work = reference_worktree(revision + '-tracking') if publish else None
+        work = reference_worktree(revision + '-tracking', branch) if publish else None
         reference = work / 'research/reference' if work else None
         revision_sha = subprocess.check_output(['git', '-C', str(work), 'rev-parse', 'HEAD'], text=True).strip() if work else None
         manifest_path = reference / reference_path(identity) / 'manifest.json' if work else None
         entries = restore_window(data, identity, cache, tag, root, revision_sha)
+        if expected and expected != window_key([version | {'source_database_sha256': digest(source / 'cache.sqlite')}
+                                                for _, version, source, _ in entries]):
+            raise ValueError('Migration window changed since its plan was generated')
         if publish:
             manifest = read_json(manifest_path) if manifest_path.is_file() else None
             if regenerate or not manifest or manifest.get('analysis_revision') != revision or (
@@ -118,13 +116,24 @@ def publish_tracking(tag, publish, *, regenerate=False):
             validate_cache(cache, manifest, identity)
         if len(entries) == 1:
             if publish:
+                source = manifest_path.parent
+                rows = {page.stem.replace('EXTERNAL-', 'EXTERNAL:', 1): [] for page in source.glob('functions/*/*.md')}
+                render_comparison_catalog(source, {'format': 1, 'navigation_format': 2,
+                                          'identity': comparison_identity(identity), 'rows': rows}, work, verify=True)
+                overlay(manifest_path.with_name('README.md'), 'tracking', '', '## アドレス索引\n')
                 overlay(manifest_path.with_name('README.md'), 'tracking-neighbors',
                         '同じABIで比較できる公開版はまだありません。', '## アドレス索引\n')
-                manifest.update(comparison_state='no_baseline', tracking_format=2, tracking_navigation_format=1, tracking_policy=TRACKING_POLICY,
-                                tracking_sources=tracking_sources([identity]))
+                for key in ('tracking_run', 'tracking_page'):
+                    manifest.pop(key, None)
+                manifest.update(comparison_state='no_baseline', tracking_format=tracking.FORMAT, tracking_navigation_format=2,
+                                tracking_policy=TRACKING_POLICY, tracking_sources=tracking_sources([identity]),
+                                validation_state='pending_full_validation')
                 write_json(manifest_path, manifest)
+                publication_gate.verify_publication(work, None, {'sources': [{'identity': identity}], 'run': None})
+                if expected:
+                    write_json(manifest_path, read_json(manifest_path) | {'migration_window': expected})
                 publish_worktree(work, f'Publish native tracking state {revision}',
-                                 ('research/reference', 'research/comparisons'))
+                                 ('research/reference', 'research/comparisons'), branch=branch)
             print('No earlier published reference for this ABI', flush=True)
             return
         java_home = Path(os.environ['JAVA_HOME'])
@@ -158,8 +167,11 @@ def publish_tracking(tag, publish, *, regenerate=False):
             destination = work / 'research/comparisons' / identity['architecture'] / result['run']
             tracking_pages.render(database, work, destination, asset_url)
             tracking_pages.attach(work, destination, result, verify=True)
-            tracking_pages.refresh_affected_navigation(work, result)
+            touched = tracking_pages.refresh_affected_navigation(work, result)
+            report = publication_gate.verify_publication(work, destination, result, touched)
+            if expected:
+                write_json(manifest_path, read_json(manifest_path) | {'migration_window': expected})
+            print(json.dumps({'v3_publication_check': report}, ensure_ascii=False), flush=True)
             deliver_asset(tag, database)
-            retired = retire_old_reports(work, [entry[1]['version'] for entry in entries])
             publish_worktree(work, f'Publish native tracking window {result["run"]}',
-                             ('research/reference', 'research/comparisons', *retired))
+                             ('research/reference', 'research/comparisons'), branch=branch)

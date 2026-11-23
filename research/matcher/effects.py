@@ -188,12 +188,17 @@ def changes(old, new, left, right, abi, *, include_evidence=True, positions=None
                 first = Counter(tuple(item[0] if item else None for item in event[2]) for event in events)
                 second = Counter(tuple(item[0] if item else None for item in event[2]) for event in peers)
                 by_value = {tuple(item[0] if item else None for item in event[2]): event for event in peers}
+                paired = set()
                 for event in events:
                     signature = tuple(item[0] if item else None for item in event[2])
                     if first[signature] == second[signature] == 1:
+                        paired.add(signature)
                         yield event, by_value[signature]
                     else:
                         yield event, None
+                for event in peers:
+                    if tuple(item[0] if item else None for item in event[2]) not in paired:
+                        yield None, event
                 used.add(target)
         for event in after:
             if event[0] not in used:
@@ -210,6 +215,9 @@ def changes(old, new, left, right, abi, *, include_evidence=True, positions=None
                     counts[sink + '_count'] += int(sink != 'guard')
                 elif first is not None and len(a[sink]) == len(b[sink]) and sink != 'guard':
                     counts['unresolved_' + sink + '_alignment'] += 1
+                if positions is not None and include_evidence and sink != 'guard' and len(records) < MAX_EFFECTS:
+                    records.append({'kind': sink + '_position_unpaired', 'old': {'site': first[0]} if first else None,
+                                    'new': {'site': second[0]} if second else None, 'confidence': 'limited'})
                 continue
             for slot, (before, after) in enumerate(zip_longest(first[2], second[2])):
                 guard = sink == 'guard'

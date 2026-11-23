@@ -254,7 +254,11 @@ def skipped(shapes, references):
             'unchecked': ['raw_pcode_operands', 'reaching_definitions', 'runtime_behavior']}
 
 
-def compare(old, new, old_targets, new_targets, *, abi=False, alignment=None):
+def instruction_bytes(row):
+    return {instruction[0]: display[0] for instruction, display in zip(row['instructions'], row.get('disassembly', ()))}
+
+
+def compare(old, new, old_targets, new_targets, *, abi=False, alignment=None, detail_limit=MAX_DETAIL):
     from matcher import blocks
     old_cfg, new_cfg = cfg(old), cfg(new)
     graph = old_cfg != new_cfg
@@ -270,14 +274,23 @@ def compare(old, new, old_targets, new_targets, *, abi=False, alignment=None):
         warnings.append('unresolved_reference_or_flow')
     if old['instruction_bytes'] != old['body_bytes'] or new['instruction_bytes'] != new['body_bytes']:
         warnings.append('incomplete_instruction_coverage')
+    missing = [sum(site not in seen for site, *_ in row['instructions'])
+               for row, seen in ((old, positions), (new, set(positions.values())))]
+    incomplete = any(missing) or bool(alignment['truncated']) or 'incomplete_instruction_coverage' in warnings
+    if incomplete:
+        warnings.append('instruction_positions_unresolved')
     result = {'scope': 'raw_instruction_pcode', 'operations': [len(a), len(b)], 'cfg_changed': graph,
               'machine_changed': machine, 'machine_equal': not machine, 'cfg_equal': not graph,
               'reference_changed': ref_changed, 'reference_state': refs['state'], 'references': refs,
               'equivalence': 'unproven', 'unchecked': ['cross_block_values', 'runtime_behavior'],
               'warnings': warnings,
               'changes': [], 'details': [], 'detail_truncated': False}
+    result['normalization_basis'] = ['recorded_reference_targets', 'pc_relative_address_generation', 'matched_instruction_sites']
     result['instruction_correspondence'] = {k: alignment[k] for k in
         ('coverage', 'instruction_counts', 'cfg_coverage', 'unexplained_critical', 'truncated', 'graph_basis')}
+    result['instruction_correspondence']['unmapped'] = missing
+    result['instruction_correspondence']['block_counts'] = [len(old['blocks']), len(new['blocks'])]
+    result['instruction_correspondence']['mapped_blocks'] = len(alignment.get('blocks', ()))
     result['data_contents'] = data_contents(old, new, positions)
     result['verified_branch_inversions'] = alignment['verified_branch_inversions']
     result['_positions'] = positions
@@ -292,8 +305,14 @@ def compare(old, new, old_targets, new_targets, *, abi=False, alignment=None):
     if flow_shape_changed:
         result['changes'].append('cfg_edge_inventory')
     if a == b:
+        if machine:
+            before, after = instruction_bytes(old), instruction_bytes(new)
+            different = ({'old': [x, before[x]], 'new': [y, after[y]]} for x, y in positions.items()
+                         if x in before and y in after and before[x] != after[y])
+            result['machine_sample'] = list(islice(different, 3))
         result['status'] = 'data_change_candidate' if result['data_contents']['changed'] else 'structure_or_reference_change' if graph or ref_changed else (
-            'reference_unresolved' if warnings else 'machine_only_observed' if machine else 'no_difference_in_scope')
+            'alignment_unresolved' if incomplete else 'reference_unresolved' if warnings
+            else 'machine_only_observed' if machine else 'no_difference_in_scope')
         grade(result, old, new, left, right, (old_targets, new_targets), abi)
         result.pop('_positions')
         return result
@@ -309,7 +328,7 @@ def compare(old, new, old_targets, new_targets, *, abi=False, alignment=None):
         relocation_shape(old, old_targets) == relocation_shape(new, new_targets))
     impact, effects_found = effects.changes(old, new, left, right, abi, positions=positions)
     if relocation:
-        result['status'] = 'reference_sensitive'
+        result['status'] = 'alignment_unresolved' if incomplete else 'reference_sensitive'
     elif relaxed_registers(a) == relaxed_registers(b):
         local_renaming = (not impact and not graph and not ref_changed and not warnings and
                           old_dependencies == new_dependencies and
@@ -319,6 +338,9 @@ def compare(old, new, old_targets, new_targets, *, abi=False, alignment=None):
         result['status'] = 'logic_change_candidate'
     result['impact'] = impact
     result['effects'] = effects_found
+    if incomplete and not (any(not key.startswith('unresolved_') for key in impact)
+                           or refs['mapped_call_target_changed'] or result['data_contents']['changed']):
+        result['status'] = 'alignment_unresolved'
     tags.update(impact)
     grouped = []
     for sequence in (left, right):
@@ -332,17 +354,21 @@ def compare(old, new, old_targets, new_targets, *, abi=False, alignment=None):
     mapped = set(positions.values())
     changes.extend((None, site) for site in grouped[1] if site not in mapped)
     changes.sort(key=lambda item: (not bool(set(item) & important), item[0] or item[1]))
+    listings = (instruction_bytes(old), instruction_bytes(new)) if changes else ({}, {})
     for old_site, new_site in changes:
-        if len(result['details']) == MAX_DETAIL:
+        if detail_limit is not None and len(result['details']) == detail_limit:
             result['detail_truncated'] = True
             break
         first, second = grouped[0].get(old_site, ()), grouped[1].get(new_site, ())
         local = explain_ops([op for _, op in first], [op for _, op in second])
         tags.update(local)
-        result['details'].append({'old': list(first[:6]), 'new': list(second[:6]),
+        limit = None if detail_limit is None else 6
+        result['details'].append({'old': list(first[:limit]), 'new': list(second[:limit]),
                                   'counts': [len(first), len(second)], 'types': sorted(local),
+                                  'sites': [old_site, new_site],
+                                  'machine_bytes': [listings[0].get(old_site), listings[1].get(new_site)],
                                   'correspondence': 'mapped_instruction' if old_site and new_site else 'unmatched_instruction'})
-        result['detail_truncated'] |= max(len(first), len(second)) > 6
+        result['detail_truncated'] |= limit is not None and max(len(first), len(second)) > limit
     result['changes'] = sorted(tags)
     grade(result, old, new, left, right, (old_targets, new_targets), abi)
     result.pop('_positions')
