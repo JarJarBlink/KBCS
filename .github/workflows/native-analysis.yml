@@ -1,5 +1,7 @@
 ﻿name: Native analysis pipeline
 
+run-name: ${{ inputs.migration_base != '' && format('Native v3 migration {0}', inputs.checkpoint) || 'Native analysis pipeline' }}
+
 on:
   workflow_dispatch:
     inputs:
@@ -38,6 +40,10 @@ on:
         default: ''
       expected_window:
         description: 'Optional matching window SHA-256 from the migration plan'
+        type: string
+        default: ''
+      migration_base:
+        description: 'Pinned main commit for an ordered, automatically promoted v3 migration'
         type: string
         default: ''
   repository_dispatch:
@@ -88,14 +94,19 @@ jobs:
           STAGE: ${{ inputs.stage || 'all' }}
           MIGRATION_BRANCH: ${{ inputs.migration_branch }}
           EXPECTED_WINDOW: ${{ inputs.expected_window }}
+          MIGRATION_BASE: ${{ inputs.migration_base }}
         shell: bash
         run: |
-          if [[ -n "$MIGRATION_BRANCH" || -n "$EXPECTED_WINDOW" ]]; then
+          if [[ -n "$MIGRATION_BRANCH" || -n "$EXPECTED_WINDOW" || -n "$MIGRATION_BASE" ]]; then
             if [[ ! "$MIGRATION_BRANCH" =~ ^codex/native-migration-[a-f0-9]{16}$ || ! "$EXPECTED_WINDOW" =~ ^[a-f0-9]{64}$ ||
                   "$STAGE" != references || "$PUBLISH_REFERENCE" != true || -z "$REQUESTED_CHECKPOINT" ]]; then
               echo 'Invalid native reference migration inputs' >&2
               exit 1
             fi
+          fi
+          if [[ -n "$MIGRATION_BASE" && "$MIGRATION_BASE" != "$GITHUB_SHA" ]]; then
+            echo 'The main revision differs from the pinned migration base' >&2
+            exit 1
           fi
           if [[ -n "$REQUESTED_CHECKPOINT" ]]; then
             [[ "$REQUESTED_CHECKPOINT" =~ ^native-analysis-[0-9]+\.[0-9]+\.[0-9]+-[a-zA-Z0-9_-]+-[a-f0-9]{16}$ ]]
@@ -275,6 +286,7 @@ jobs:
     timeout-minutes: 300
     permissions:
       contents: write
+      actions: write
     env:
       CHECKPOINT: ${{ needs.analyze.outputs.checkpoint }}
     steps:
@@ -292,6 +304,7 @@ jobs:
           BATTLECATS_APK_READ_TOKEN: ${{ secrets.BATTLECATS_APK_READ_TOKEN }}
           MIGRATION_BRANCH: ${{ inputs.migration_branch }}
           EXPECTED_WINDOW: ${{ inputs.expected_window }}
+          MIGRATION_BASE: ${{ inputs.migration_base }}
         shell: bash
         run: |
           args=()

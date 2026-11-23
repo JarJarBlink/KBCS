@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from indexer import ci, ci_structure, ci_tracking, memory, network, tracking_migration, upstream
+from indexer import ci, ci_structure, ci_tracking, memory, migration_delivery, network, tracking_migration, upstream
 from indexer.reference import reference_path
 from indexer.store import connect, read_json, write_json
 
@@ -140,9 +140,31 @@ class CiTests(unittest.TestCase):
             write_json(paths[0], read_json(paths[0]) | {'validation_state': 'validated', 'tracking_policy': upstream.TRACKING_POLICY,
                 'generator_signature': plan['generator_signature'], 'migration_window': plan['steps'][0]['inputs']['expected_window']})
             self.assertEqual([step['complete'] for step in tracking_migration.resume(root, plan)['steps']], [True, False, False, False, False])
+            with patch.dict(os.environ, {'GITHUB_SHA': plan['base']}):
+                first, second, third = plan['steps'][:3]
+                inputs = second['inputs']
+                self.assertFalse(migration_delivery.check_step(root, plan['base'], plan['branch'], inputs['checkpoint'], inputs['expected_window']))
+                with self.assertRaisesRegex(ValueError, 'earlier migration step'):
+                    migration_delivery.check_step(root, plan['base'], plan['branch'], third['inputs']['checkpoint'], third['inputs']['expected_window'])
+                with (patch.object(migration_delivery, 'gh_json', return_value={'object': {'sha': plan['base']}}),
+                      patch.object(migration_delivery.subprocess, 'run') as dispatch):
+                    migration_delivery.advance(root, plan['base'], plan['branch'])
+                    self.assertEqual(json.loads(dispatch.call_args.kwargs['input'])['inputs'], inputs | {'migration_base': plan['base']})
             write_json(paths[0], read_json(paths[0]) | {'source_database_sha256': 'e' * 64})
             with self.assertRaisesRegex(ValueError, 'sources or generator changed'):
                 tracking_migration.resume(root, plan)
+
+    def test_tracking_database_gzip_round_trips_deterministically(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, archive, restored = (root / name for name in ('source.sqlite', 'tracking.sqlite.gz', 'restored.sqlite'))
+            source.write_bytes(b'fixture SQLite data' * 512)
+            ci_tracking.pack_database(source, archive)
+            first = archive.read_bytes()
+            ci_tracking.pack_database(source, archive)
+            self.assertEqual(archive.read_bytes(), first)
+            ci_tracking.unpack_database(archive, restored)
+            self.assertEqual(source.read_bytes(), restored.read_bytes())
         with (patch.object(ci_tracking, 'window_tags', side_effect=AssertionError('references needs only its own source')),
               patch.object(ci_tracking, 'asset_record', return_value=None)):
             self.assertEqual(ci_tracking.missing_structures('new', current_only=True), ['new'])
