@@ -13,10 +13,10 @@ from pathlib import Path
 from indexer.reference import function_path, reference_path
 from indexer.run import headless, locked
 from indexer.store import LOCAL, configure_output, digest, read_json, write_json
-from matcher import logic, report, structure, tracking_pair
+from matcher import blocks, instruction_matcher, interval_alignment, logic, report, structure, tracking_pair
 
 
-FORMAT = 2
+FORMAT = 3
 DDL = """
 CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
 CREATE TABLE datasets(id INTEGER PRIMARY KEY,version TEXT,abi TEXT,sha256 TEXT,revision TEXT,
@@ -48,9 +48,24 @@ CREATE TABLE review(pair TEXT,side INTEGER,address TEXT,kind TEXT,targets TEXT,e
 CREATE INDEX review_address ON review(pair,side,address);
 CREATE TABLE layout(pair TEXT,old_start TEXT,old_end TEXT,new_start TEXT,new_end TEXT,status TEXT,old_count INTEGER,new_count INTEGER,
     FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE TABLE interval_evidence(pair TEXT,old_start TEXT,old_end TEXT,new_start TEXT,new_end TEXT,evidence TEXT,
+    PRIMARY KEY(pair,old_start,old_end), FOREIGN KEY(pair) REFERENCES pairs(pair));
 CREATE TABLE cycles(older INTEGER,middle INTEGER,newer INTEGER,old TEXT,middle_address TEXT,via TEXT,direct TEXT,
     state TEXT,temporal TEXT,evidence TEXT,PRIMARY KEY(older,middle,newer,old));
 CREATE TABLE conflict_edges(pair TEXT,old TEXT,new TEXT,PRIMARY KEY(pair,old,new));
+CREATE TABLE instruction_alignment(pair TEXT,old TEXT,new TEXT,alignment BLOB,evidence TEXT,
+    PRIMARY KEY(pair,old,new),FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE INDEX instruction_alignment_new ON instruction_alignment(pair,new);
+CREATE TABLE instruction_candidates(pair TEXT,old TEXT,new TEXT,rank INTEGER,score REAL,eligible INTEGER,
+    accepted INTEGER,evidence TEXT,PRIMARY KEY(pair,old,new),FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE INDEX instruction_candidates_new ON instruction_candidates(pair,new,score DESC);
+CREATE TABLE search_scope(pair TEXT,side INTEGER,address TEXT,evidence TEXT,
+    PRIMARY KEY(pair,side,address),FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE TABLE entry_states(pair TEXT,side INTEGER,address TEXT,state TEXT,evidence TEXT,
+    PRIMARY KEY(pair,side,address),FOREIGN KEY(pair) REFERENCES pairs(pair));
+CREATE TABLE processing_locations(pair TEXT,side INTEGER,address TEXT,target TEXT,kind TEXT,
+    source_instructions INTEGER,target_instructions INTEGER,evidence TEXT,PRIMARY KEY(pair,side,address,target),
+    FOREIGN KEY(pair) REFERENCES pairs(pair));
 CREATE TABLE manual_decisions(pair TEXT,old TEXT,new TEXT,action TEXT,note TEXT,
     PRIMARY KEY(pair,old,new,action),FOREIGN KEY(pair) REFERENCES pairs(pair));
 """
@@ -75,10 +90,13 @@ def load_dataset(cache, binary, archive, metrics=None):
 
 
 def configuration(datasets, decisions):
-    modules = (structure, logic, logic.effects, tracking_pair, report, report.features, report.relations, report.engine)
+    modules = (structure, blocks, instruction_matcher, interval_alignment, logic, logic.effects, tracking_pair,
+               report, report.features, report.relations, report.engine)
     code = {Path(module.__file__).name: digest(Path(module.__file__)) for module in modules}
     code[Path(__file__).name] = digest(Path(__file__))
-    code['tracking_pages.py'] = digest(Path(__file__).with_name('tracking_pages.py'))
+    for source in ('tracking_pages.py', 'comparison_pages.py', 'publication_gate.py'):
+        code[source] = digest(Path(__file__).with_name(source))
+    code[blocks.POLICY_PATH.name] = digest(blocks.POLICY_PATH)
     reviews = {path.name: digest(path) for path in sorted(decisions.glob('*.json'))} if decisions else {}
     sources = [(reference_path(entry['identity']).as_posix(), entry['identity']['analysis_revision'],
                 digest(entry['cache'] / 'cache.sqlite'), digest(entry['archive'])) for entry in datasets]
@@ -118,6 +136,21 @@ def backfill(cache, binary, config, output):
 
 def reconcile(db, pair_maps, count):
     totals = Counter()
+    reopened = set()
+
+    def hold_entry(pair, side, address, route):
+        row = db.execute('SELECT state,evidence FROM entry_states WHERE pair=? AND side=? AND address=?',
+                         (pair, side, address)).fetchone()
+        if not row or row[0] not in ('addition_within_inspected_scope', 'deletion_within_inspected_scope'):
+            return
+        key = (pair, side, address)
+        evidence = json.loads(row[1]) | {'processing': 'correspondence_in_nonadjacent_version', 'direct_route': route}
+        db.execute("UPDATE entry_states SET state='held_direct_route',evidence=? WHERE pair=? AND side=? AND address=?",
+                   (structure.pack(evidence), *key))
+        db.execute('DELETE FROM review WHERE pair=? AND side=? AND address=? AND kind=?', (*key, row[0]))
+        db.execute('INSERT INTO review VALUES(?,?,?,?,?,?)', (*key, 'held_direct_route', '[]', structure.pack(evidence)))
+        reopened.add(pair)
+
     for i in range(count - 2):
         ab, bc, ac = (key(i, i + 1), key(i + 1, i + 2), key(i, i + 2))
         first, second, direct = (pair_maps[pair] for pair in (ab, bc, ac))
@@ -145,6 +178,16 @@ def reconcile(db, pair_maps, count):
                 state = 'gap_candidate'
             else:
                 state = 'partial'
+            if not mismatch and c is not None and via is None:
+                route = {'pair': ac, 'old': a, 'new': c}
+                if b is None:
+                    hold_entry(ab, 0, a, route)
+                    if alt_b is not None:
+                        hold_entry(ab, 1, alt_b, route)
+                if alt_b is None:
+                    hold_entry(bc, 1, c, route)
+                    if b is not None:
+                        hold_entry(bc, 0, b, route)
             logic_status = (statuses[ab].get(a), statuses[bc].get(b), statuses[ac].get(a))
             temporal = ('temporary_change_candidate' if state == 'consistent'
                         and logic_status[:2] == ('logic_change_candidate',) * 2
@@ -156,6 +199,21 @@ def reconcile(db, pair_maps, count):
                        (i, i + 1, i + 2, a, b, via, c, state, temporal, structure.pack({
                            'logic_status': logic_status, 'other_middle': alt_b, 'other_old': alt_a,
                            'direct_other_old': inv_first.get(alt_b)})))
+    # 経路矛盾がある組を採用・追加削除の根拠から降格する。原判断と差分本文は保全する。
+    for pair, old, new in db.execute('SELECT pair,old,new FROM conflict_edges').fetchall():
+        db.execute("UPDATE relations SET verdict='held_conflict' WHERE pair=? AND old=? AND new=? AND verdict='accepted'", (pair, old, new))
+        for side, address, other in ((0, old, new), (1, new, old)):
+            db.execute('INSERT OR REPLACE INTO entry_states VALUES(?,?,?,?,?)',
+                       (pair, side, address, 'path_conflict', structure.pack({'processing': 'under_investigation'})))
+            db.execute('INSERT INTO review VALUES(?,?,?,?,?,?)',
+                       (pair, side, address, 'path_conflict', structure.pack([other]), structure.pack({'reason': 'direct_and_adjacent_routes_disagree'})))
+        reopened.add(pair)
+    for pair in reopened:
+        row = db.execute('SELECT summary FROM pairs WHERE pair=?', (pair,)).fetchone()
+        if row:
+            summary = json.loads(row[0])
+            summary['review'] = dict(db.execute('SELECT kind,COUNT(*) FROM review WHERE pair=? GROUP BY kind', (pair,)))
+            db.execute('UPDATE pairs SET summary=? WHERE pair=?', (structure.pack(summary), pair))
     return dict(totals)
 
 
@@ -201,7 +259,7 @@ def initial_pair(datasets, i, j, output, pair_dbs, decisions):
     if initial is None:
         initial = report.build(Namespace(old_cache=left['cache'], new_cache=right['cache'],
             old_binary=left['binary'], new_binary=right['binary'], features=output / 'features',
-            output=None, decisions=choice, validate=True, reuse=True))
+            output=None, matching_root=output / 'pairs', decisions=choice, validate=True, reuse=True))
     with structure.reader(initial) as db:
         metadata = {k: json.loads(v) for k, v in db.execute('SELECT key,value FROM metadata')}
     for side, dataset in (('old', left), ('new', right)):
@@ -218,6 +276,7 @@ def initial_pair(datasets, i, j, output, pair_dbs, decisions):
 
 def build(datasets, output, *, decisions=None, pair_dbs=None):
     started = time.monotonic()
+    cpu_started = time.process_time()
     datasets = sorted(datasets, key=lambda entry: version_key(entry['identity']))
     if len(datasets) < 2 or len({entry['identity']['version'] for entry in datasets}) != len(datasets):
         raise ValueError('Tracking requires at least two distinct versions')
@@ -278,10 +337,12 @@ def build(datasets, output, *, decisions=None, pair_dbs=None):
                 summaries[pair]['initial_timing'] = metadata.get('timing')
                 db.execute('UPDATE pairs SET summary=? WHERE pair=?', (structure.pack(summaries[pair]), pair))
             cycles = reconcile(db, pair_maps, len(datasets))
+            summaries = {pair: json.loads(raw) for pair, raw in db.execute('SELECT pair,summary FROM pairs')}
             metadata = {'format': FORMAT, 'run': run, 'configuration': config_id, 'complete': True, 'sources': sources, 'engine': code,
                         'pairs': summaries, 'cycles': cycles,
                         'structure': [entry['structure'] | {'process_metrics': entry['metrics']} for entry in datasets],
-                        'seconds': time.monotonic() - started, 'peak_rss_bytes': report.peak_memory()}
+                        'seconds': time.monotonic() - started, 'cpu_seconds': time.process_time() - cpu_started,
+                        'peak_rss_bytes': report.peak_memory()}
             db.execute('INSERT INTO metadata VALUES(?,?)', ('result', structure.pack(metadata)))
             db.commit()
             if db.execute('PRAGMA quick_check').fetchone()[0] != 'ok' or db.execute('PRAGMA foreign_key_check').fetchone():
@@ -348,11 +409,18 @@ def show(path, version, address, limit):
             raise ValueError('No function at the requested version and address')
         dataset = item['dataset']
         links = [dict(row) for row in db.execute("""
-            SELECT pair,old,new,reason,verdict,evidence FROM relations JOIN pairs USING(pair)
+            SELECT pair,old,new,reason,verdict,evidence,role,older,newer FROM relations JOIN pairs USING(pair)
             WHERE (older=? AND old=?) OR (newer=? AND new=?) ORDER BY verdict,pair LIMIT ?""",
             (dataset, address, dataset, address, limit))]
         for relation in links:
             relation['evidence'] = json.loads(relation['evidence'])
+            endpoints = []
+            for side, number in (('old', 'older'), ('new', 'newer')):
+                endpoint = db.execute('''SELECT version,abi,sha256 AS library_sha256,revision AS analysis_revision,address,nodes.reference
+                    FROM nodes JOIN datasets ON dataset=id WHERE dataset=? AND address=?''',
+                    (relation[number], relation[side])).fetchone()
+                endpoints.append(dict(endpoint))
+            relation['endpoints'] = endpoints
             difference = db.execute('SELECT evidence FROM logic WHERE pair=? AND old=? AND new=?',
                                      (relation['pair'], relation['old'], relation['new'])).fetchone()
             if difference:
@@ -361,7 +429,19 @@ def show(path, version, address, limit):
         refs = [dict(row) for row in db.execute("""SELECT owner,site,target,kind,source,callee,symbol,datatype
             FROM xrefs WHERE dataset=? AND (owner=? OR callee=?) ORDER BY owner,site LIMIT ?""",
             (dataset, address, address, limit))]
-        return {'function': dict(item), 'relations': links, 'references': refs, 'limit': limit}
+        output = {'function': dict(item), 'relations': links, 'references': refs, 'limit': limit}
+        tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if 'instruction_candidates' in tables:
+            output['instruction_candidates'] = [dict(row) for row in db.execute("""
+                SELECT pair,old,new,rank,score,eligible,accepted,evidence FROM instruction_candidates JOIN pairs USING(pair)
+                WHERE (older=? AND old=?) OR (newer=? AND new=?) ORDER BY score DESC,pair,old,new LIMIT ?""",
+                (dataset, address, dataset, address, limit))]
+            output['entry_states'] = [dict(row) for row in db.execute("""
+                SELECT pair,state,evidence FROM entry_states JOIN pairs USING(pair) WHERE address=?
+                AND ((older=? AND side=0) OR (newer=? AND side=1)) ORDER BY pair LIMIT ?""", (address, dataset, dataset, limit))]
+            for record in output['instruction_candidates'] + output['entry_states']:
+                record['evidence'] = json.loads(record['evidence'])
+        return output
 
 
 def main():

@@ -1,8 +1,8 @@
 ﻿name: Native analysis pipeline
 
+run-name: ${{ inputs.migration_base != '' && format('Native v3 migration {0}', inputs.checkpoint) || 'Native analysis pipeline' }}
+
 on:
-  schedule:
-    - cron: '37 18 * * *'
   workflow_dispatch:
     inputs:
       source_manifest:
@@ -34,6 +34,18 @@ on:
         description: 'Replace the published reference for this version and ABI on main'
         type: boolean
         default: true
+      migration_branch:
+        description: 'Optional staging branch from the native tracking migration plan'
+        type: string
+        default: ''
+      expected_window:
+        description: 'Optional matching window SHA-256 from the migration plan'
+        type: string
+        default: ''
+      migration_base:
+        description: 'Pinned main commit for an ordered, automatically promoted v3 migration'
+        type: string
+        default: ''
   repository_dispatch:
     types: [native-analysis-request]
 
@@ -48,7 +60,7 @@ env:
   PYTHONPATH: ${{ github.workspace }}/research
   PYTHONUTF8: '1'
   GH_TOKEN: ${{ github.token }}
-  PUBLISH_REFERENCE: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_reference) || (github.event_name == 'repository_dispatch' && github.event.client_payload.publish_reference == true) }}
+  PUBLISH_REFERENCE: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_reference) || (github.event_name == 'repository_dispatch' && github.event.client_payload.publish_reference == true) }}
 
 jobs:
   analyze:
@@ -80,8 +92,22 @@ jobs:
           ASSETS_COMMIT: ${{ inputs.assets_commit }}
           REQUESTED_CHECKPOINT: ${{ inputs.checkpoint }}
           STAGE: ${{ inputs.stage || 'all' }}
+          MIGRATION_BRANCH: ${{ inputs.migration_branch }}
+          EXPECTED_WINDOW: ${{ inputs.expected_window }}
+          MIGRATION_BASE: ${{ inputs.migration_base }}
         shell: bash
         run: |
+          if [[ -n "$MIGRATION_BRANCH" || -n "$EXPECTED_WINDOW" || -n "$MIGRATION_BASE" ]]; then
+            if [[ ! "$MIGRATION_BRANCH" =~ ^codex/native-migration-[a-f0-9]{16}$ || ! "$EXPECTED_WINDOW" =~ ^[a-f0-9]{64}$ ||
+                  "$STAGE" != references || "$PUBLISH_REFERENCE" != true || -z "$REQUESTED_CHECKPOINT" ]]; then
+              echo 'Invalid native reference migration inputs' >&2
+              exit 1
+            fi
+          fi
+          if [[ -n "$MIGRATION_BASE" && "$MIGRATION_BASE" != "$GITHUB_SHA" ]]; then
+            echo 'The main revision differs from the pinned migration base' >&2
+            exit 1
+          fi
           if [[ -n "$REQUESTED_CHECKPOINT" ]]; then
             [[ "$REQUESTED_CHECKPOINT" =~ ^native-analysis-[0-9]+\.[0-9]+\.[0-9]+-[a-zA-Z0-9_-]+-[a-f0-9]{16}$ ]]
             if [[ -n "$INPUT_MANIFEST" || -n "$ASSETS_COMMIT" || "$STAGE" == analyze ]]; then
@@ -177,7 +203,7 @@ jobs:
       !cancelled() && needs.analyze.result == 'success' && needs.analyze.outputs.checkpoint != '' &&
       needs.analyze.outputs.match_only != 'true' &&
       needs.structures.result == 'success' &&
-      inputs.stage != 'analyze' && inputs.stage != 'match' && inputs.stage != 'backfill'
+      inputs.stage == 'references' && !inputs.publish_reference
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -219,7 +245,7 @@ jobs:
         shell: bash
         run: |
           args=()
-          if [[ "${{ inputs.stage }}" == references ]]; then args+=(--current-only); fi
+          if [[ "${{ inputs.stage }}" == references && "$PUBLISH_REFERENCE" != true ]]; then args+=(--current-only); fi
           python3 -m indexer.ci backfill-plan --checkpoint "$CHECKPOINT" "${args[@]}"
       - name: Require permission to preserve missing checkpoints
         if: steps.plan.outputs.needed == 'true' && env.PUBLISH_REFERENCE != 'true'
@@ -246,20 +272,21 @@ jobs:
         shell: bash
         run: |
           args=()
-          if [[ "${{ inputs.stage }}" == references ]]; then args+=(--current-only); fi
+          if [[ "${{ inputs.stage }}" == references && "$PUBLISH_REFERENCE" != true ]]; then args+=(--current-only); fi
           python3 -m indexer.ci backfill --checkpoint "$CHECKPOINT" --publish "${args[@]}"
 
   match:
     name: Track native functions across versions
-    needs: [analyze, references, structures]
+    needs: [analyze, structures]
     if: >-
       !cancelled() && needs.analyze.result == 'success' && needs.structures.result == 'success' &&
-      inputs.stage != 'backfill' && inputs.stage != 'references' &&
-      (needs.references.result == 'success' || inputs.stage == 'match' || needs.analyze.outputs.match_only == 'true')
+      inputs.stage != 'backfill' && inputs.stage != 'analyze' &&
+      (inputs.stage != 'references' || inputs.publish_reference) && needs.analyze.outputs.checkpoint != ''
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 300
     permissions:
       contents: write
+      actions: write
     env:
       CHECKPOINT: ${{ needs.analyze.outputs.checkpoint }}
     steps:
@@ -275,8 +302,13 @@ jobs:
       - name: Track verified versions and publish results
         env:
           BATTLECATS_APK_READ_TOKEN: ${{ secrets.BATTLECATS_APK_READ_TOKEN }}
+          MIGRATION_BRANCH: ${{ inputs.migration_branch }}
+          EXPECTED_WINDOW: ${{ inputs.expected_window }}
+          MIGRATION_BASE: ${{ inputs.migration_base }}
         shell: bash
         run: |
           args=()
           if [[ "$PUBLISH_REFERENCE" == true ]]; then args+=(--publish); fi
-          python3 -m indexer.ci match --checkpoint "$CHECKPOINT" "${args[@]}"
+          action=match
+          if [[ "${{ inputs.stage }}" == references ]]; then action=references; fi
+          python3 -m indexer.ci "$action" --checkpoint "$CHECKPOINT" "${args[@]}"

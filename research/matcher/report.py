@@ -132,7 +132,8 @@ def export_tables(db_path, output):
 def build(args):
     started = time.monotonic()
     source_paths = [getattr(args, side + '_cache').resolve(strict=True) for side in ('old', 'new')]
-    destinations = [args.features.resolve(), (args.output or LOCAL / 'matching').resolve()]
+    matching_root = getattr(args, 'matching_root', LOCAL / 'matching')
+    destinations = [args.features.resolve(), (args.output or matching_root).resolve()]
     if any(destination.is_relative_to(source) for destination in destinations for source in source_paths):
         raise ValueError('Generated files must be outside the source caches')
     sources = {side: features.load(getattr(args, side + '_cache'), getattr(args, side + '_binary'), args.features)
@@ -153,7 +154,7 @@ def build(args):
                     for side, source in sources.items()}
     run_key = hashlib.sha256(json.dumps([identities, source_hashes, fingerprints, code_hashes, decisions,
                                         bool(args.old_binary), bool(args.new_binary), args.validate], sort_keys=True).encode()).hexdigest()[:24]
-    output = (args.output or LOCAL / 'matching' / run_key).resolve()
+    output = (args.output or matching_root / run_key).resolve()
     if any(output.is_relative_to(source) for source in source_paths):
         raise ValueError('Output would modify a source cache')
     output.mkdir(parents=True, exist_ok=True)

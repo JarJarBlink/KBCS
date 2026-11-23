@@ -223,7 +223,7 @@ def markdown_files(root):
     return files
 
 
-def verify_reference_links(root):
+def verify_reference_links(root, *, repository=None):
     files = markdown_files(root)
     groups = defaultdict(list)
     for page in files:
@@ -235,7 +235,7 @@ def verify_reference_links(root):
         else:
             key = ('page', relative.as_posix())
         groups[key].append(page)
-    checked = 0
+    checked, external_anchors = 0, {}
     # 命令アンカーを全関数分保持せず、関数本体とその命令範囲ページだけをまとめて検査する。
     for pages in groups.values():
         anchors, links = {}, []
@@ -256,10 +256,13 @@ def verify_reference_links(root):
         for page, href in links:
             filename, _, anchor = href.partition('#')
             target = Path(os.path.normpath(page.parent / filename)) if filename else page
-            if target not in files:
+            if target not in files and not (repository and target.is_relative_to(repository) and target.is_file()):
                 raise ValueError(f'Broken reference link in {page}: {href}')
-            if anchor and anchor not in anchors.get(target, ()):
-                raise ValueError(f'Broken reference anchor in {page}: {href}')
+            if anchor:
+                if target not in anchors and repository and target not in external_anchors:
+                    external_anchors[target] = set(re.findall(r'<a id="([^"]+)"></a>', target.read_text(encoding='utf-8-sig')))
+                if anchor not in anchors.get(target, external_anchors.get(target, ())):
+                    raise ValueError(f'Broken reference anchor in {page}: {href}')
             checked += 1
     return checked
 

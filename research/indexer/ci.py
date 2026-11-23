@@ -329,16 +329,16 @@ def ensure_release(tag, version, revision):
     retry(create, 'Create checkpoint Release')
 
 
-def reference_worktree(revision):
+def reference_worktree(revision, branch='main'):
     public_only()
-    # 最新mainの独立worktreeで、対象の版とABIの資料だけを更新する。
-    git_remote(['git', 'fetch', 'origin', 'main'])
+    # 公開先の最新コミットから隔離worktreeを作る。
+    git_remote(['git', 'fetch', '--depth=1', 'origin', branch])
     work = Path(os.environ['RUNNER_TEMP']) / ('native-publish-' + revision)
-    subprocess.run(['git', 'worktree', 'add', '--detach', str(work), 'origin/main'], check=True)
+    subprocess.run(['git', 'worktree', 'add', '--detach', str(work), 'FETCH_HEAD'], check=True)
     return work
 
 
-def publish_worktree(work, message, paths=('research/reference',)):
+def publish_worktree(work, message, paths=('research/reference',), *, branch='main'):
     public_only()
     subprocess.run(['git', '-C', str(work), 'add', '--', *paths], check=True)
     diff = subprocess.run(['git', '-C', str(work), 'diff', '--cached', '--quiet', '--', *paths])
@@ -350,7 +350,7 @@ def publish_worktree(work, message, paths=('research/reference',)):
     for args in (['config', 'user.name', 'github-actions[bot]'], ['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com']):
         subprocess.run(['git', '-C', str(work), *args], check=True)
     subprocess.run(['git', '-C', str(work), 'commit', '-q', '-m', message], check=True)
-    git_remote(['git', '-C', str(work), '-c', 'pack.threads=1', 'push', 'origin', 'HEAD:main'])
+    git_remote(['git', '-C', str(work), '-c', 'pack.threads=1', 'push', 'origin', f'HEAD:refs/heads/{branch}'])
 
 
 def git_remote(args):
@@ -358,7 +358,7 @@ def git_remote(args):
         retry(lambda: subprocess.run(args, check=True, capture_output=True, timeout=300), 'Git reference delivery')
     except subprocess.CalledProcessError as error:
         if any(message in error.stderr for message in (b'non-fast-forward', b'fetch first')):
-            raise RuntimeError('Main advanced during reference publication; re-run the same inputs') from error
+            raise RuntimeError('The publication branch advanced; re-run the same inputs') from error
         raise
 
 
@@ -487,8 +487,7 @@ def main():
 
             tag = analyze(args.manifest, args.label)
             backfill(tag, args.publish)
-            publish_materials(tag, args.publish)
-            publish_comparison(tag, args.publish)
+            publish_comparison(tag, args.publish, regenerate=args.publish)
         else:
             if not args.checkpoint:
                 parser.error('--checkpoint is required')

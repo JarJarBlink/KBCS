@@ -9,6 +9,7 @@ import struct
 import tarfile
 import tempfile
 import unittest
+import zlib
 from collections import defaultdict
 from contextlib import closing, redirect_stdout
 from pathlib import Path
@@ -19,8 +20,10 @@ from indexer.reference import function_path, reference_path
 from indexer.reference_structure import listing
 from indexer.run import headless
 from indexer.store import LOCAL, connect, digest, read_json, write_json
-from matcher import logic, structure, tracking, tracking_pages, tracking_pair
-from matcher.comparison_pages import carry_function_comparisons, comparison_catalog, comparison_identity, valid_comparison_entries, catalog_path, function_comparison_links, render_links
+from matcher import blocks, instruction_matcher, interval_alignment, logic, publication_gate, structure, tracking, tracking_pages, tracking_pair
+from matcher.logic_detail import export_detail
+from matcher.comparison_pages import (carry_function_comparisons, comparison_catalog, comparison_identity, catalog_path,
+    function_comparison_links, preserve_published_links, render_links, tracking_content, valid_comparison_entries)
 
 
 def op(name, *values, output=None):
@@ -86,6 +89,24 @@ class TrackingTests(unittest.TestCase):
             page.write_text(f'[function]({href})', encoding='utf-8')
             self.assertEqual(tracking_pages.verify_links(preview, root, None, None), 1)
 
+    def test_archived_comparison_keeps_exact_replaced_reference(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            previous = root / 'research/reference/1.0.0/arm64-v8a' / ('a' * 64)
+            function = previous / function_path('00001000')
+            function.parent.mkdir(parents=True)
+            function.touch()
+            page = root / 'research/comparisons/arm64-v8a/run/0-1/review.md'
+            href = tracking_pages.link(function, page)
+            text = f'[function]({href})\n\n~~~text\n[quoted]({href})\n~~~\n'
+            page.parent.mkdir(parents=True)
+            page.write_text(text, encoding='utf-8-sig')
+            base = 'https://example.invalid/commit/'
+            preserve_published_links(root, previous, base)
+            final = page.read_text(encoding='utf-8-sig')
+            self.assertIn(f'[function]({base}{function.relative_to(root).as_posix()})', final)
+            self.assertIn(f'[quoted]({href})', final)
+
     def test_unmatched_function_links_to_review_and_pair_index(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -112,6 +133,11 @@ class TrackingTests(unittest.TestCase):
             links = function_comparison_links(page)
             self.assertTrue(links['v16.0.1 → v16.0.2'].endswith('0-1/README.md)（版の比較一覧）'))
             self.assertTrue(links['v16.0.2 → v16.0.3'].endswith('1-2/review-0001.md#review-1-00010000)（要確認）'))
+            text = page.read_text(encoding='utf-8-sig')
+            line = next(line for line in text.splitlines() if line.startswith('- [v16.0.1'))
+            page.write_text(text.replace(line, line + '\n' + line), encoding='utf-8-sig')
+            with self.assertRaisesRegex(ValueError, 'Duplicate comparison links'):
+                function_comparison_links(page)
 
     def test_logic_scope_and_changes(self):
         a, b = '00010000', '00020000'
@@ -239,7 +265,7 @@ class TrackingTests(unittest.TestCase):
             source = (left, right)[side][1]
             kind = tracking_pair.residuals(side, source, {}, nearby[side], {}, set(), defaultdict(set),
                 lambda x, address: {('present',)})[0][0]
-            self.assertEqual(kind, ('deletion_candidate', 'addition_candidate')[side])
+            self.assertEqual(kind, 'unresolved')
         mapped[left[3]], mapped[left[4]] = mapped[left[4]], mapped[left[3]]
         layout, _, moved = tracking_pair.intervals((left, right), mapped)
         self.assertTrue(moved)
@@ -266,8 +292,82 @@ class TrackingTests(unittest.TestCase):
         self.assertEqual(hits[0][0], 'inline_candidate')
         mixed = tracking_pair.residuals(0, 'a', {'a': {'b'}}, {'a': (['b', 'c'], ('a0','a1','b0','b1'))},
             {'caller': 'next'}, {'next'}, defaultdict(set, a={'caller'}), lambda s, a: pieces.get((s, a), set()))
-        self.assertTrue({'split_candidate', 'inline_candidate', 'competing_candidates', 'deletion_candidate'} <=
-                        {item[0] for item in mixed})
+        self.assertEqual({item[0] for item in mixed}, {'split_candidate', 'inline_candidate', 'competing_candidates'})
+
+    def test_call_insertion_uses_corresponding_positions(self):
+        targets = {'a': 'x', 'b': 'y'}
+        old = record('00001000', [op('CALL', 'ram:2000:8'), op('CALL', 'ram:3000:8'), op('RETURN', 'register:40f0:8')])
+        new = record('00005000', [op('CALL', 'ram:6000:8'), op('CALL', 'ram:7000:8'), op('CALL', 'ram:8000:8'),
+                                  op('RETURN', 'register:40f0:8')])
+        old['refs'] = [[old['instructions'][i][0], target, 'UNCONDITIONAL_CALL', 'ANALYSIS', callee, None, None]
+                       for i, (target, callee) in enumerate((('00002000', 'a'), ('00003000', 'b')))]
+        new['refs'] = [[new['instructions'][i][0], target, 'UNCONDITIONAL_CALL', 'ANALYSIS', callee, None, None]
+                       for i, (target, callee) in enumerate((('00006000', 'extra'), ('00007000', 'x'), ('00008000', 'y')))]
+        result = logic.compare(old, new, targets, {key: key for key in ('extra', 'x', 'y')})
+        self.assertEqual(result['impact'], {'call_count': 1})
+        self.assertEqual(result['references']['mapped_call_target_changes'], 0)
+        self.assertEqual(result['references']['added'][0][0], '00005000')
+        self.assertEqual(result['effects'][0], {'kind': 'call_position_unpaired', 'old': None,
+                                                'new': {'site': '00005000'}, 'confidence': 'limited'})
+
+    def test_assignment_keeps_indistinguishable_candidates_on_hold(self):
+        choices = [{'new': name, 'score': 90, 'eligible': True} for name in ('x', 'y')]
+        matches, evidence = blocks.assignment({'a': choices, 'b': choices})
+        self.assertEqual(matches, {})
+        self.assertTrue(all(item['assignment_gap'] == 0 for item in evidence.values()))
+
+    def test_alignment_respects_branch_inversion_and_block_order(self):
+        rows = []
+        for entry, inverted in ((0x1000, False), (0x2000, True)):
+            base, next_site, last = (f'{entry + offset:08x}' for offset in (0, 4, 8))
+            ops = [op('CBRANCH', f'ram:{entry+8:x}:8', 'register:108:1'),
+                   op('COPY', 'const:2:8' if inverted else 'const:1:8', output='register:4000:8'),
+                   op('COPY', 'const:1:8' if inverted else 'const:2:8', output='register:4000:8')]
+            row = record(base, ops)
+            row['instructions'][0][1] = 'b.ne' if inverted else 'b.eq'
+            row['blocks'] = [[base, [[base, base]], [['FALL_THROUGH', base, next_site], ['CONDITIONAL_JUMP', base, last]]],
+                             [next_site, [[next_site, next_site]], []], [last, [[last, last]], []]]
+            rows.append(row)
+        evidence = blocks.align(*rows)
+        self.assertEqual(evidence['sites']['00001004'], '00002008')
+        self.assertEqual(evidence['cfg_coverage'], [1.0, 1.0])
+        self.assertEqual(evidence['verified_branch_inversions'], [('00001000', '00002000')])
+
+    def test_entry_evidence_requires_references_and_complete_search(self):
+        old_graph = defaultdict(set, {'a': {'old'}, 'b': {'old'}})
+        incoming = defaultdict(set, old={'a', 'b'})
+        new_graph = defaultdict(set)
+        complete = {'keys': 1, 'candidate_functions': 0}
+        caller = {'refs': [['00001000', '00002000', 'CALL', 'ANALYSIS', 'old', None, None]]}
+        missing = {'index_boundary_verification': 'ranges_match', 'unresolved': 0}
+        for side in (0, 1):
+            shapes = ({'old': ('available',)}, {})
+            graph = (old_graph, incoming, new_graph, defaultdict(set))
+            maps = ({'a': 'x', 'b': 'y'}, {'x': 'a', 'y': 'b'})
+            if side == 1:
+                shapes, graph, maps = shapes[::-1], graph[2:] + graph[:2], maps[::-1]
+            for scope, expected in ((complete, ('deletion_within_inspected_scope', 'addition_within_inspected_scope')[side]),
+                                    (complete | {'truncated': True}, 'unmatched')):
+                kind, proof = instruction_matcher.entry_evidence(side, 'old', scope, shapes, graph, maps,
+                    lambda _, address: missing if address == 'old' else caller, [('unresolved', [], {})])
+                self.assertEqual(kind, expected)
+                self.assertEqual(len(proof['reference_witnesses']), 2)
+
+    def test_processing_locations_count_split_without_reusing_a_site(self):
+        source = record('00001000', [op('COPY', f'const:{i}:8', output='register:4000:8') for i in range(8)])
+        peers = [record(address, [item[3][0] for item in source['instructions'][start:start+4]])
+                 for address, start in (('00002000', 0), ('00003000', 4))]
+        with closing(sqlite3.connect(':memory:')) as db:
+            db.executescript(tracking.DDL)
+            for peer in peers:
+                value = blocks.align(source, peer)
+                db.execute('INSERT INTO instruction_alignment VALUES(?,?,?,?,?)',
+                    ('0-1', source['address'], peer['address'], zlib.compress(structure.pack(value).encode()), '{}'))
+            entries = instruction_matcher.locations(0, source['address'], db, '0-1', lambda *_: source,
+                                                    ({}, {}), (defaultdict(set),)*4)
+            self.assertEqual(entries[0][0], 'split_candidate')
+            self.assertEqual(entries[0][2]['explained_source_instructions'], 8)
+            self.assertEqual(db.execute('SELECT SUM(source_instructions) FROM processing_locations').fetchone()[0], 8)
 
     def test_structural_promotion_requires_strict_operands_and_anchors(self):
         left, right = '00001111', '00002222'
@@ -332,10 +432,62 @@ class TrackingTests(unittest.TestCase):
                 ('0-1', 'a', 'b', 'logic_change_candidate', '{}'), ('1-2', 'b', 'c', 'logic_change_candidate', '{}'),
                 ('0-2', 'a', 'c', 'no_difference_in_scope', '{}')])
             db.execute("INSERT INTO manual_decisions VALUES('0-2','e','different','accept','reviewed')")
+            db.execute("INSERT INTO entry_states VALUES('0-1',0,'gap','deletion_within_inspected_scope','{}')")
+            db.execute("INSERT INTO review VALUES('0-1',0,'gap','deletion_within_inspected_scope','[]','{}')")
             totals = tracking.reconcile(db, maps, 3)
             self.assertEqual(totals, {'consistent': 1, 'temporary_change_candidate': 1, 'conflict': 1, 'gap_candidate': 1})
             self.assertEqual(db.execute('SELECT COUNT(*) FROM conflict_edges').fetchone()[0], 3)
             self.assertEqual(db.execute("SELECT action FROM manual_decisions").fetchone()[0], 'accept')
+            self.assertEqual(db.execute("SELECT state FROM entry_states WHERE address='gap'").fetchone()[0], 'held_direct_route')
+            self.assertEqual(db.execute("SELECT kind FROM review WHERE address='gap'").fetchone()[0], 'held_direct_route')
+
+    def test_interval_alignment_with_gaps_reordering_and_audit(self):
+        def shape(key):
+            return ('available', key, 32, key + ':bytes', key + ':cfg')
+
+        old_names = ['a', 'b', 'c', 'd', 'e']
+        old = {f'{index:02x}': shape(key) for index, key in enumerate(old_names)}
+        trusted = {'00': ('10', 'manual'), '04': ('16', 'symbol')}
+        for new_names, want in ((['a', 'x', 'y', 'b', 'c', 'd', 'e'], {('01', '13'), ('02', '14'), ('03', '15')}),
+                                (['a', 'x', 'c', 'd', 'e'], {('02', '12'), ('03', '13')})):
+            new = {f'{index+16:02x}': shape(key) for index, key in enumerate(new_names)}
+            anchors = trusted | {'04': (next(reversed(new)), 'symbol')}
+            pairs, rows = tracking_pair.interval_candidates((old, new), anchors, (old, new), set())
+            self.assertEqual(pairs, want)
+            self.assertEqual(rows[0][-1]['count_delta'], len(new_names) - len(old_names))
+        pairs, rows = tracking_pair.interval_candidates((old, new), {'00': ('14', 'symbol'), '04': ('10', 'symbol')}, (old, new), set())
+        self.assertEqual(pairs, set())
+        self.assertEqual(rows[0][-1]['search_scope'], 'global')
+        accepted = {'00': ('10', 'symbol', {}), '04': ('14', 'manual', {}), '02': ('11', 'inferred', {})}
+        anchors, holds = interval_alignment.audit(accepted, (old, new),
+                    ({'02': ['00', '04']}, {}, {'12': ['10', '14']}, {}), set())
+        self.assertEqual(set(anchors), {'00', '04'})
+        self.assertEqual(holds['02'][2]['alternative'], '12')
+        self.assertEqual(holds['02'][2]['independent_anchors'], ['00', '04'])
+        short = ('available', 'thunk', 6, 'thunk:bytes', 'thunk:cfg')
+        accepted = {'01': ('11', 'leaf_bytes_and_local_order', {})}
+        _, holds = interval_alignment.audit(accepted, ({'01': short, '02': short}, {'11': short, '12': short}),
+                                            ({}, {}, {}, {}), set())
+        self.assertEqual(holds['01'][2]['audit_reason'], 'ambiguous_short_function')
+
+    def test_review_and_unmatched_use_real_targets_only(self):
+        root = Path('preview').resolve()
+        first = {'version': '16.0.1', 'architecture': 'arm64-v8a', 'sha256': '1' * 64, 'analysis_revision': 'a' * 16}
+        second = first | {'version': '16.0.2', 'sha256': '2' * 64, 'analysis_revision': 'b' * 16}
+        reference = root / 'research/reference'
+        own = reference / reference_path(second)
+        neighbors = [('previous', (reference / reference_path(first), first)), ('next', None)]
+        for kind, target, text in (('review', 'research/comparisons/test/review.md#review-1', '候補と検査根拠'),
+                                    ('index', 'research/comparisons/test/README.md', '対応未確定')):
+            row = {'older': first, 'newer': second, 'target': target, 'kind': kind}
+            output = tracking_content(own, '00011000', [row], root, neighbors, identity=second)
+            self.assertIn(text, output)
+            self.assertIn('v16.0.1の関数一覧', output)
+            self.assertNotIn('関数詳細', output)
+            self.assertNotIn('追加', output)
+        pending = tracking_content(own, '00011000', [], root, neighbors, identity=second)
+        self.assertIn('構造資料不足', pending)
+        self.assertIn('次の公開版** 公開版なし', pending)
 
     def test_integrated_replay_and_migration(self):
         with tempfile.TemporaryDirectory() as temporary, redirect_stdout(io.StringIO()):
@@ -379,8 +531,14 @@ class TrackingTests(unittest.TestCase):
                     page = location / function_path(entry['address'])
                     page.parent.mkdir(parents=True, exist_ok=True)
                     page.write_text('# Entry\n\n## 関数情報\n\n疑似コード原本\n', encoding='utf-8-sig', newline='\n')
+                    if entry == row:
+                        target = (location / 'assembly' / page.parent.name / f'{address}-{address}-{address}.md') if i == 1 else page
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        with target.open('a', encoding='utf-8') as stream:
+                            stream.write(f'\n<a id="insn-{address}"></a>\n')
                 (location / 'README.md').write_text('# 版資料\n\n## アドレス索引\n', encoding='utf-8-sig', newline='\n')
                 write_json(location / 'manifest.json', identity | {'source_database_sha256': source})
+            (repository / 'research/reference/README.md').write_text('# Versions\n', encoding='utf-8')
 
             seeds = {}
             for i, j in ((0, 1), (1, 2), (0, 2), (2, 3), (1, 3)):
@@ -422,6 +580,12 @@ class TrackingTests(unittest.TestCase):
             self.assertEqual(outcomes['00010008'], 'detail_skipped')
             destination = result_root / result['run']
             self.assertEqual(tracking.show(db, '15.7.2', old[1], 5)['function']['address'], old[1])
+            expanded = root / 'single-function-diff'
+            indexes = [dataset['index'] for dataset in datasets[:2]]
+            self.assertEqual(export_detail(db, indexes, '0-1', old[1], expanded), 1)
+            self.assertTrue((expanded / 'changes-0001.md').is_file())
+            with self.assertRaisesRegex(ValueError, 'Structure index differs'):
+                export_detail(db, indexes[::-1], '0-1', old[1], root / 'wrong-source')
             temporarily_missing = locations[1][0] / function_path(locations[1][1])
             saved_page = temporarily_missing.read_bytes()
             temporarily_missing.unlink()
@@ -433,18 +597,19 @@ class TrackingTests(unittest.TestCase):
             original_url = 'https://example.invalid/original-commit/'
             tracking_pages.render(db, repository, destination, 'manifest.json', original_url)
             self.assertTrue((destination / '0-1/high-0001.md').is_file())
+            compare = '\n'.join(path.read_text(encoding='utf-8-sig') for path in (destination / '0-1').glob('*.md'))
+            self.assertIn('#insn-00010000', compare)
+            self.assertIn('/assembly/00011/00011000-00011000-00011000.md#insn-00011000', compare)
             self.assertEqual(tracking_pages.render(db, repository, destination, 'manifest.json',
                                                   'https://example.invalid/new-commit/')['run'], result['run'])
             tracking_pages.attach(repository, destination, result)
             self.assertFalse((new[0] / 'comparison.md').exists())
             self.assertFalse((new[0] / 'changes/README.md').exists())
             target_page = new[0] / function_path(new[1])
-            self.assertTrue(target_page.read_text(encoding='utf-8-sig').endswith('疑似コード原本\n'))
-            links = function_comparison_links(target_page)
-            self.assertEqual(list(links), ['v15.7.2 → v15.7.3', 'v15.7.3 → v15.7.4'])
-            for value in links.values():
-                route, marker = value.removesuffix(')').split('#')
-                self.assertIn(f'<a id="{marker}"></a>', (target_page.parent / route).read_text(encoding='utf-8-sig'))
+            self.assertIn('疑似コード原本\n\n<a id="insn-00012000"></a>', target_page.read_text(encoding='utf-8-sig'))
+            self.assertIn('採用 · [関数詳細 `00011000`]', target_page.read_text(encoding='utf-8-sig'))
+            self.assertIn('v15.7.3 → v15.7.4 当該関数比較', target_page.read_text(encoding='utf-8-sig'))
+            self.assertEqual(publication_gate.verify_publication(repository, destination, result)['confirmed_links'], 12)
             mixed = copy.deepcopy(comparison_catalog(new[0]))
             addresses = list(mixed['rows'])
             mixed['rows'][addresses[1]][0]['older'] = mixed['rows'][addresses[1]][0]['older'] | {'analysis_revision': 'f' * 16}
@@ -459,26 +624,57 @@ class TrackingTests(unittest.TestCase):
             regenerated_page.write_text('# Entry\n\n## 関数情報\n\n再生成した原本\n', encoding='utf-8-sig')
             write_json(regenerated / 'manifest.json', read_json(new[0] / 'manifest.json'))
             carry_function_comparisons(new[0], regenerated, repository)
-            self.assertEqual(function_comparison_links(regenerated_page), links)
+            self.assertEqual(comparison_catalog(regenerated), comparison_catalog(new[0]))
             write_json(regenerated / 'manifest.json', read_json(new[0] / 'manifest.json') | {'analysis_revision': 'f' * 16})
             regenerated_page.write_text('# Entry\n\n## 関数情報\n\n再生成した原本\n', encoding='utf-8-sig')
             carry_function_comparisons(new[0], regenerated, repository)
             self.assertEqual(function_comparison_links(regenerated_page), {})
             self.assertTrue(regenerated_page.read_text(encoding='utf-8-sig').endswith('再生成した原本\n'))
-            self.assertEqual(read_json(new[0] / 'manifest.json')['tracking_format'], 2)
+            self.assertEqual(read_json(new[0] / 'manifest.json')['tracking_format'], tracking.FORMAT)
             for page in destination.rglob('*.md'):
                 for link in re.findall(r'\]\(([^)]+)\)', page.read_text(encoding='utf-8-sig')):
                     target = repository / link.removeprefix(original_url) if link.startswith(original_url) else page.parent / link
-                    self.assertTrue(target.is_file(), link)
+                    self.assertTrue(Path(str(target).split('#')[0]).is_file(), link)
             second = tracking.build(datasets[1:], root / 'out', pair_dbs={
                 '0-1': seeds['1-2'], '1-2': seeds['2-3'], '0-2': seeds['1-3']})
             second_result = read_json(second.with_name('summary.json'))
             second_destination = result_root / second_result['run']
             tracking_pages.render(second, repository, second_destination, 'manifest.json', original_url)
             tracking_pages.attach(repository, second_destination, second_result)
-            self.assertEqual(list(function_comparison_links(target_page)), ['v15.7.2 → v15.7.3', 'v15.7.3 → v15.7.4', 'v15.7.4 → v15.7.5'])
+            text = target_page.read_text(encoding='utf-8-sig')
+            self.assertIn('v15.7.3 → v15.7.4 当該関数比較', text)
+            self.assertIn('v15.7.4 → v15.7.5 当該関数比較', text)
+            self.assertIn('採用 · [関数詳細 `00013000`]', text)
+            publication_gate.verify_publication(repository, second_destination, second_result)
+            target_page.write_text(text.replace('採用 · [関数詳細', '仮の対応 · [関数詳細', 1), encoding='utf-8-sig')
+            with self.assertRaisesRegex(ValueError, 'differs from its ledger'):
+                publication_gate.verify_publication(repository, second_destination, second_result)
+            target_page.write_text(text, encoding='utf-8-sig')
+            middle_manifest = locations[1][0] / 'manifest.json'
+            saved_middle = read_json(middle_manifest)
+            write_json(middle_manifest, saved_middle | {'analysis_revision': 'f' * 16})
+            tracking_pages.refresh_affected_navigation(repository, second_result)
+            text = target_page.read_text(encoding='utf-8-sig')
+            self.assertNotIn('v15.7.3 → v15.7.4 当該関数比較', text)
+            self.assertIn('v15.7.4 → v15.7.5 当該関数比較', text)
+            write_json(middle_manifest, saved_middle)
             trace = tracking.trace([db, second], '15.7.2', old[1], 10)
             self.assertEqual(len(trace['nodes']), 4)
+            holding = root / 'intermediate'
+            locations[1][0].rename(holding)
+            gap_database = tracking.build([datasets[0], datasets[2]], root / 'out', pair_dbs={'0-1': seeds['0-2']})
+            gap = read_json(gap_database.with_name('summary.json'))
+            gap_dir = result_root / gap['run']
+            tracking_pages.render(gap_database, repository, gap_dir, 'manifest.json')
+            tracking_pages.attach(repository, gap_dir, gap)
+            self.assertIn('v15.7.2 → v15.7.4 当該関数比較', target_page.read_text(encoding='utf-8-sig'))
+            holding.rename(locations[1][0])
+            tracking_pages.attach(repository, destination, result)
+            touched = tracking_pages.refresh_affected_navigation(repository, result)
+            publication_gate.verify_publication(repository, destination, result, touched)
+            self.assertNotIn('v15.7.2 → v15.7.4', target_page.read_text(encoding='utf-8-sig'))
+            self.assertNotIn(gap['run'], (result_root.parent / 'README.md').read_text(encoding='utf-8-sig'))
+            self.assertIn(gap['run'], (result_root.parent / 'archive.md').read_text(encoding='utf-8-sig'))
             two = tracking.build(datasets[:2], root / 'out', pair_dbs=seeds)
             self.assertEqual(read_json(two.with_name('summary.json'))['cycles'], {})
             self.assertEqual([digest(p) for p, _ in original], [sha for _, sha in original])

@@ -1,0 +1,2764 @@
+﻿# v16.0.2 → v16.0.3 · 要調査の変更候補 (18)
+
+[一覧の目次](README.md)
+
+<a id="compare-cdbf16f60044c95f07a3f394a9443aa1"></a>
+
+### [`00707984`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00707/00707984.md) → [`00707d34`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00707/00707d34.md) FUN_00707d34
+
+根拠 `similar_code_order_and_calls` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00700b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00700/00700b50.md) [`00715558`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00715/00715558.md) [`00716de8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00716/00716de8.md) · 呼出先 9件 [`005e0918`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005e0/005e0918.md) [`005e0960`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005e0/005e0960.md) [`00af398c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af3/00af398c.md) [`00af3cb8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af3/00af3cb8.md) [`00af3f08`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af3/00af3f08.md)
+- 新版 呼出元 3件 [`00700f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00700/00700f00.md) [`00715908`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00715/00715908.md) [`00717198`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00717/00717198.md) · 呼出先 9件 [`005e0cc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005e0/005e0cc8.md) [`005e0d10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005e0/005e0d10.md) [`00af4980`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af4/00af4980.md) [`00af4cac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af4/00af4cac.md) [`00af4efc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af4/00af4efc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007079c4 ["INT_ADD", "register:40f0:8", ["const:7079c4:8", "const:4:8"]]
+- 007079c4 ["CALL", null, ["callee:005e0cc8:8"]]
++ 00707d74 ["INT_ADD", "register:40f0:8", ["const:707d74:8", "const:4:8"]]
++ 00707d74 ["CALL", null, ["callee:005e0cc8:8"]]
+- 007079d4 ["INT_ADD", "register:40f0:8", ["const:7079d4:8", "const:4:8"]]
+- 007079d4 ["CALL", null, ["callee:00af6328:8"]]
++ 00707d84 ["INT_ADD", "register:40f0:8", ["const:707d84:8", "const:4:8"]]
++ 00707d84 ["CALL", null, ["callee:00af6328:8"]]
+- 007079ec ["INT_ADD", "register:40f0:8", ["const:7079ec:8", "const:4:8"]]
+- 007079ec ["CALL", null, ["callee:005e0d10:8"]]
++ 00707d9c ["INT_ADD", "register:40f0:8", ["const:707d9c:8", "const:4:8"]]
++ 00707d9c ["CALL", null, ["callee:005e0d10:8"]]
+~~~
+
+
+<a id="compare-4120e69b02ca7a86588c1cf0e7fdf422"></a>
+
+### [`00707dc8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00707/00707dc8.md) → [`00708178`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00708/00708178.md) FUN_00708178
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`005f2da8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005f2/005f2da8.md) [`00700b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00700/00700b50.md) [`00710330`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00710/00710330.md) · 呼出先 2件 [`00afc5a8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00afc/00afc5a8.md) [`00afc604`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00afc/00afc604.md)
+- 新版 呼出元 3件 [`005f3158`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005f3/005f3158.md) [`00700f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00700/00700f00.md) [`007106e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00710/007106e0.md) · 呼出先 2件 [`00afd59c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00afd/00afd59c.md) [`00afd5f8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00afd/00afd5f8.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00707df0 ["INT_ADD", "register:40f0:8", ["const:707df0:8", "const:4:8"]]
+- 00707df0 ["CALL", null, ["callee:00afd59c:8"]]
++ 007081a0 ["INT_ADD", "register:40f0:8", ["const:7081a0:8", "const:4:8"]]
++ 007081a0 ["CALL", null, ["callee:00afd59c:8"]]
+- 00707e08 ["INT_ADD", "register:40f0:8", ["const:707e08:8", "const:4:8"]]
+- 00707e08 ["CALL", null, ["callee:00afd59c:8"]]
++ 007081b8 ["INT_ADD", "register:40f0:8", ["const:7081b8:8", "const:4:8"]]
++ 007081b8 ["CALL", null, ["callee:00afd59c:8"]]
+- 00707e20 ["INT_ADD", "register:40f0:8", ["const:707e20:8", "const:4:8"]]
+- 00707e20 ["CALL", null, ["callee:00afd59c:8"]]
++ 007081d0 ["INT_ADD", "register:40f0:8", ["const:7081d0:8", "const:4:8"]]
++ 007081d0 ["CALL", null, ["callee:00afd59c:8"]]
+~~~
+
+
+<a id="compare-c89aa1b3b2db00f0c5986a573a213d27"></a>
+
+### [`00707f08`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00707/00707f08.md) → [`007082b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00708/007082b8.md) FUN_007082b8
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 1件 [`00676aa0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00676/00676aa0.md)
+- 新版 呼出元 0件  · 呼出先 1件 [`00676e50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00676/00676e50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00707f20 ["INT_ADD", "register:40f0:8", ["const:707f20:8", "const:4:8"]]
+- 00707f20 ["CALL", null, ["callee:00676e50:8"]]
++ 007082d0 ["INT_ADD", "register:40f0:8", ["const:7082d0:8", "const:4:8"]]
++ 007082d0 ["CALL", null, ["callee:00676e50:8"]]
+~~~
+
+
+<a id="compare-d05ec42a4a5dae5cfa6d756b132732f4"></a>
+
+### [`0070df48`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0070d/0070df48.md) → [`0070e2f8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0070e/0070e2f8.md) FUN_0070e2f8
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`005f2da8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005f2/005f2da8.md) · 呼出先 2件 [`00afc5a8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00afc/00afc5a8.md) [`00afc604`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00afc/00afc604.md)
+- 新版 呼出元 1件 [`005f3158`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005f3/005f3158.md) · 呼出先 2件 [`00afd59c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00afd/00afd59c.md) [`00afd5f8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00afd/00afd5f8.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0070df70 ["INT_ADD", "register:40f0:8", ["const:70df70:8", "const:4:8"]]
+- 0070df70 ["CALL", null, ["callee:00afd59c:8"]]
++ 0070e320 ["INT_ADD", "register:40f0:8", ["const:70e320:8", "const:4:8"]]
++ 0070e320 ["CALL", null, ["callee:00afd59c:8"]]
+- 0070df8c ["INT_ADD", "register:40f0:8", ["const:70df8c:8", "const:4:8"]]
+- 0070df8c ["CALL", null, ["callee:00afd5f8:8"]]
++ 0070e33c ["INT_ADD", "register:40f0:8", ["const:70e33c:8", "const:4:8"]]
++ 0070e33c ["CALL", null, ["callee:00afd5f8:8"]]
+- 0070df9c ["INT_ADD", "register:40f0:8", ["const:70df9c:8", "const:4:8"]]
+- 0070df9c ["CALL", null, ["callee:00afd59c:8"]]
++ 0070e34c ["INT_ADD", "register:40f0:8", ["const:70e34c:8", "const:4:8"]]
++ 0070e34c ["CALL", null, ["callee:00afd59c:8"]]
+~~~
+
+
+<a id="compare-cbc83200cfcdcc559c0f6076291d5a08"></a>
+
+### [`0070e05c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0070e/0070e05c.md) → [`0070e40c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0070e/0070e40c.md) FUN_0070e40c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`00707f38`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00707/00707f38.md) [`00a52ea0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a52/00a52ea0.md) · 呼出先 4件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`0046ef38`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046e/0046ef38.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md) [`00c57fb0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57fb0.md)
+- 新版 呼出元 2件 [`007082e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00708/007082e8.md) [`00a53e94`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a53/00a53e94.md) · 呼出先 4件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`0046f258`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046f/0046f258.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md) [`00c58f80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f80.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0070e0dc ["INT_ADD", "register:40f0:8", ["const:70e0dc:8", "const:4:8"]]
+- 0070e0dc ["CALL", null, ["callee:00c58f30:8"]]
++ 0070e48c ["INT_ADD", "register:40f0:8", ["const:70e48c:8", "const:4:8"]]
++ 0070e48c ["CALL", null, ["callee:00c58f30:8"]]
+- 0070e0fc ["INT_ADD", "register:40f0:8", ["const:70e0fc:8", "const:4:8"]]
+- 0070e0fc ["CALL", null, ["callee:0046f258:8"]]
++ 0070e4ac ["INT_ADD", "register:40f0:8", ["const:70e4ac:8", "const:4:8"]]
++ 0070e4ac ["CALL", null, ["callee:0046f258:8"]]
+- 0070e128 ["INT_ADD", "register:40f0:8", ["const:70e128:8", "const:4:8"]]
+- 0070e128 ["CALL", null, ["callee:0043bf04:8"]]
++ 0070e4d8 ["INT_ADD", "register:40f0:8", ["const:70e4d8:8", "const:4:8"]]
++ 0070e4d8 ["CALL", null, ["callee:0043bf04:8"]]
+~~~
+
+
+<a id="compare-c531fe1f4e4f7889de7e4cabbdfba2e2"></a>
+
+### [`0070e1a0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0070e/0070e1a0.md) → [`0070e550`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0070e/0070e550.md) FUN_0070e550
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 2件 [`0046f01c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046f/0046f01c.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 2件 [`0046f33c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046f/0046f33c.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0070e1c4 ["INT_ADD", "register:40f0:8", ["const:70e1c4:8", "const:4:8"]]
+- 0070e1c4 ["CALL", null, ["callee:0046f33c:8"]]
++ 0070e574 ["INT_ADD", "register:40f0:8", ["const:70e574:8", "const:4:8"]]
++ 0070e574 ["CALL", null, ["callee:0046f33c:8"]]
+~~~
+
+
+<a id="compare-4ace7bc750d89c21f4fe75615559710e"></a>
+
+### [`00710128`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00710/00710128.md) → [`007104d8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00710/007104d8.md) FUN_007104d8
+
+根拠 `similar_code_order_and_calls` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`0070eab4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0070e/0070eab4.md) [`00711a48`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00711/00711a48.md) · 呼出先 15件 [`00ab92ec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00ab9/00ab92ec.md) [`00af644c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af6/00af644c.md) [`00af64bc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af6/00af64bc.md) [`00af652c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af6/00af652c.md) [`00af659c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af6/00af659c.md)
+- 新版 呼出元 2件 [`0070ee64`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0070e/0070ee64.md) [`00711df8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00711/00711df8.md) · 呼出先 15件 [`00aba2e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00aba/00aba2e0.md) [`00af7440`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af7/00af7440.md) [`00af74b0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af7/00af74b0.md) [`00af7520`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af7/00af7520.md) [`00af7590`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af7/00af7590.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071014c ["INT_ADD", "register:40f0:8", ["const:71014c:8", "const:4:8"]]
+- 0071014c ["CALL", null, ["callee:00af7440:8"]]
++ 007104fc ["INT_ADD", "register:40f0:8", ["const:7104fc:8", "const:4:8"]]
++ 007104fc ["CALL", null, ["callee:00af7440:8"]]
+- 0071015c ["INT_ADD", "register:40f0:8", ["const:71015c:8", "const:4:8"]]
+- 0071015c ["CALL", null, ["callee:00af74b0:8"]]
++ 0071050c ["INT_ADD", "register:40f0:8", ["const:71050c:8", "const:4:8"]]
++ 0071050c ["CALL", null, ["callee:00af74b0:8"]]
+- 00710178 ["INT_ADD", "register:40f0:8", ["const:710178:8", "const:4:8"]]
+- 00710178 ["CALL", null, ["callee:00aba2e0:8"]]
++ 00710528 ["INT_ADD", "register:40f0:8", ["const:710528:8", "const:4:8"]]
++ 00710528 ["CALL", null, ["callee:00aba2e0:8"]]
+~~~
+
+
+<a id="compare-1f7f90e4a7755c2bc4b4cbebb79fafa3"></a>
+
+### [`0071417c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00714/0071417c.md) → [`0071452c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00714/0071452c.md) FUN_0071452c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00716de8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00716/00716de8.md) · 呼出先 5件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`005fe29c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005fe/005fe29c.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c580d0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c58/00c580d0.md)
+- 新版 呼出元 1件 [`00717198`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00717/00717198.md) · 呼出先 5件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`005fe64c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005fe/005fe64c.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c590a0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c59/00c590a0.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007141fc ["INT_ADD", "register:40f0:8", ["const:7141fc:8", "const:4:8"]]
+- 007141fc ["CALL", null, ["callee:00c58f30:8"]]
++ 007145ac ["INT_ADD", "register:40f0:8", ["const:7145ac:8", "const:4:8"]]
++ 007145ac ["CALL", null, ["callee:00c58f30:8"]]
+- 00714238 ["INT_ADD", "register:40f0:8", ["const:714238:8", "const:4:8"]]
+- 00714238 ["CALL", null, ["callee:00c590a0:8"]]
++ 007145e8 ["INT_ADD", "register:40f0:8", ["const:7145e8:8", "const:4:8"]]
++ 007145e8 ["CALL", null, ["callee:00c590a0:8"]]
+- 0071424c ["INT_ADD", "register:40f0:8", ["const:71424c:8", "const:4:8"]]
+- 0071424c ["CALL", null, ["callee:00c58f50:8"]]
++ 007145fc ["INT_ADD", "register:40f0:8", ["const:7145fc:8", "const:4:8"]]
++ 007145fc ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-2775bb39e4eec2c5efc24d4f0c528aff"></a>
+
+### [`00714274`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00714/00714274.md) → [`00714624`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00714/00714624.md) FUN_00714624
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 2件 [`005fe2d8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005fe/005fe2d8.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 2件 [`005fe688`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005fe/005fe688.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00714294 ["INT_ADD", "register:40f0:8", ["const:714294:8", "const:4:8"]]
+- 00714294 ["CALL", null, ["callee:005fe688:8"]]
++ 00714644 ["INT_ADD", "register:40f0:8", ["const:714644:8", "const:4:8"]]
++ 00714644 ["CALL", null, ["callee:005fe688:8"]]
+~~~
+
+
+<a id="compare-ec299e65d280fc54bd038b7bce146f16"></a>
+
+### [`00716ae8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00716/00716ae8.md) → [`00716e98`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00716/00716e98.md) FUN_00716e98
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00700b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00700/00700b50.md) [`00715558`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00715/00715558.md) [`00716de8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00716/00716de8.md) · 呼出先 6件 [`00af3cb8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af3/00af3cb8.md) [`00af3cf8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af3/00af3cf8.md) [`00af3e60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af3/00af3e60.md) [`00af4210`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af4/00af4210.md) [`00af54a0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00af5/00af54a0.md)
+- 新版 呼出元 3件 [`00700f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00700/00700f00.md) [`00715908`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00715/00715908.md) [`00717198`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00717/00717198.md) · 呼出先 6件 [`00af4cac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af4/00af4cac.md) [`00af4cec`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af4/00af4cec.md) [`00af4e54`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af4/00af4e54.md) [`00af5204`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af5/00af5204.md) [`00af6494`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00af6/00af6494.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00716b04 ["INT_ADD", "register:40f0:8", ["const:716b04:8", "const:4:8"]]
+- 00716b04 ["CALL", null, ["callee:00af68f4:8"]]
++ 00716eb4 ["INT_ADD", "register:40f0:8", ["const:716eb4:8", "const:4:8"]]
++ 00716eb4 ["CALL", null, ["callee:00af68f4:8"]]
+- 00716b14 ["INT_ADD", "register:40f0:8", ["const:716b14:8", "const:4:8"]]
+- 00716b14 ["CALL", null, ["callee:00af68f4:8"]]
++ 00716ec4 ["INT_ADD", "register:40f0:8", ["const:716ec4:8", "const:4:8"]]
++ 00716ec4 ["CALL", null, ["callee:00af68f4:8"]]
+- 00716b28 ["INT_ADD", "register:40f0:8", ["const:716b28:8", "const:4:8"]]
+- 00716b28 ["CALL", null, ["callee:00af4cac:8"]]
++ 00716ed8 ["INT_ADD", "register:40f0:8", ["const:716ed8:8", "const:4:8"]]
++ 00716ed8 ["CALL", null, ["callee:00af4cac:8"]]
+~~~
+
+
+<a id="compare-db1e64e5d25f273dcc8dbf8b461b4ad6"></a>
+
+### [`00718610`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00718/00718610.md) → [`007189c0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00718/007189c0.md) FUN_007189c0
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00716de8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00716/00716de8.md) · 呼出先 2件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 1件 [`00717198`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00717/00717198.md) · 呼出先 2件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00718678 ["INT_ADD", "register:40f0:8", ["const:718678:8", "const:4:8"]]
+- 00718678 ["CALL", null, ["callee:00c58f30:8"]]
++ 00718a28 ["INT_ADD", "register:40f0:8", ["const:718a28:8", "const:4:8"]]
++ 00718a28 ["CALL", null, ["callee:00c58f30:8"]]
+- 007186b4 ["INT_ADD", "register:40f0:8", ["const:7186b4:8", "const:4:8"]]
+- 007186b4 ["CALL", null, ["callee:0043bf04:8"]]
++ 00718a64 ["INT_ADD", "register:40f0:8", ["const:718a64:8", "const:4:8"]]
++ 00718a64 ["CALL", null, ["callee:0043bf04:8"]]
+~~~
+
+
+<a id="compare-db6e259b237304306c9fa1f9e3bab488"></a>
+
+### [`007186dc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00718/007186dc.md) → [`00718a8c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00718/00718a8c.md) FUN_00718a8c
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`00716de8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00716/00716de8.md) [`007ccf44`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007cc/007ccf44.md) · 呼出先 5件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`00470880`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00470/00470880.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c580d0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c58/00c580d0.md)
+- 新版 呼出元 2件 [`00717198`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00717/00717198.md) [`007cdea8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007cd/007cdea8.md) · 呼出先 5件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`00470ba0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00470/00470ba0.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c590a0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c59/00c590a0.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071875c ["INT_ADD", "register:40f0:8", ["const:71875c:8", "const:4:8"]]
+- 0071875c ["CALL", null, ["callee:00c58f30:8"]]
++ 00718b0c ["INT_ADD", "register:40f0:8", ["const:718b0c:8", "const:4:8"]]
++ 00718b0c ["CALL", null, ["callee:00c58f30:8"]]
+- 0071878c ["INT_ADD", "register:40f0:8", ["const:71878c:8", "const:4:8"]]
+- 0071878c ["CALL", null, ["callee:00c590a0:8"]]
++ 00718b3c ["INT_ADD", "register:40f0:8", ["const:718b3c:8", "const:4:8"]]
++ 00718b3c ["CALL", null, ["callee:00c590a0:8"]]
+- 007187a0 ["INT_ADD", "register:40f0:8", ["const:7187a0:8", "const:4:8"]]
+- 007187a0 ["CALL", null, ["callee:00c58f50:8"]]
++ 00718b50 ["INT_ADD", "register:40f0:8", ["const:718b50:8", "const:4:8"]]
++ 00718b50 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-b13c6fed8a5a7fee4de07e6c15e3f2a2"></a>
+
+### [`007193b4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00719/007193b4.md) → [`00719764`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00719/00719764.md) FUN_00719764
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00700b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00700/00700b50.md) · 呼出先 19件 [`0046d7f0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d7f0.md) [`005e0918`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005e0/005e0918.md) [`005e0940`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005e0/005e0940.md) [`005e0960`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005e0/005e0960.md) [`005e0da8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005e0/005e0da8.md)
+- 新版 呼出元 1件 [`00700f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00700/00700f00.md) · 呼出先 19件 [`0046db10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046db10.md) [`005e0cc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005e0/005e0cc8.md) [`005e0cf0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005e0/005e0cf0.md) [`005e0d10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005e0/005e0d10.md) [`005e1158`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005e1/005e1158.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007193e0 ["INT_ADD", "register:40f0:8", ["const:7193e0:8", "const:4:8"]]
+- 007193e0 ["CALL", null, ["callee:005e1158:8"]]
++ 00719790 ["INT_ADD", "register:40f0:8", ["const:719790:8", "const:4:8"]]
++ 00719790 ["CALL", null, ["callee:005e1158:8"]]
+- 007193f0 ["INT_ADD", "register:40f0:8", ["const:7193f0:8", "const:4:8"]]
+- 007193f0 ["CALL", null, ["callee:005e7810:8"]]
++ 007197a0 ["INT_ADD", "register:40f0:8", ["const:7197a0:8", "const:4:8"]]
++ 007197a0 ["CALL", null, ["callee:005e7810:8"]]
+- 00719488 ["INT_ADD", "register:40f0:8", ["const:719488:8", "const:4:8"]]
+- 00719488 ["CALL", null, ["callee:005e0cc8:8"]]
++ 00719838 ["INT_ADD", "register:40f0:8", ["const:719838:8", "const:4:8"]]
++ 00719838 ["CALL", null, ["callee:005e0cc8:8"]]
+~~~
+
+
+<a id="compare-be064d205a25680ff266ccd16d96ab38"></a>
+
+### [`00719790`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00719/00719790.md) → [`00719b40`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00719/00719b40.md) FUN_00719b40
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 6件 [`00716de8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00716/00716de8.md) [`009387c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00938/009387c8.md) [`0093b4b4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0093b/0093b4b4.md) [`00a323f4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a32/00a323f4.md) [`00a324cc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a32/00a324cc.md) · 呼出先 2件 [`00494650`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00494/00494650.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 6件 [`00717198`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00717/00717198.md) [`00939774`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00939/00939774.md) [`0093c460`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0093c/0093c460.md) [`00a333e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a33/00a333e8.md) [`00a334c0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a33/00a334c0.md) · 呼出先 2件 [`00494970`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00494/00494970.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00719840 ["INT_ADD", "register:40f0:8", ["const:719840:8", "const:4:8"]]
+- 00719840 ["CALL", null, ["callee:00494970:8"]]
++ 00719bf0 ["INT_ADD", "register:40f0:8", ["const:719bf0:8", "const:4:8"]]
++ 00719bf0 ["CALL", null, ["callee:00494970:8"]]
+- 00719850 ["INT_ADD", "register:40f0:8", ["const:719850:8", "const:4:8"]]
+- 00719850 ["CALL", null, ["callee:00c58f50:8"]]
++ 00719c00 ["INT_ADD", "register:40f0:8", ["const:719c00:8", "const:4:8"]]
++ 00719c00 ["CALL", null, ["callee:00c58f50:8"]]
+- 00719858 ["INT_ADD", "register:40f0:8", ["const:719858:8", "const:4:8"]]
+- 00719858 ["CALL", null, ["callee:00c58f50:8"]]
++ 00719c08 ["INT_ADD", "register:40f0:8", ["const:719c08:8", "const:4:8"]]
++ 00719c08 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-8e46079c81176da519512e80423090f7"></a>
+
+### [`00719bfc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00719/00719bfc.md) → [`00719fac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00719/00719fac.md) FUN_00719fac
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0090dd50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0090d/0090dd50.md) · 呼出先 1件 [`0046d7f0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d7f0.md)
+- 新版 呼出元 1件 [`0090ecfc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0090e/0090ecfc.md) · 呼出先 1件 [`0046db10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046db10.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00719c50 ["INT_ADD", "register:40f0:8", ["const:719c50:8", "const:4:8"]]
+- 00719c50 ["CALL", null, ["callee:0046db10:8"]]
++ 0071a000 ["INT_ADD", "register:40f0:8", ["const:71a000:8", "const:4:8"]]
++ 0071a000 ["CALL", null, ["callee:0046db10:8"]]
+~~~
+
+
+<a id="compare-ec08ae0f4f78ffed6f88d35204806c23"></a>
+
+### [`0071a230`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071a230.md) → [`0071a5e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071a/0071a5e0.md) FUN_0071a5e0
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071a27c ["INT_ADD", "register:40f0:8", ["const:71a27c:8", "const:4:8"]]
+- 0071a27c ["CALL", null, ["callee:00c58f50:8"]]
++ 0071a62c ["INT_ADD", "register:40f0:8", ["const:71a62c:8", "const:4:8"]]
++ 0071a62c ["CALL", null, ["callee:00c58f50:8"]]
+- 0071a29c ["INT_ADD", "register:40f0:8", ["const:71a29c:8", "const:4:8"]]
+- 0071a29c ["CALL", null, ["callee:00c58f50:8"]]
++ 0071a64c ["INT_ADD", "register:40f0:8", ["const:71a64c:8", "const:4:8"]]
++ 0071a64c ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-ca0e65567c73d4e833c110f959e89973"></a>
+
+### [`0071a328`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071a328.md) → [`0071a6d8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071a/0071a6d8.md) FUN_0071a6d8
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00719cc0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00719/00719cc0.md) · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 1件 [`0071a070`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071a/0071a070.md) · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071a350 ["INT_ADD", "register:40f0:8", ["const:71a350:8", "const:4:8"]]
+- 0071a350 ["CALL", null, ["callee:00c58f50:8"]]
++ 0071a700 ["INT_ADD", "register:40f0:8", ["const:71a700:8", "const:4:8"]]
++ 0071a700 ["CALL", null, ["callee:00c58f50:8"]]
+- 0071a358 ["INT_ADD", "register:40f0:8", ["const:71a358:8", "const:4:8"]]
+- 0071a358 ["CALL", null, ["callee:00c58f50:8"]]
++ 0071a708 ["INT_ADD", "register:40f0:8", ["const:71a708:8", "const:4:8"]]
++ 0071a708 ["CALL", null, ["callee:00c58f50:8"]]
+- 0071a3ac ["INT_ADD", "register:40f0:8", ["const:71a3ac:8", "const:4:8"]]
+- 0071a3ac ["CALL", null, ["callee:00c58f50:8"]]
++ 0071a75c ["INT_ADD", "register:40f0:8", ["const:71a75c:8", "const:4:8"]]
++ 0071a75c ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-ece786c49d94421f6b92f9c5d6620f0f"></a>
+
+### [`0071a79c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071a79c.md) → [`0071ab4c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071a/0071ab4c.md) FUN_0071ab4c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `limited` · 参照 `unresolved` · `unresolved_reference_or_flow`
+
+- 旧版 呼出元 1件 [`0071adbc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071adbc.md) · 呼出先 6件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`00470880`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00470/00470880.md) [`0048797c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00487/0048797c.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 1件 [`0071b16c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071b/0071b16c.md) · 呼出先 6件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`00470ba0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00470/00470ba0.md) [`00487c9c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00487/00487c9c.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071a7d4 ["COPY", "register:0:8", ["register:4040:8"]]
+- 0071a7d4 ["INT_ADD", "register:40f0:8", ["const:71a7d4:8", "const:4:8"]]
+- 0071a7d4 ["CALLIND", null, ["register:0:8"]]
++ 0071ab84 ["COPY", "register:0:8", ["register:4040:8"]]
++ 0071ab84 ["INT_ADD", "register:40f0:8", ["const:71ab84:8", "const:4:8"]]
++ 0071ab84 ["CALLIND", null, ["register:0:8"]]
+- 0071a804 ["COPY", "register:0:8", ["register:4040:8"]]
+- 0071a804 ["INT_ADD", "register:40f0:8", ["const:71a804:8", "const:4:8"]]
+- 0071a804 ["CALLIND", null, ["register:0:8"]]
++ 0071abb4 ["COPY", "register:0:8", ["register:4040:8"]]
++ 0071abb4 ["INT_ADD", "register:40f0:8", ["const:71abb4:8", "const:4:8"]]
++ 0071abb4 ["CALLIND", null, ["register:0:8"]]
+- 0071a818 ["INT_ADD", "register:40f0:8", ["const:71a818:8", "const:4:8"]]
+- 0071a818 ["CALL", null, ["callee:00487c9c:8"]]
++ 0071abc8 ["INT_ADD", "register:40f0:8", ["const:71abc8:8", "const:4:8"]]
++ 0071abc8 ["CALL", null, ["callee:00487c9c:8"]]
+~~~
+
+
+<a id="compare-eefc1ba3c93d31e3d3e50d4c69a8b21b"></a>
+
+### [`0071a8f4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071a8f4.md) → [`0071aca4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071a/0071aca4.md) FUN_0071aca4
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `limited` · 参照 `unresolved` · `unresolved_reference_or_flow`
+
+- 旧版 呼出元 1件 [`0071adbc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071adbc.md) · 呼出先 6件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`00470880`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00470/00470880.md) [`0048797c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00487/0048797c.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 1件 [`0071b16c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071b/0071b16c.md) · 呼出先 6件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`00470ba0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00470/00470ba0.md) [`00487c9c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00487/00487c9c.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071a930 ["COPY", "register:0:8", ["register:4040:8"]]
+- 0071a930 ["INT_ADD", "register:40f0:8", ["const:71a930:8", "const:4:8"]]
+- 0071a930 ["CALLIND", null, ["register:0:8"]]
++ 0071ace0 ["COPY", "register:0:8", ["register:4040:8"]]
++ 0071ace0 ["INT_ADD", "register:40f0:8", ["const:71ace0:8", "const:4:8"]]
++ 0071ace0 ["CALLIND", null, ["register:0:8"]]
+- 0071a95c ["COPY", "register:0:8", ["register:4040:8"]]
+- 0071a95c ["INT_ADD", "register:40f0:8", ["const:71a95c:8", "const:4:8"]]
+- 0071a95c ["CALLIND", null, ["register:0:8"]]
++ 0071ad0c ["COPY", "register:0:8", ["register:4040:8"]]
++ 0071ad0c ["INT_ADD", "register:40f0:8", ["const:71ad0c:8", "const:4:8"]]
++ 0071ad0c ["CALLIND", null, ["register:0:8"]]
+- 0071a970 ["INT_ADD", "register:40f0:8", ["const:71a970:8", "const:4:8"]]
+- 0071a970 ["CALL", null, ["callee:00487c9c:8"]]
++ 0071ad20 ["INT_ADD", "register:40f0:8", ["const:71ad20:8", "const:4:8"]]
++ 0071ad20 ["CALL", null, ["callee:00487c9c:8"]]
+~~~
+
+
+<a id="compare-b747bbae987c8fa6bfd6c2c7d86760c9"></a>
+
+### [`0071aa50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071aa50.md) → [`0071ae00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071a/0071ae00.md) FUN_0071ae00
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `limited` · 参照 `unresolved` · `unresolved_reference_or_flow`
+
+- 旧版 呼出元 1件 [`0071adbc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071adbc.md) · 呼出先 6件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`00470880`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00470/00470880.md) [`0048797c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00487/0048797c.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 1件 [`0071b16c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071b/0071b16c.md) · 呼出先 6件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`00470ba0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00470/00470ba0.md) [`00487c9c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00487/00487c9c.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071aa8c ["COPY", "register:0:8", ["register:4040:8"]]
+- 0071aa8c ["INT_ADD", "register:40f0:8", ["const:71aa8c:8", "const:4:8"]]
+- 0071aa8c ["CALLIND", null, ["register:0:8"]]
++ 0071ae3c ["COPY", "register:0:8", ["register:4040:8"]]
++ 0071ae3c ["INT_ADD", "register:40f0:8", ["const:71ae3c:8", "const:4:8"]]
++ 0071ae3c ["CALLIND", null, ["register:0:8"]]
+- 0071aab8 ["COPY", "register:0:8", ["register:4040:8"]]
+- 0071aab8 ["INT_ADD", "register:40f0:8", ["const:71aab8:8", "const:4:8"]]
+- 0071aab8 ["CALLIND", null, ["register:0:8"]]
++ 0071ae68 ["COPY", "register:0:8", ["register:4040:8"]]
++ 0071ae68 ["INT_ADD", "register:40f0:8", ["const:71ae68:8", "const:4:8"]]
++ 0071ae68 ["CALLIND", null, ["register:0:8"]]
+- 0071aacc ["INT_ADD", "register:40f0:8", ["const:71aacc:8", "const:4:8"]]
+- 0071aacc ["CALL", null, ["callee:00487c9c:8"]]
++ 0071ae7c ["INT_ADD", "register:40f0:8", ["const:71ae7c:8", "const:4:8"]]
++ 0071ae7c ["CALL", null, ["callee:00487c9c:8"]]
+~~~
+
+
+<a id="compare-6b9878711cd7080197deef3c1211f649"></a>
+
+### [`0071abac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071abac.md) → [`0071af5c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071a/0071af5c.md) FUN_0071af5c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `limited` · 参照 `unresolved` · `unresolved_reference_or_flow`
+
+- 旧版 呼出元 1件 [`0071adbc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071adbc.md) · 呼出先 1件 [`0048797c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00487/0048797c.md)
+- 新版 呼出元 1件 [`0071b16c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071b/0071b16c.md) · 呼出先 1件 [`00487c9c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00487/00487c9c.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071abc8 ["INT_ADD", "register:40f0:8", ["const:71abc8:8", "const:4:8"]]
+- 0071abc8 ["CALL", null, ["callee:00487c9c:8"]]
++ 0071af78 ["INT_ADD", "register:40f0:8", ["const:71af78:8", "const:4:8"]]
++ 0071af78 ["CALL", null, ["callee:00487c9c:8"]]
+- 0071abe0 ["INT_ADD", "register:40f0:8", ["const:71abe0:8", "const:4:8"]]
+- 0071abe0 ["CALL", null, ["callee:00487c9c:8"]]
++ 0071af90 ["INT_ADD", "register:40f0:8", ["const:71af90:8", "const:4:8"]]
++ 0071af90 ["CALL", null, ["callee:00487c9c:8"]]
+- 0071abf0 ["INT_ADD", "register:40f0:8", ["const:71abf0:8", "const:4:8"]]
+- 0071abf0 ["CALL", null, ["callee:00487c9c:8"]]
++ 0071afa0 ["INT_ADD", "register:40f0:8", ["const:71afa0:8", "const:4:8"]]
++ 0071afa0 ["CALL", null, ["callee:00487c9c:8"]]
+~~~
+
+
+<a id="compare-78a1266bfea00fae48a6a9e12ee27385"></a>
+
+### [`0071bf08`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071b/0071bf08.md) → [`0071c2b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071c/0071c2b8.md) FUN_0071c2b8
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 4件 [`0090dd50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0090d/0090dd50.md) [`009115b4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00911/009115b4.md) [`00914e84`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00914/00914e84.md) [`0091abcc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0091a/0091abcc.md) · 呼出先 3件 [`0071ad68`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071ad68.md) [`0071bccc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071b/0071bccc.md) [`0071bf30`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071b/0071bf30.md)
+- 新版 呼出元 4件 [`0090ecfc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0090e/0090ecfc.md) [`00912560`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00912/00912560.md) [`00915e30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00915/00915e30.md) [`0091bb78`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0091b/0091bb78.md) · 呼出先 3件 [`0071b118`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071b/0071b118.md) [`0071c07c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071c/0071c07c.md) [`0071c2e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071c/0071c2e0.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071bf10 ["INT_ADD", "register:40f0:8", ["const:71bf10:8", "const:4:8"]]
+- 0071bf10 ["CALL", null, ["callee:0071c07c:8"]]
++ 0071c2c0 ["INT_ADD", "register:40f0:8", ["const:71c2c0:8", "const:4:8"]]
++ 0071c2c0 ["CALL", null, ["callee:0071c07c:8"]]
+- 0071bf18 ["INT_ADD", "register:40f0:8", ["const:71bf18:8", "const:4:8"]]
+- 0071bf18 ["CALL", null, ["callee:0071c07c:8"]]
++ 0071c2c8 ["INT_ADD", "register:40f0:8", ["const:71c2c8:8", "const:4:8"]]
++ 0071c2c8 ["CALL", null, ["callee:0071c07c:8"]]
+- 0071bf1c ["INT_ADD", "register:40f0:8", ["const:71bf1c:8", "const:4:8"]]
+- 0071bf1c ["CALL", null, ["callee:0071b118:8"]]
++ 0071c2cc ["INT_ADD", "register:40f0:8", ["const:71c2cc:8", "const:4:8"]]
++ 0071c2cc ["CALL", null, ["callee:0071b118:8"]]
+~~~
+
+
+<a id="compare-27e56cad955a8a48ed728896a7a48145"></a>
+
+### [`0071c478`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071c/0071c478.md) → [`0071c828`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071c/0071c828.md) FUN_0071c828
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0090dd50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0090d/0090dd50.md) · 呼出先 3件 [`0071ad68`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071a/0071ad68.md) [`0071bccc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071b/0071bccc.md) [`0071c4b8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071c/0071c4b8.md)
+- 新版 呼出元 1件 [`0090ecfc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0090e/0090ecfc.md) · 呼出先 3件 [`0071b118`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071b/0071b118.md) [`0071c07c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071c/0071c07c.md) [`0071c868`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071c/0071c868.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071c488 ["INT_ADD", "register:40f0:8", ["const:71c488:8", "const:4:8"]]
+- 0071c488 ["CALL", null, ["callee:0071c07c:8"]]
++ 0071c838 ["INT_ADD", "register:40f0:8", ["const:71c838:8", "const:4:8"]]
++ 0071c838 ["CALL", null, ["callee:0071c07c:8"]]
+- 0071c490 ["INT_ADD", "register:40f0:8", ["const:71c490:8", "const:4:8"]]
+- 0071c490 ["CALL", null, ["callee:0071c07c:8"]]
++ 0071c840 ["INT_ADD", "register:40f0:8", ["const:71c840:8", "const:4:8"]]
++ 0071c840 ["CALL", null, ["callee:0071c07c:8"]]
+- 0071c494 ["INT_ADD", "register:40f0:8", ["const:71c494:8", "const:4:8"]]
+- 0071c494 ["CALL", null, ["callee:0071b118:8"]]
++ 0071c844 ["INT_ADD", "register:40f0:8", ["const:71c844:8", "const:4:8"]]
++ 0071c844 ["CALL", null, ["callee:0071b118:8"]]
+~~~
+
+
+<a id="compare-1f7264c1a963271bb687083d5b80d2f2"></a>
+
+### [`0071e34c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071e/0071e34c.md) → [`0071e6fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071e/0071e6fc.md) FUN_0071e6fc
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0071d254`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071d/0071d254.md) · 呼出先 3件 [`00b3befc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3b/00b3befc.md) [`00b3bf30`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3b/00b3bf30.md) [`00b3bf74`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3b/00b3bf74.md)
+- 新版 呼出元 1件 [`0071d604`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071d/0071d604.md) · 呼出先 3件 [`00b3cef0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3c/00b3cef0.md) [`00b3cf24`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3c/00b3cf24.md) [`00b3cf68`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3c/00b3cf68.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071e38c ["INT_ADD", "register:40f0:8", ["const:71e38c:8", "const:4:8"]]
+- 0071e38c ["CALL", null, ["callee:00b3cf68:8"]]
++ 0071e73c ["INT_ADD", "register:40f0:8", ["const:71e73c:8", "const:4:8"]]
++ 0071e73c ["CALL", null, ["callee:00b3cf68:8"]]
+- 0071e394 ["INT_ADD", "register:40f0:8", ["const:71e394:8", "const:4:8"]]
+- 0071e394 ["CALL", null, ["callee:00b3cf24:8"]]
++ 0071e744 ["INT_ADD", "register:40f0:8", ["const:71e744:8", "const:4:8"]]
++ 0071e744 ["CALL", null, ["callee:00b3cf24:8"]]
+- 0071e3c8 ["INT_ADD", "register:40f0:8", ["const:71e3c8:8", "const:4:8"]]
+- 0071e3c8 ["CALL", null, ["callee:00b3cf68:8"]]
++ 0071e778 ["INT_ADD", "register:40f0:8", ["const:71e778:8", "const:4:8"]]
++ 0071e778 ["CALL", null, ["callee:00b3cf68:8"]]
+~~~
+
+
+<a id="compare-9b120572842f7e5a34a4ced4276dcee0"></a>
+
+### [`0071e824`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071e/0071e824.md) → [`0071ebd4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071e/0071ebd4.md) FUN_0071ebd4
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0071d254`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071d/0071d254.md) · 呼出先 3件 [`00b3befc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3b/00b3befc.md) [`00b3bf30`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3b/00b3bf30.md) [`00b3bf74`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3b/00b3bf74.md)
+- 新版 呼出元 1件 [`0071d604`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071d/0071d604.md) · 呼出先 3件 [`00b3cef0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3c/00b3cef0.md) [`00b3cf24`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3c/00b3cf24.md) [`00b3cf68`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3c/00b3cf68.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071e84c ["INT_ADD", "register:40f0:8", ["const:71e84c:8", "const:4:8"]]
+- 0071e84c ["CALL", null, ["callee:00b3cf68:8"]]
++ 0071ebfc ["INT_ADD", "register:40f0:8", ["const:71ebfc:8", "const:4:8"]]
++ 0071ebfc ["CALL", null, ["callee:00b3cf68:8"]]
+- 0071e854 ["INT_ADD", "register:40f0:8", ["const:71e854:8", "const:4:8"]]
+- 0071e854 ["CALL", null, ["callee:00b3cf24:8"]]
++ 0071ec04 ["INT_ADD", "register:40f0:8", ["const:71ec04:8", "const:4:8"]]
++ 0071ec04 ["CALL", null, ["callee:00b3cf24:8"]]
+~~~
+
+
+<a id="compare-50797133223fc181d9748a25eb9cb37a"></a>
+
+### [`0071ed58`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071e/0071ed58.md) → [`0071f108`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071f/0071f108.md) FUN_0071f108
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 43件 [`00606b24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00606/00606b24.md) [`0060a8e0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0060a/0060a8e0.md) [`0060d664`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0060d/0060d664.md) [`0061456c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00614/0061456c.md) [`0064b1e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0064b/0064b1e8.md) · 呼出先 2件 [`0043bb60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bb60.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 43件 [`00606ed4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00606/00606ed4.md) [`0060ac90`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0060a/0060ac90.md) [`0060da14`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0060d/0060da14.md) [`0061491c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00614/0061491c.md) [`0064b598`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0064b/0064b598.md) · 呼出先 2件 [`0043be80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043be80.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071ed70 ["INT_ADD", "register:40f0:8", ["const:71ed70:8", "const:4:8"]]
+- 0071ed70 ["CALL", null, ["callee:008524fc:8"]]
++ 0071f120 ["INT_ADD", "register:40f0:8", ["const:71f120:8", "const:4:8"]]
++ 0071f120 ["CALL", null, ["callee:008524fc:8"]]
+- 0071ed7c ["INT_ADD", "register:40f0:8", ["const:71ed7c:8", "const:4:8"]]
+- 0071ed7c ["CALL", null, ["callee:008524fc:8"]]
++ 0071f12c ["INT_ADD", "register:40f0:8", ["const:71f12c:8", "const:4:8"]]
++ 0071f12c ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-507d36ec42d533c9dc61c41a05ee87be"></a>
+
+### [`0071edd0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071e/0071edd0.md) → [`0071f180`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071f/0071f180.md) FUN_0071f180
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 7件 [`005f46ec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005f4/005f46ec.md) [`00700b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00700/00700b50.md) [`007ccf44`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007cc/007ccf44.md) [`007df140`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007df/007df140.md) [`0096402c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00964/0096402c.md) · 呼出先 9件 [`0043bb60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bb60.md) [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`00440f9c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f9c.md) [`00540dbc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00540/00540dbc.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 7件 [`005f4a9c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005f4/005f4a9c.md) [`00700f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00700/00700f00.md) [`007cdea8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007cd/007cdea8.md) [`007e00a4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007e0/007e00a4.md) [`00964fd8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00964/00964fd8.md) · 呼出先 9件 [`0043be80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043be80.md) [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`004412bc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/004412bc.md) [`005410dc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00541/005410dc.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071ee10 ["INT_ADD", "register:40f0:8", ["const:71ee10:8", "const:4:8"]]
+- 0071ee10 ["CALL", null, ["callee:008524fc:8"]]
++ 0071f1c0 ["INT_ADD", "register:40f0:8", ["const:71f1c0:8", "const:4:8"]]
++ 0071f1c0 ["CALL", null, ["callee:008524fc:8"]]
+- 0071ee1c ["INT_ADD", "register:40f0:8", ["const:71ee1c:8", "const:4:8"]]
+- 0071ee1c ["CALL", null, ["callee:008524fc:8"]]
++ 0071f1cc ["INT_ADD", "register:40f0:8", ["const:71f1cc:8", "const:4:8"]]
++ 0071f1cc ["CALL", null, ["callee:008524fc:8"]]
+- 0071ee20 ["INT_ADD", "register:40f0:8", ["const:71ee20:8", "const:4:8"]]
+- 0071ee20 ["CALL", null, ["callee:008524fc:8"]]
++ 0071f1d0 ["INT_ADD", "register:40f0:8", ["const:71f1d0:8", "const:4:8"]]
++ 0071f1d0 ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-ab9fa2ce2971dc4d63c07fa4acee412e"></a>
+
+### [`0071f4b8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071f/0071f4b8.md) → [`0071f868`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071f/0071f868.md) FUN_0071f868
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `limited` · 参照 `unresolved` · `unresolved_reference_or_flow`
+
+- 旧版 呼出元 1件 [`009d906c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/009d9/009d906c.md) · 呼出先 4件 [`0048795c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00487/0048795c.md) [`0048797c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00487/0048797c.md) [`005e81d8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005e8/005e81d8.md) [`00c57fb0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57fb0.md)
+- 新版 呼出元 1件 [`009da018`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/009da/009da018.md) · 呼出先 4件 [`00487c7c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00487/00487c7c.md) [`00487c9c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00487/00487c9c.md) [`005e8588`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005e8/005e8588.md) [`00c58f80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f80.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0071f4e4 ["INT_ADD", "register:40f0:8", ["const:71f4e4:8", "const:4:8"]]
+- 0071f4e4 ["CALL", null, ["callee:00487c7c:8"]]
++ 0071f894 ["INT_ADD", "register:40f0:8", ["const:71f894:8", "const:4:8"]]
++ 0071f894 ["CALL", null, ["callee:00487c7c:8"]]
+- 0071f4f0 ["INT_ADD", "register:40f0:8", ["const:71f4f0:8", "const:4:8"]]
+- 0071f4f0 ["CALL", null, ["callee:00487c9c:8"]]
++ 0071f8a0 ["INT_ADD", "register:40f0:8", ["const:71f8a0:8", "const:4:8"]]
++ 0071f8a0 ["CALL", null, ["callee:00487c9c:8"]]
+- 0071f4fc ["INT_ADD", "register:40f0:8", ["const:71f4fc:8", "const:4:8"]]
+- 0071f4fc ["CALL", null, ["callee:005e8588:8"]]
++ 0071f8ac ["INT_ADD", "register:40f0:8", ["const:71f8ac:8", "const:4:8"]]
++ 0071f8ac ["CALL", null, ["callee:005e8588:8"]]
+~~~
+
+
+<a id="compare-e9d89ef4312958f14565fe1614e215b5"></a>
+
+### [`007252c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/007252c8.md) → [`00725678`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00725/00725678.md) FUN_00725678
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0075d7b4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075d/0075d7b4.md) · 呼出先 2件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 1件 [`0075db64`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075d/0075db64.md) · 呼出先 2件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007253a0 ["INT_ADD", "register:40f0:8", ["const:7253a0:8", "const:4:8"]]
+- 007253a0 ["CALL", null, ["callee:00c58f30:8"]]
++ 00725750 ["INT_ADD", "register:40f0:8", ["const:725750:8", "const:4:8"]]
++ 00725750 ["CALL", null, ["callee:00c58f30:8"]]
+- 007253d8 ["INT_ADD", "register:40f0:8", ["const:7253d8:8", "const:4:8"]]
+- 007253d8 ["CALL", null, ["callee:0043bf04:8"]]
++ 00725788 ["INT_ADD", "register:40f0:8", ["const:725788:8", "const:4:8"]]
++ 00725788 ["CALL", null, ["callee:0043bf04:8"]]
+- 00725464 ["INT_ADD", "register:40f0:8", ["const:725464:8", "const:4:8"]]
+- 00725464 ["CALL", null, ["callee:00c58f30:8"]]
++ 00725814 ["INT_ADD", "register:40f0:8", ["const:725814:8", "const:4:8"]]
++ 00725814 ["CALL", null, ["callee:00c58f30:8"]]
+~~~
+
+
+<a id="compare-487d6d3fc2a3ad19917ce321db864007"></a>
+
+### [`007254bc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/007254bc.md) → [`0072586c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00725/0072586c.md) FUN_0072586c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0075d7b4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075d/0075d7b4.md) · 呼出先 19件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`0046d4d0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d4d0.md) [`005c17dc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005c1/005c17dc.md) [`00676aa0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00676/00676aa0.md) [`0071bf30`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0071b/0071bf30.md)
+- 新版 呼出元 1件 [`0075db64`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075d/0075db64.md) · 呼出先 19件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`0046d7f0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046d7f0.md) [`005c1b8c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005c1/005c1b8c.md) [`00676e50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00676/00676e50.md) [`0071c2e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0071c/0071c2e0.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00725514 ["INT_ADD", "register:40f0:8", ["const:725514:8", "const:4:8"]]
+- 00725514 ["CALL", null, ["callee:005c1b8c:8"]]
++ 007258c4 ["INT_ADD", "register:40f0:8", ["const:7258c4:8", "const:4:8"]]
++ 007258c4 ["CALL", null, ["callee:005c1b8c:8"]]
+- 00725534 ["INT_ADD", "register:40f0:8", ["const:725534:8", "const:4:8"]]
+- 00725534 ["CALL", null, ["callee:00676e50:8"]]
++ 007258e4 ["INT_ADD", "register:40f0:8", ["const:7258e4:8", "const:4:8"]]
++ 007258e4 ["CALL", null, ["callee:00676e50:8"]]
+- 007255d0 ["INT_ADD", "register:40f0:8", ["const:7255d0:8", "const:4:8"]]
+- 007255d0 ["CALL", null, ["callee:00c58f30:8"]]
++ 00725980 ["INT_ADD", "register:40f0:8", ["const:725980:8", "const:4:8"]]
++ 00725980 ["CALL", null, ["callee:00c58f30:8"]]
+~~~
+
+
+<a id="compare-9e80534c2d2dca82c5a1e2e02c2b2335"></a>
+
+### [`00725de4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/00725de4.md) → [`00726194`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726194.md) FUN_00726194
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 2件 [`0046d4d0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d4d0.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 2件 [`0046d7f0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046d7f0.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00725e00 ["INT_ADD", "register:40f0:8", ["const:725e00:8", "const:4:8"]]
+- 00725e00 ["CALL", null, ["callee:0046d7f0:8"]]
++ 007261b0 ["INT_ADD", "register:40f0:8", ["const:7261b0:8", "const:4:8"]]
++ 007261b0 ["CALL", null, ["callee:0046d7f0:8"]]
+- 00725e0c ["INT_ADD", "register:40f0:8", ["const:725e0c:8", "const:4:8"]]
+- 00725e0c ["CALL", null, ["callee:0046d7f0:8"]]
++ 007261bc ["INT_ADD", "register:40f0:8", ["const:7261bc:8", "const:4:8"]]
++ 007261bc ["CALL", null, ["callee:0046d7f0:8"]]
+- 00725e44 ["INT_ADD", "register:40f0:8", ["const:725e44:8", "const:4:8"]]
+- 00725e44 ["CALL", null, ["callee:00c58f50:8"]]
++ 007261f4 ["INT_ADD", "register:40f0:8", ["const:7261f4:8", "const:4:8"]]
++ 007261f4 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-2149ad796245c071459547151dce3270"></a>
+
+### [`00725e84`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/00725e84.md) → [`00726234`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726234.md) FUN_00726234
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00725ecc ["INT_ADD", "register:40f0:8", ["const:725ecc:8", "const:4:8"]]
+- 00725ecc ["CALL", null, ["callee:00c58f50:8"]]
++ 0072627c ["INT_ADD", "register:40f0:8", ["const:72627c:8", "const:4:8"]]
++ 0072627c ["CALL", null, ["callee:00c58f50:8"]]
+- 00725edc ["INT_ADD", "register:40f0:8", ["const:725edc:8", "const:4:8"]]
+- 00725edc ["CALL", null, ["callee:00c58f50:8"]]
++ 0072628c ["INT_ADD", "register:40f0:8", ["const:72628c:8", "const:4:8"]]
++ 0072628c ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-57c7bd331f21a3beec5c0d07199fbd79"></a>
+
+### [`00725f0c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/00725f0c.md) → [`007262bc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007262bc.md) FUN_007262bc
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`007254bc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/007254bc.md) [`00a346b8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a34/00a346b8.md) · 呼出先 6件 [`0072604c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/0072604c.md) [`007260e4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/007260e4.md) [`0072615c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/0072615c.md) [`00c53ffc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c53/00c53ffc.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 2件 [`0072586c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00725/0072586c.md) [`00a356ac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a35/00a356ac.md) · 呼出先 6件 [`007263fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007263fc.md) [`00726494`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726494.md) [`0072650c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/0072650c.md) [`00c54fec`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c54/00c54fec.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00725f64 ["INT_ADD", "register:40f0:8", ["const:725f64:8", "const:4:8"]]
+- 00725f64 ["CALL", null, ["callee:00c58f30:8"]]
++ 00726314 ["INT_ADD", "register:40f0:8", ["const:726314:8", "const:4:8"]]
++ 00726314 ["CALL", null, ["callee:00c58f30:8"]]
+- 00725fa8 ["INT_ADD", "register:40f0:8", ["const:725fa8:8", "const:4:8"]]
+- 00725fa8 ["CALL", null, ["callee:0072650c:8"]]
++ 00726358 ["INT_ADD", "register:40f0:8", ["const:726358:8", "const:4:8"]]
++ 00726358 ["CALL", null, ["callee:0072650c:8"]]
+- 0072600c ["INT_ADD", "register:40f0:8", ["const:72600c:8", "const:4:8"]]
+- 0072600c ["CALL", null, ["callee:00726494:8"]]
++ 007263bc ["INT_ADD", "register:40f0:8", ["const:7263bc:8", "const:4:8"]]
++ 007263bc ["CALL", null, ["callee:00726494:8"]]
+~~~
+
+
+<a id="compare-71255136571a86f5e7002b8a16b018a3"></a>
+
+### [`0072604c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/0072604c.md) → [`007263fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007263fc.md) FUN_007263fc
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00725f0c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/00725f0c.md) · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 1件 [`007262bc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007262bc.md) · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007260b0 ["INT_ADD", "register:40f0:8", ["const:7260b0:8", "const:4:8"]]
+- 007260b0 ["CALL", null, ["callee:00c58f50:8"]]
++ 00726460 ["INT_ADD", "register:40f0:8", ["const:726460:8", "const:4:8"]]
++ 00726460 ["CALL", null, ["callee:00c58f50:8"]]
+- 007260c0 ["INT_ADD", "register:40f0:8", ["const:7260c0:8", "const:4:8"]]
+- 007260c0 ["CALL", null, ["callee:00c58f50:8"]]
++ 00726470 ["INT_ADD", "register:40f0:8", ["const:726470:8", "const:4:8"]]
++ 00726470 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-f9f6ff81e4998917dc4f4e17fe8e6aea"></a>
+
+### [`007260f8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/007260f8.md) → [`007264a8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007264a8.md) FUN_007264a8
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0077c1e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0077c/0077c1e8.md) · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 1件 [`0077c5c4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0077c/0077c5c4.md) · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00726138 ["INT_ADD", "register:40f0:8", ["const:726138:8", "const:4:8"]]
+- 00726138 ["CALL", null, ["callee:00c58f50:8"]]
++ 007264e8 ["INT_ADD", "register:40f0:8", ["const:7264e8:8", "const:4:8"]]
++ 007264e8 ["CALL", null, ["callee:00c58f50:8"]]
+- 00726148 ["INT_ADD", "register:40f0:8", ["const:726148:8", "const:4:8"]]
+- 00726148 ["CALL", null, ["callee:00c58f50:8"]]
++ 007264f8 ["INT_ADD", "register:40f0:8", ["const:7264f8:8", "const:4:8"]]
++ 007264f8 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-0cfb27b1683a20a454a8f3ee88c4966e"></a>
+
+### [`0072615c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/0072615c.md) → [`0072650c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/0072650c.md) FUN_0072650c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`00725f0c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/00725f0c.md) [`0077c1e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0077c/0077c1e8.md) · 呼出先 5件 [`007262b8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/007262b8.md) [`00c53ffc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c53/00c53ffc.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c580d0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c58/00c580d0.md)
+- 新版 呼出元 2件 [`007262bc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007262bc.md) [`0077c5c4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0077c/0077c5c4.md) · 呼出先 5件 [`00726668`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726668.md) [`00c54fec`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c54/00c54fec.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c590a0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c59/00c590a0.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007261d8 ["INT_ADD", "register:40f0:8", ["const:7261d8:8", "const:4:8"]]
+- 007261d8 ["CALL", null, ["callee:00c58f30:8"]]
++ 00726588 ["INT_ADD", "register:40f0:8", ["const:726588:8", "const:4:8"]]
++ 00726588 ["CALL", null, ["callee:00c58f30:8"]]
+- 007261f0 ["INT_ADD", "register:40f0:8", ["const:7261f0:8", "const:4:8"]]
+- 007261f0 ["CALL", null, ["callee:00c590a0:8"]]
++ 007265a0 ["INT_ADD", "register:40f0:8", ["const:7265a0:8", "const:4:8"]]
++ 007265a0 ["CALL", null, ["callee:00c590a0:8"]]
+- 0072622c ["INT_ADD", "register:40f0:8", ["const:72622c:8", "const:4:8"]]
+- 0072622c ["CALL", null, ["callee:00c58f30:8"]]
++ 007265dc ["INT_ADD", "register:40f0:8", ["const:7265dc:8", "const:4:8"]]
++ 007265dc ["CALL", null, ["callee:00c58f30:8"]]
+~~~
+
+
+<a id="compare-8f2d9371770de3f710b3ecc60f8da887"></a>
+
+### [`007262cc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/007262cc.md) → [`0072667c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/0072667c.md) FUN_0072667c
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`007254bc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00725/007254bc.md) · 呼出先 4件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`0053bcf0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0053b/0053bcf0.md) [`0054f1d4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0054f/0054f1d4.md) [`00c57fb0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57fb0.md)
+- 新版 呼出元 1件 [`0072586c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00725/0072586c.md) · 呼出先 4件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`0053c010`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0053c/0053c010.md) [`0054f4f4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0054f/0054f4f4.md) [`00c58f80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f80.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00726328 ["INT_ADD", "register:40f0:8", ["const:726328:8", "const:4:8"]]
+- 00726328 ["CALL", null, ["callee:0054f4f4:8"]]
++ 007266d8 ["INT_ADD", "register:40f0:8", ["const:7266d8:8", "const:4:8"]]
++ 007266d8 ["CALL", null, ["callee:0054f4f4:8"]]
+- 00726350 ["INT_ADD", "register:40f0:8", ["const:726350:8", "const:4:8"]]
+- 00726350 ["CALL", null, ["callee:0053c010:8"]]
++ 00726700 ["INT_ADD", "register:40f0:8", ["const:726700:8", "const:4:8"]]
++ 00726700 ["CALL", null, ["callee:0053c010:8"]]
+- 0072637c ["INT_ADD", "register:40f0:8", ["const:72637c:8", "const:4:8"]]
+- 0072637c ["CALL", null, ["callee:0043bf04:8"]]
++ 0072672c ["INT_ADD", "register:40f0:8", ["const:72672c:8", "const:4:8"]]
++ 0072672c ["CALL", null, ["callee:0043bf04:8"]]
+~~~
+
+
+<a id="compare-670bf34d73b6a7baaad4b114b440cbb1"></a>
+
+### [`007263e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/007263e8.md) → [`00726798`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726798.md) FUN_00726798
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 4件 [`00724848`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00724/00724848.md) [`007263e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/007263e8.md) [`0083a178`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0083a/0083a178.md) [`00849c2c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00849/00849c2c.md) · 呼出先 3件 [`007263e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/007263e8.md) [`00726438`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/00726438.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 4件 [`00724bf8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00724/00724bf8.md) [`00726798`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726798.md) [`0083b124`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0083b/0083b124.md) [`0084abd8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0084a/0084abd8.md) · 呼出先 3件 [`00726798`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726798.md) [`007267e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007267e8.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00726408 ["INT_ADD", "register:40f0:8", ["const:726408:8", "const:4:8"]]
+- 00726408 ["CALL", null, ["local:b0:8"]]
++ 007267b8 ["INT_ADD", "register:40f0:8", ["const:7267b8:8", "const:4:8"]]
++ 007267b8 ["CALL", null, ["local:b0:8"]]
+- 00726414 ["INT_ADD", "register:40f0:8", ["const:726414:8", "const:4:8"]]
+- 00726414 ["CALL", null, ["local:b0:8"]]
++ 007267c4 ["INT_ADD", "register:40f0:8", ["const:7267c4:8", "const:4:8"]]
++ 007267c4 ["CALL", null, ["local:b0:8"]]
+- 00726420 ["INT_ADD", "register:40f0:8", ["const:726420:8", "const:4:8"]]
+- 00726420 ["CALL", null, ["callee:007267e8:8"]]
++ 007267d0 ["INT_ADD", "register:40f0:8", ["const:7267d0:8", "const:4:8"]]
++ 007267d0 ["CALL", null, ["callee:007267e8:8"]]
+~~~
+
+
+<a id="compare-f9fd3eab231c9dba1aab7c63576b4cf8"></a>
+
+### [`00726438`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/00726438.md) → [`007267e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007267e8.md) FUN_007267e8
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`007263e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/007263e8.md) [`00726438`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/00726438.md) · 呼出先 2件 [`00726438`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/00726438.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 2件 [`00726798`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726798.md) [`007267e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007267e8.md) · 呼出先 2件 [`007267e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/007267e8.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00726454 ["INT_ADD", "register:40f0:8", ["const:726454:8", "const:4:8"]]
+- 00726454 ["CALL", null, ["local:b0:8"]]
++ 00726804 ["INT_ADD", "register:40f0:8", ["const:726804:8", "const:4:8"]]
++ 00726804 ["CALL", null, ["local:b0:8"]]
+- 00726460 ["INT_ADD", "register:40f0:8", ["const:726460:8", "const:4:8"]]
+- 00726460 ["CALL", null, ["local:b0:8"]]
++ 00726810 ["INT_ADD", "register:40f0:8", ["const:726810:8", "const:4:8"]]
++ 00726810 ["CALL", null, ["local:b0:8"]]
+- 00726470 ["INT_ADD", "register:40f0:8", ["const:726470:8", "const:4:8"]]
+- 00726470 ["CALL", null, ["callee:00c58f50:8"]]
++ 00726820 ["INT_ADD", "register:40f0:8", ["const:726820:8", "const:4:8"]]
++ 00726820 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-7f2f07ca611e0ad977170e7d31ddad40"></a>
+
+### [`00726fa0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/00726fa0.md) → [`00727350`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727350.md) FUN_00727350
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 4件 [`006bbcf0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/006bb/006bbcf0.md) [`00930468`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00930/00930468.md) [`00934dac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00934/00934dac.md) [`00a47f54`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a47/00a47f54.md) · 呼出先 1件 [`00550a04`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00550/00550a04.md)
+- 新版 呼出元 4件 [`006bc0a0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/006bc/006bc0a0.md) [`00931414`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00931/00931414.md) [`00935d58`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00935/00935d58.md) [`00a48f48`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a48/00a48f48.md) · 呼出先 1件 [`00550d24`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00550/00550d24.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00726fb0 ["INT_ADD", "register:40f0:8", ["const:726fb0:8", "const:4:8"]]
+- 00726fb0 ["CALL", null, ["callee:00550d24:8"]]
++ 00727360 ["INT_ADD", "register:40f0:8", ["const:727360:8", "const:4:8"]]
++ 00727360 ["CALL", null, ["callee:00550d24:8"]]
+~~~
+
+
+<a id="compare-32e3a91ddef8bff18947d8096d415ac2"></a>
+
+### [`00726fc8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/00726fc8.md) → [`00727378`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727378.md) FUN_00727378
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 4件 [`005fe6ac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005fe/005fe6ac.md) [`00605294`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00605/00605294.md) [`00700b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00700/00700b50.md) [`009304d0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00930/009304d0.md) · 呼出先 1件 [`00550a08`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00550/00550a08.md)
+- 新版 呼出元 4件 [`005fea5c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005fe/005fea5c.md) [`00605644`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00605/00605644.md) [`00700f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00700/00700f00.md) [`0093147c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00931/0093147c.md) · 呼出先 1件 [`00550d28`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00550/00550d28.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00726fd8 ["INT_ADD", "register:40f0:8", ["const:726fd8:8", "const:4:8"]]
+- 00726fd8 ["CALL", null, ["callee:00550d28:8"]]
++ 00727388 ["INT_ADD", "register:40f0:8", ["const:727388:8", "const:4:8"]]
++ 00727388 ["CALL", null, ["callee:00550d28:8"]]
+~~~
+
+
+<a id="compare-ca4caf1c00d15cd23f562463af20b89a"></a>
+
+### [`007271b8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/007271b8.md) → [`00727568`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727568.md) FUN_00727568
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00700b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00700/00700b50.md) · 呼出先 5件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`0048cec4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0048c/0048cec4.md) [`00550a0c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00550/00550a0c.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 1件 [`00700f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00700/00700f00.md) · 呼出先 5件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`0048d1e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0048d/0048d1e4.md) [`00550d2c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00550/00550d2c.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007271e0 ["INT_ADD", "register:40f0:8", ["const:7271e0:8", "const:4:8"]]
+- 007271e0 ["CALL", null, ["callee:008524fc:8"]]
++ 00727590 ["INT_ADD", "register:40f0:8", ["const:727590:8", "const:4:8"]]
++ 00727590 ["CALL", null, ["callee:008524fc:8"]]
+- 007271ec ["INT_ADD", "register:40f0:8", ["const:7271ec:8", "const:4:8"]]
+- 007271ec ["CALL", null, ["callee:0048d1e4:8"]]
++ 0072759c ["INT_ADD", "register:40f0:8", ["const:72759c:8", "const:4:8"]]
++ 0072759c ["CALL", null, ["callee:0048d1e4:8"]]
+- 00727248 ["INT_ADD", "register:40f0:8", ["const:727248:8", "const:4:8"]]
+- 00727248 ["CALL", null, ["callee:00c58f30:8"]]
++ 007275f8 ["INT_ADD", "register:40f0:8", ["const:7275f8:8", "const:4:8"]]
++ 007275f8 ["CALL", null, ["callee:00c58f30:8"]]
+~~~
+
+
+<a id="compare-7f27c1afb40a13785eb4a2ea48ba525c"></a>
+
+### [`00727604`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727604.md) → [`007279b4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/007279b4.md) FUN_007279b4
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00726818`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00726/00726818.md) [`00727604`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727604.md) [`0083a178`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0083a/0083a178.md) · 呼出先 3件 [`00727604`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727604.md) [`00727654`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727654.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 3件 [`00726bc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00726/00726bc8.md) [`007279b4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/007279b4.md) [`0083b124`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0083b/0083b124.md) · 呼出先 3件 [`007279b4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/007279b4.md) [`00727a04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727a04.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00727624 ["INT_ADD", "register:40f0:8", ["const:727624:8", "const:4:8"]]
+- 00727624 ["CALL", null, ["local:b0:8"]]
++ 007279d4 ["INT_ADD", "register:40f0:8", ["const:7279d4:8", "const:4:8"]]
++ 007279d4 ["CALL", null, ["local:b0:8"]]
+- 00727630 ["INT_ADD", "register:40f0:8", ["const:727630:8", "const:4:8"]]
+- 00727630 ["CALL", null, ["local:b0:8"]]
++ 007279e0 ["INT_ADD", "register:40f0:8", ["const:7279e0:8", "const:4:8"]]
++ 007279e0 ["CALL", null, ["local:b0:8"]]
+- 0072763c ["INT_ADD", "register:40f0:8", ["const:72763c:8", "const:4:8"]]
+- 0072763c ["CALL", null, ["callee:00727a04:8"]]
++ 007279ec ["INT_ADD", "register:40f0:8", ["const:7279ec:8", "const:4:8"]]
++ 007279ec ["CALL", null, ["callee:00727a04:8"]]
+~~~
+
+
+<a id="compare-5a17be9b345a7e6acdc108866eceeda2"></a>
+
+### [`00727654`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727654.md) → [`00727a04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727a04.md) FUN_00727a04
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`00727604`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727604.md) [`00727654`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727654.md) · 呼出先 2件 [`00727654`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727654.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 2件 [`007279b4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/007279b4.md) [`00727a04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727a04.md) · 呼出先 2件 [`00727a04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727a04.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00727674 ["INT_ADD", "register:40f0:8", ["const:727674:8", "const:4:8"]]
+- 00727674 ["CALL", null, ["local:b0:8"]]
++ 00727a24 ["INT_ADD", "register:40f0:8", ["const:727a24:8", "const:4:8"]]
++ 00727a24 ["CALL", null, ["local:b0:8"]]
+- 00727680 ["INT_ADD", "register:40f0:8", ["const:727680:8", "const:4:8"]]
+- 00727680 ["CALL", null, ["local:b0:8"]]
++ 00727a30 ["INT_ADD", "register:40f0:8", ["const:727a30:8", "const:4:8"]]
++ 00727a30 ["CALL", null, ["local:b0:8"]]
+~~~
+
+
+<a id="compare-4cddac1f19e1b32010bd6e7a00025f32"></a>
+
+### [`00727a28`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727a28.md) → [`00727dd8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727dd8.md) FUN_00727dd8
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 37件 [`005bc80c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005bc/005bc80c.md) [`0063d954`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0063d/0063d954.md) [`0069a55c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0069a/0069a55c.md) [`006b8abc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/006b8/006b8abc.md) [`006e4dc4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/006e4/006e4dc4.md) · 呼出先 3件 [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00b2f88c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b2f/00b2f88c.md) [`00b2f91c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b2f/00b2f91c.md)
+- 新版 呼出元 37件 [`005bcbbc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005bc/005bcbbc.md) [`0063dd04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0063d/0063dd04.md) [`0069a90c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0069a/0069a90c.md) [`006b8e6c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/006b8/006b8e6c.md) [`006e5174`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/006e5/006e5174.md) · 呼出先 3件 [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00b30880`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b30/00b30880.md) [`00b30910`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b30/00b30910.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00727a84 ["INT_ADD", "register:40f0:8", ["const:727a84:8", "const:4:8"]]
+- 00727a84 ["CALL", null, ["callee:008524fc:8"]]
++ 00727e34 ["INT_ADD", "register:40f0:8", ["const:727e34:8", "const:4:8"]]
++ 00727e34 ["CALL", null, ["callee:008524fc:8"]]
+- 00727ad8 ["INT_ADD", "register:40f0:8", ["const:727ad8:8", "const:4:8"]]
+- 00727ad8 ["CALL", null, ["callee:008524fc:8"]]
++ 00727e88 ["INT_ADD", "register:40f0:8", ["const:727e88:8", "const:4:8"]]
++ 00727e88 ["CALL", null, ["callee:008524fc:8"]]
+- 00727ae0 ["INT_ADD", "register:40f0:8", ["const:727ae0:8", "const:4:8"]]
+- 00727ae0 ["CALL", null, ["callee:00b30910:8"]]
++ 00727e90 ["INT_ADD", "register:40f0:8", ["const:727e90:8", "const:4:8"]]
++ 00727e90 ["CALL", null, ["callee:00b30910:8"]]
+~~~
+
+
+<a id="compare-9cddb70bbb22b89508feb02ea5c0b887"></a>
+
+### [`00727cf8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727cf8.md) → [`007280a8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00728/007280a8.md) FUN_007280a8
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00665150`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00665/00665150.md) [`0098dc5c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0098d/0098dc5c.md) [`00997090`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00997/00997090.md) · 呼出先 1件 [`00727a28`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727a28.md)
+- 新版 呼出元 3件 [`00665500`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00665/00665500.md) [`0098ec08`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0098e/0098ec08.md) [`0099803c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00998/0099803c.md) · 呼出先 1件 [`00727dd8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727dd8.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00727d00 ["INT_ADD", "register:40f0:8", ["const:727d00:8", "const:4:8"]]
+- 00727d00 ["CALL", null, ["callee:00727dd8:8"]]
++ 007280b0 ["INT_ADD", "register:40f0:8", ["const:7280b0:8", "const:4:8"]]
++ 007280b0 ["CALL", null, ["callee:00727dd8:8"]]
+~~~
+
+
+<a id="compare-01339075214fded711898cb2452ebfca"></a>
+
+### [`00727d14`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727d14.md) → [`007280c4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00728/007280c4.md) FUN_007280c4
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`0073c990`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0073c/0073c990.md) [`009d0374`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/009d0/009d0374.md) · 呼出先 1件 [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 2件 [`0073cd40`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073c/0073cd40.md) [`009d1320`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/009d1/009d1320.md) · 呼出先 1件 [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00727d1c ["INT_ADD", "register:40f0:8", ["const:727d1c:8", "const:4:8"]]
+- 00727d1c ["CALL", null, ["callee:008524fc:8"]]
++ 007280cc ["INT_ADD", "register:40f0:8", ["const:7280cc:8", "const:4:8"]]
++ 007280cc ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-96b9d07b666eb37e7d77d0ec740d0803"></a>
+
+### [`00727d74`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727d74.md) → [`00728124`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00728/00728124.md) FUN_00728124
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 28件 [`0069a55c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0069a/0069a55c.md) [`006bbcf0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/006bb/006bbcf0.md) [`007394fc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00739/007394fc.md) [`00739e9c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00739/00739e9c.md) [`0075ba1c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075b/0075ba1c.md) · 呼出先 1件 [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 28件 [`0069a90c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0069a/0069a90c.md) [`006bc0a0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/006bc/006bc0a0.md) [`007398ac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00739/007398ac.md) [`0073a24c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073a/0073a24c.md) [`0075bdcc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075b/0075bdcc.md) · 呼出先 1件 [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00727da0 ["INT_ADD", "register:40f0:8", ["const:727da0:8", "const:4:8"]]
+- 00727da0 ["CALL", null, ["callee:008524fc:8"]]
++ 00728150 ["INT_ADD", "register:40f0:8", ["const:728150:8", "const:4:8"]]
++ 00728150 ["CALL", null, ["callee:008524fc:8"]]
+- 00727dfc ["INT_ADD", "register:40f0:8", ["const:727dfc:8", "const:4:8"]]
+- 00727dfc ["CALL", null, ["callee:008524fc:8"]]
++ 007281ac ["INT_ADD", "register:40f0:8", ["const:7281ac:8", "const:4:8"]]
++ 007281ac ["CALL", null, ["callee:008524fc:8"]]
+- 00727e4c ["INT_ADD", "register:40f0:8", ["const:727e4c:8", "const:4:8"]]
+- 00727e4c ["CALL", null, ["callee:008524fc:8"]]
++ 007281fc ["INT_ADD", "register:40f0:8", ["const:7281fc:8", "const:4:8"]]
++ 007281fc ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-f5d7d6a2824619ad8c4f25f87bb3d442"></a>
+
+### [`00727ec0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727ec0.md) → [`00728270`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00728/00728270.md) FUN_00728270
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 9件 [`0075ba1c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075b/0075ba1c.md) [`0075e5e0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075e/0075e5e0.md) [`00788d04`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00788/00788d04.md) [`0089a5b0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089a/0089a5b0.md) [`0089b00c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089b/0089b00c.md) · 呼出先 1件 [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 8件 [`0075bdcc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075b/0075bdcc.md) [`0075e990`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075e/0075e990.md) [`007890e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00789/007890e0.md) [`0089b55c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089b/0089b55c.md) [`0089f880`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089f/0089f880.md) · 呼出先 1件 [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00727eec ["INT_ADD", "register:40f0:8", ["const:727eec:8", "const:4:8"]]
+- 00727eec ["CALL", null, ["callee:008524fc:8"]]
++ 0072829c ["INT_ADD", "register:40f0:8", ["const:72829c:8", "const:4:8"]]
++ 0072829c ["CALL", null, ["callee:008524fc:8"]]
+- 00727f48 ["INT_ADD", "register:40f0:8", ["const:727f48:8", "const:4:8"]]
+- 00727f48 ["CALL", null, ["callee:008524fc:8"]]
++ 007282f8 ["INT_ADD", "register:40f0:8", ["const:7282f8:8", "const:4:8"]]
++ 007282f8 ["CALL", null, ["callee:008524fc:8"]]
+- 00727f98 ["INT_ADD", "register:40f0:8", ["const:727f98:8", "const:4:8"]]
+- 00727f98 ["CALL", null, ["callee:008524fc:8"]]
++ 00728348 ["INT_ADD", "register:40f0:8", ["const:728348:8", "const:4:8"]]
++ 00728348 ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-ff5d9c48cf081a6d8bb6b0b9358b71f8"></a>
+
+### [`0072800c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00728/0072800c.md) → [`007283bc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00728/007283bc.md) FUN_007283bc
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 8件 [`0075ba1c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075b/0075ba1c.md) [`0075e5e0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075e/0075e5e0.md) [`00788d04`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00788/00788d04.md) [`0089a5b0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089a/0089a5b0.md) [`00a3574c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a35/00a3574c.md) · 呼出先 1件 [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 8件 [`0075bdcc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075b/0075bdcc.md) [`0075e990`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075e/0075e990.md) [`007890e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00789/007890e0.md) [`0089b55c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089b/0089b55c.md) [`00a36740`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a36/00a36740.md) · 呼出先 1件 [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00728038 ["INT_ADD", "register:40f0:8", ["const:728038:8", "const:4:8"]]
+- 00728038 ["CALL", null, ["callee:008524fc:8"]]
++ 007283e8 ["INT_ADD", "register:40f0:8", ["const:7283e8:8", "const:4:8"]]
++ 007283e8 ["CALL", null, ["callee:008524fc:8"]]
+- 00728094 ["INT_ADD", "register:40f0:8", ["const:728094:8", "const:4:8"]]
+- 00728094 ["CALL", null, ["callee:008524fc:8"]]
++ 00728444 ["INT_ADD", "register:40f0:8", ["const:728444:8", "const:4:8"]]
++ 00728444 ["CALL", null, ["callee:008524fc:8"]]
+- 007280e4 ["INT_ADD", "register:40f0:8", ["const:7280e4:8", "const:4:8"]]
+- 007280e4 ["CALL", null, ["callee:008524fc:8"]]
++ 00728494 ["INT_ADD", "register:40f0:8", ["const:728494:8", "const:4:8"]]
++ 00728494 ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-b69800d0b708e287f3ad723d089bacaa"></a>
+
+### [`00728f28`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00728/00728f28.md) → [`007292d8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00729/007292d8.md) FUN_007292d8
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00728ea0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00728/00728ea0.md) [`00769ddc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00769/00769ddc.md) [`007738ec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00773/007738ec.md) · 呼出先 1件 [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 3件 [`00729250`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00729/00729250.md) [`0076a1b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0076a/0076a1b8.md) [`00773cc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00773/00773cc8.md) · 呼出先 1件 [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00728f58 ["INT_ADD", "register:40f0:8", ["const:728f58:8", "const:4:8"]]
+- 00728f58 ["CALL", null, ["callee:008524fc:8"]]
++ 00729308 ["INT_ADD", "register:40f0:8", ["const:729308:8", "const:4:8"]]
++ 00729308 ["CALL", null, ["callee:008524fc:8"]]
+- 00728f74 ["INT_ADD", "register:40f0:8", ["const:728f74:8", "const:4:8"]]
+- 00728f74 ["CALL", null, ["callee:008524fc:8"]]
++ 00729324 ["INT_ADD", "register:40f0:8", ["const:729324:8", "const:4:8"]]
++ 00729324 ["CALL", null, ["callee:008524fc:8"]]
+- 00728f90 ["INT_ADD", "register:40f0:8", ["const:728f90:8", "const:4:8"]]
+- 00728f90 ["CALL", null, ["callee:008524fc:8"]]
++ 00729340 ["INT_ADD", "register:40f0:8", ["const:729340:8", "const:4:8"]]
++ 00729340 ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-f9fa43909fbe75dadf6230f1ebb3a1c2"></a>
+
+### [`007299cc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00729/007299cc.md) → [`00729d7c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00729/00729d7c.md) FUN_00729d7c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 4件 [`00729160`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00729/00729160.md) [`00752ffc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00752/00752ffc.md) [`0089e8d4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089e/0089e8d4.md) [`009afefc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/009af/009afefc.md) · 呼出先 4件 [`0043bb60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bb60.md) [`0072c3d8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072c3d8.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c57fb0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57fb0.md)
+- 新版 呼出元 4件 [`00729510`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00729/00729510.md) [`007533ac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00753/007533ac.md) [`0089f880`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089f/0089f880.md) [`009b0ea8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/009b0/009b0ea8.md) · 呼出先 4件 [`0043be80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043be80.md) [`0072c788`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072c788.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c58f80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f80.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00729a28 ["INT_ADD", "register:40f0:8", ["const:729a28:8", "const:4:8"]]
+- 00729a28 ["CALL", null, ["callee:0043be80:8"]]
++ 00729dd8 ["INT_ADD", "register:40f0:8", ["const:729dd8:8", "const:4:8"]]
++ 00729dd8 ["CALL", null, ["callee:0043be80:8"]]
+- 00729a38 ["INT_ADD", "register:40f0:8", ["const:729a38:8", "const:4:8"]]
+- 00729a38 ["CALL", null, ["callee:0043be80:8"]]
++ 00729de8 ["INT_ADD", "register:40f0:8", ["const:729de8:8", "const:4:8"]]
++ 00729de8 ["CALL", null, ["callee:0043be80:8"]]
+- 00729a68 ["INT_ADD", "register:40f0:8", ["const:729a68:8", "const:4:8"]]
+- 00729a68 ["CALL", null, ["callee:0072c788:8"]]
++ 00729e18 ["INT_ADD", "register:40f0:8", ["const:729e18:8", "const:4:8"]]
++ 00729e18 ["CALL", null, ["callee:0072c788:8"]]
+~~~
+
+
+<a id="compare-f5205ab1cfdac658cf5196467ed2d951"></a>
+
+### [`0072ad78`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072a/0072ad78.md) → [`0072b128`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072b/0072b128.md) FUN_0072b128
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00764148`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00764/00764148.md) · 呼出先 4件 [`0046d7f0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d7f0.md) [`00729ed0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00729/00729ed0.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c57fb0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57fb0.md)
+- 新版 呼出元 1件 [`00764524`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00764/00764524.md) · 呼出先 4件 [`0046db10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046db10.md) [`0072a280`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072a/0072a280.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c58f80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f80.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072ad98 ["INT_ADD", "register:40f0:8", ["const:72ad98:8", "const:4:8"]]
+- 0072ad98 ["CALL", null, ["callee:0072a280:8"]]
++ 0072b148 ["INT_ADD", "register:40f0:8", ["const:72b148:8", "const:4:8"]]
++ 0072b148 ["CALL", null, ["callee:0072a280:8"]]
+- 0072adb4 ["INT_ADD", "register:40f0:8", ["const:72adb4:8", "const:4:8"]]
+- 0072adb4 ["CALL", null, ["callee:0046db10:8"]]
++ 0072b164 ["INT_ADD", "register:40f0:8", ["const:72b164:8", "const:4:8"]]
++ 0072b164 ["CALL", null, ["callee:0046db10:8"]]
+- 0072add8 ["INT_ADD", "register:40f0:8", ["const:72add8:8", "const:4:8"]]
+- 0072add8 ["CALL", null, ["callee:00c58f50:8"]]
++ 0072b188 ["INT_ADD", "register:40f0:8", ["const:72b188:8", "const:4:8"]]
++ 0072b188 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-9d36ea535f253acd5674c30eaac5ff35"></a>
+
+### [`0072bd10`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072b/0072bd10.md) → [`0072c0c0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072c0c0.md) FUN_0072c0c0
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`006103fc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00610/006103fc.md) [`006247e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00624/006247e8.md) · 呼出先 4件 [`0046d7f0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d7f0.md) [`0072b2fc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072b/0072b2fc.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c57fb0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57fb0.md)
+- 新版 呼出元 2件 [`006107ac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00610/006107ac.md) [`00624b98`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00624/00624b98.md) · 呼出先 4件 [`0046db10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046db10.md) [`0072b6ac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072b/0072b6ac.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c58f80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f80.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072bd30 ["INT_ADD", "register:40f0:8", ["const:72bd30:8", "const:4:8"]]
+- 0072bd30 ["CALL", null, ["callee:0072b6ac:8"]]
++ 0072c0e0 ["INT_ADD", "register:40f0:8", ["const:72c0e0:8", "const:4:8"]]
++ 0072c0e0 ["CALL", null, ["callee:0072b6ac:8"]]
+- 0072bd4c ["INT_ADD", "register:40f0:8", ["const:72bd4c:8", "const:4:8"]]
+- 0072bd4c ["CALL", null, ["callee:0046db10:8"]]
++ 0072c0fc ["INT_ADD", "register:40f0:8", ["const:72c0fc:8", "const:4:8"]]
++ 0072c0fc ["CALL", null, ["callee:0046db10:8"]]
+- 0072bd70 ["INT_ADD", "register:40f0:8", ["const:72bd70:8", "const:4:8"]]
+- 0072bd70 ["CALL", null, ["callee:00c58f50:8"]]
++ 0072c120 ["INT_ADD", "register:40f0:8", ["const:72c120:8", "const:4:8"]]
++ 0072c120 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-584f2f83868a4a8f635e724cc78bbb3e"></a>
+
+### [`0072c334`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072c334.md) → [`0072c6e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072c6e4.md) FUN_0072c6e4
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 5件 [`0074fc38`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0074f/0074fc38.md) [`00751008`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00751/00751008.md) [`0077b364`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0077b/0077b364.md) [`007df140`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007df/007df140.md) [`009a1654`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/009a1/009a1654.md) · 呼出先 4件 [`004678a0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00467/004678a0.md) [`00468fc8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00468/00468fc8.md) [`00469c44`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00469/00469c44.md) [`0046a34c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046a/0046a34c.md)
+- 新版 呼出元 5件 [`0074ffe8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0074f/0074ffe8.md) [`00751150`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00751/00751150.md) [`0077b740`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0077b/0077b740.md) [`007e00a4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007e0/007e00a4.md) [`009a2600`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/009a2/009a2600.md) · 呼出先 4件 [`00467bc0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00467/00467bc0.md) [`004692e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00469/004692e8.md) [`00469f64`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00469/00469f64.md) [`0046a66c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046a/0046a66c.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072c348 ["INT_ADD", "register:40f0:8", ["const:72c348:8", "const:4:8"]]
+- 0072c348 ["CALL", null, ["callee:00467bc0:8"]]
++ 0072c6f8 ["INT_ADD", "register:40f0:8", ["const:72c6f8:8", "const:4:8"]]
++ 0072c6f8 ["CALL", null, ["callee:00467bc0:8"]]
+- 0072c36c ["INT_ADD", "register:40f0:8", ["const:72c36c:8", "const:4:8"]]
+- 0072c36c ["CALL", null, ["callee:0046a66c:8"]]
++ 0072c71c ["INT_ADD", "register:40f0:8", ["const:72c71c:8", "const:4:8"]]
++ 0072c71c ["CALL", null, ["callee:0046a66c:8"]]
+- 0072c3b0 ["INT_ADD", "register:40f0:8", ["const:72c3b0:8", "const:4:8"]]
+- 0072c3b0 ["CALL", null, ["callee:00469f64:8"]]
++ 0072c760 ["INT_ADD", "register:40f0:8", ["const:72c760:8", "const:4:8"]]
++ 0072c760 ["CALL", null, ["callee:00469f64:8"]]
+~~~
+
+
+<a id="compare-f96e5b06559a11dc9f6f0945b4bfc537"></a>
+
+### [`0072c3d8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072c3d8.md) → [`0072c788`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072c788.md) FUN_0072c788
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`007299cc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00729/007299cc.md) · 呼出先 4件 [`0043bb60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bb60.md) [`0061af38`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0061a/0061af38.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c57fb0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57fb0.md)
+- 新版 呼出元 1件 [`00729d7c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00729/00729d7c.md) · 呼出先 4件 [`0043be80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043be80.md) [`0061b2e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0061b/0061b2e8.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c58f80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f80.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072c434 ["INT_ADD", "register:40f0:8", ["const:72c434:8", "const:4:8"]]
+- 0072c434 ["CALL", null, ["callee:0043be80:8"]]
++ 0072c7e4 ["INT_ADD", "register:40f0:8", ["const:72c7e4:8", "const:4:8"]]
++ 0072c7e4 ["CALL", null, ["callee:0043be80:8"]]
+- 0072c444 ["INT_ADD", "register:40f0:8", ["const:72c444:8", "const:4:8"]]
+- 0072c444 ["CALL", null, ["callee:0043be80:8"]]
++ 0072c7f4 ["INT_ADD", "register:40f0:8", ["const:72c7f4:8", "const:4:8"]]
++ 0072c7f4 ["CALL", null, ["callee:0043be80:8"]]
+- 0072c478 ["INT_ADD", "register:40f0:8", ["const:72c478:8", "const:4:8"]]
+- 0072c478 ["CALL", null, ["callee:0061b2e8:8"]]
++ 0072c828 ["INT_ADD", "register:40f0:8", ["const:72c828:8", "const:4:8"]]
++ 0072c828 ["CALL", null, ["callee:0061b2e8:8"]]
+~~~
+
+
+<a id="compare-76e595d5efcb8fefa42abc50107282f5"></a>
+
+### [`0072c8a4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072c8a4.md) → [`0072cc54`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072cc54.md) FUN_0072cc54
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00769ddc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00769/00769ddc.md) · 呼出先 4件 [`0048cec4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0048c/0048cec4.md) [`00800684`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00800/00800684.md) [`00805c4c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00805/00805c4c.md) [`00805d8c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00805/00805d8c.md)
+- 新版 呼出元 1件 [`0076a1b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0076a/0076a1b8.md) · 呼出先 4件 [`0048d1e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0048d/0048d1e4.md) [`008015e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/008015e8.md) [`00806bb0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00806/00806bb0.md) [`00806cf0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00806/00806cf0.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072c8c4 ["INT_ADD", "register:40f0:8", ["const:72c8c4:8", "const:4:8"]]
+- 0072c8c4 ["CALL", null, ["callee:0048d1e4:8"]]
++ 0072cc74 ["INT_ADD", "register:40f0:8", ["const:72cc74:8", "const:4:8"]]
++ 0072cc74 ["CALL", null, ["callee:0048d1e4:8"]]
+- 0072c8d0 ["INT_ADD", "register:40f0:8", ["const:72c8d0:8", "const:4:8"]]
+- 0072c8d0 ["CALL", null, ["callee:008015e8:8"]]
++ 0072cc80 ["INT_ADD", "register:40f0:8", ["const:72cc80:8", "const:4:8"]]
++ 0072cc80 ["CALL", null, ["callee:008015e8:8"]]
+- 0072c8e0 ["INT_ADD", "register:40f0:8", ["const:72c8e0:8", "const:4:8"]]
+- 0072c8e0 ["CALL", null, ["callee:00806cf0:8"]]
++ 0072cc90 ["INT_ADD", "register:40f0:8", ["const:72cc90:8", "const:4:8"]]
++ 0072cc90 ["CALL", null, ["callee:00806cf0:8"]]
+~~~
+
+
+<a id="compare-76eed87c8423bc08bb00d1f50d86560d"></a>
+
+### [`0072c904`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072c904.md) → [`0072ccb4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072ccb4.md) FUN_0072ccb4
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00769ddc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00769/00769ddc.md) · 呼出先 2件 [`00731b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731b50.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 1件 [`0076a1b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0076a/0076a1b8.md) · 呼出先 2件 [`00731f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731f00.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072c91c ["INT_ADD", "register:40f0:8", ["const:72c91c:8", "const:4:8"]]
+- 0072c91c ["CALL", null, ["callee:008524fc:8"]]
++ 0072cccc ["INT_ADD", "register:40f0:8", ["const:72cccc:8", "const:4:8"]]
++ 0072cccc ["CALL", null, ["callee:008524fc:8"]]
+- 0072c968 ["INT_ADD", "register:40f0:8", ["const:72c968:8", "const:4:8"]]
+- 0072c968 ["CALL", null, ["callee:00731f00:8"]]
++ 0072cd18 ["INT_ADD", "register:40f0:8", ["const:72cd18:8", "const:4:8"]]
++ 0072cd18 ["CALL", null, ["callee:00731f00:8"]]
+~~~
+
+
+<a id="compare-0f9384a63cd2ab017dd962f55f7ba2b7"></a>
+
+### [`0072c96c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072c96c.md) → [`0072cd1c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072cd1c.md) FUN_0072cd1c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`005fe6ac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005fe/005fe6ac.md) [`007738ec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00773/007738ec.md) · 呼出先 1件 [`00731b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731b50.md)
+- 新版 呼出元 2件 [`005fea5c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005fe/005fea5c.md) [`00773cc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00773/00773cc8.md) · 呼出先 1件 [`00731f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731f00.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072c990 ["INT_ADD", "register:40f0:8", ["const:72c990:8", "const:4:8"]]
+- 0072c990 ["CALL", null, ["callee:00731f00:8"]]
++ 0072cd40 ["INT_ADD", "register:40f0:8", ["const:72cd40:8", "const:4:8"]]
++ 0072cd40 ["CALL", null, ["callee:00731f00:8"]]
+~~~
+
+
+<a id="compare-758f21b703faed5e6ef9805ea8bf1f99"></a>
+
+### [`0072c994`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072c994.md) → [`0072cd44`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072cd44.md) FUN_0072cd44
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00805d8c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00805/00805d8c.md) · 呼出先 3件 [`0049f430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0049f/0049f430.md) [`00800244`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00800/00800244.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 1件 [`00806cf0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00806/00806cf0.md) · 呼出先 3件 [`0049f750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0049f/0049f750.md) [`008011a8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/008011a8.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072c9ac ["INT_ADD", "register:40f0:8", ["const:72c9ac:8", "const:4:8"]]
+- 0072c9ac ["CALL", null, ["callee:008524fc:8"]]
++ 0072cd5c ["INT_ADD", "register:40f0:8", ["const:72cd5c:8", "const:4:8"]]
++ 0072cd5c ["CALL", null, ["callee:008524fc:8"]]
+- 0072c9c0 ["INT_ADD", "register:40f0:8", ["const:72c9c0:8", "const:4:8"]]
+- 0072c9c0 ["CALL", null, ["callee:008011a8:8"]]
++ 0072cd70 ["INT_ADD", "register:40f0:8", ["const:72cd70:8", "const:4:8"]]
++ 0072cd70 ["CALL", null, ["callee:008011a8:8"]]
+- 0072ca08 ["INT_ADD", "register:40f0:8", ["const:72ca08:8", "const:4:8"]]
+- 0072ca08 ["CALL", null, ["callee:0049f750:8"]]
++ 0072cdb8 ["INT_ADD", "register:40f0:8", ["const:72cdb8:8", "const:4:8"]]
++ 0072cdb8 ["CALL", null, ["callee:0049f750:8"]]
+~~~
+
+
+<a id="compare-63cc5350f6d06cedd91f9647a9231465"></a>
+
+### [`0072ec30`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072e/0072ec30.md) → [`0072efe0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072e/0072efe0.md) FUN_0072efe0
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072ec54 ["INT_ADD", "register:40f0:8", ["const:72ec54:8", "const:4:8"]]
+- 0072ec54 ["CALL", null, ["callee:00c58f50:8"]]
++ 0072f004 ["INT_ADD", "register:40f0:8", ["const:72f004:8", "const:4:8"]]
++ 0072f004 ["CALL", null, ["callee:00c58f50:8"]]
+- 0072ec64 ["INT_ADD", "register:40f0:8", ["const:72ec64:8", "const:4:8"]]
+- 0072ec64 ["CALL", null, ["callee:00c58f50:8"]]
++ 0072f014 ["INT_ADD", "register:40f0:8", ["const:72f014:8", "const:4:8"]]
++ 0072f014 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-e2c20bd4f21f967ce08172010fb5da85"></a>
+
+### [`0072ec84`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072e/0072ec84.md) → [`0072f034`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f034.md) FUN_0072f034
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072eca8 ["INT_ADD", "register:40f0:8", ["const:72eca8:8", "const:4:8"]]
+- 0072eca8 ["CALL", null, ["callee:00c58f50:8"]]
++ 0072f058 ["INT_ADD", "register:40f0:8", ["const:72f058:8", "const:4:8"]]
++ 0072f058 ["CALL", null, ["callee:00c58f50:8"]]
+- 0072ecb8 ["INT_ADD", "register:40f0:8", ["const:72ecb8:8", "const:4:8"]]
+- 0072ecb8 ["CALL", null, ["callee:00c58f50:8"]]
++ 0072f068 ["INT_ADD", "register:40f0:8", ["const:72f068:8", "const:4:8"]]
++ 0072f068 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-05bffdda99b6926a4531c8eb0f333b38"></a>
+
+### [`0072ecd8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072e/0072ecd8.md) → [`0072f088`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f088.md) FUN_0072f088
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072ecfc ["INT_ADD", "register:40f0:8", ["const:72ecfc:8", "const:4:8"]]
+- 0072ecfc ["CALL", null, ["callee:00c58f50:8"]]
++ 0072f0ac ["INT_ADD", "register:40f0:8", ["const:72f0ac:8", "const:4:8"]]
++ 0072f0ac ["CALL", null, ["callee:00c58f50:8"]]
+- 0072ed0c ["INT_ADD", "register:40f0:8", ["const:72ed0c:8", "const:4:8"]]
+- 0072ed0c ["CALL", null, ["callee:00c58f50:8"]]
++ 0072f0bc ["INT_ADD", "register:40f0:8", ["const:72f0bc:8", "const:4:8"]]
++ 0072f0bc ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-d3fa8d8efdc78cefa3ca9c03b5a75062"></a>
+
+### [`0072ed2c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072e/0072ed2c.md) → [`0072f0dc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f0dc.md) FUN_0072f0dc
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 1件 [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 0件  · 呼出先 1件 [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072ed50 ["INT_ADD", "register:40f0:8", ["const:72ed50:8", "const:4:8"]]
+- 0072ed50 ["CALL", null, ["callee:00c58f50:8"]]
++ 0072f100 ["INT_ADD", "register:40f0:8", ["const:72f100:8", "const:4:8"]]
++ 0072f100 ["CALL", null, ["callee:00c58f50:8"]]
+- 0072ed60 ["INT_ADD", "register:40f0:8", ["const:72ed60:8", "const:4:8"]]
+- 0072ed60 ["CALL", null, ["callee:00c58f50:8"]]
++ 0072f110 ["INT_ADD", "register:40f0:8", ["const:72f110:8", "const:4:8"]]
++ 0072f110 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-450cc02b040e9257be22bfdf9d718118"></a>
+
+### [`0072ed80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072e/0072ed80.md) → [`0072f130`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f130.md) FUN_0072f130
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00a26210`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a26/00a26210.md) · 呼出先 9件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`00480158`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480158.md) [`00480338`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480338.md) [`00480430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480430.md) [`00480784`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480784.md)
+- 新版 呼出元 1件 [`00a271bc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a27/00a271bc.md) · 呼出先 9件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`00480478`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00480/00480478.md) [`00480658`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00480/00480658.md) [`00480750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00480/00480750.md) [`00480aa4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00480/00480aa4.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072edb0 ["INT_ADD", "register:40f0:8", ["const:72edb0:8", "const:4:8"]]
+- 0072edb0 ["CALL", null, ["callee:00480750:8"]]
++ 0072f160 ["INT_ADD", "register:40f0:8", ["const:72f160:8", "const:4:8"]]
++ 0072f160 ["CALL", null, ["callee:00480750:8"]]
+- 0072edbc ["INT_ADD", "register:40f0:8", ["const:72edbc:8", "const:4:8"]]
+- 0072edbc ["CALL", null, ["callee:00480750:8"]]
++ 0072f16c ["INT_ADD", "register:40f0:8", ["const:72f16c:8", "const:4:8"]]
++ 0072f16c ["CALL", null, ["callee:00480750:8"]]
+- 0072edc8 ["INT_ADD", "register:40f0:8", ["const:72edc8:8", "const:4:8"]]
+- 0072edc8 ["CALL", null, ["callee:00480478:8"]]
++ 0072f178 ["INT_ADD", "register:40f0:8", ["const:72f178:8", "const:4:8"]]
++ 0072f178 ["CALL", null, ["callee:00480478:8"]]
+~~~
+
+
+<a id="compare-bce5f5f2d3ad18a19d098907baac5f88"></a>
+
+### [`0072efc4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072e/0072efc4.md) → [`0072f374`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f374.md) FUN_0072f374
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00a2b33c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a2b/00a2b33c.md) · 呼出先 4件 [`00480d30`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480d30.md) [`00480d88`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480d88.md) [`00480e68`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480e68.md) [`004810d8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00481/004810d8.md)
+- 新版 呼出元 1件 [`00a2c310`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a2c/00a2c310.md) · 呼出先 4件 [`00481050`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00481/00481050.md) [`004810a8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00481/004810a8.md) [`00481188`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00481/00481188.md) [`004813f8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00481/004813f8.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072efe8 ["INT_ADD", "register:40f0:8", ["const:72efe8:8", "const:4:8"]]
+- 0072efe8 ["CALL", null, ["callee:00481188:8"]]
++ 0072f398 ["INT_ADD", "register:40f0:8", ["const:72f398:8", "const:4:8"]]
++ 0072f398 ["CALL", null, ["callee:00481188:8"]]
+- 0072eff4 ["INT_ADD", "register:40f0:8", ["const:72eff4:8", "const:4:8"]]
+- 0072eff4 ["CALL", null, ["callee:00481188:8"]]
++ 0072f3a4 ["INT_ADD", "register:40f0:8", ["const:72f3a4:8", "const:4:8"]]
++ 0072f3a4 ["CALL", null, ["callee:00481188:8"]]
+- 0072f000 ["INT_ADD", "register:40f0:8", ["const:72f000:8", "const:4:8"]]
+- 0072f000 ["CALL", null, ["callee:00481050:8"]]
++ 0072f3b0 ["INT_ADD", "register:40f0:8", ["const:72f3b0:8", "const:4:8"]]
++ 0072f3b0 ["CALL", null, ["callee:00481050:8"]]
+~~~
+
+
+<a id="compare-2e315e7a60a5592647c9c99c42728b17"></a>
+
+### [`0072f0e8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072f/0072f0e8.md) → [`0072f498`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f498.md) FUN_0072f498
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`005fe6ac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005fe/005fe6ac.md) · 呼出先 3件 [`0049f430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0049f/0049f430.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00abd308`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00abd/00abd308.md)
+- 新版 呼出元 1件 [`005fea5c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005fe/005fea5c.md) · 呼出先 3件 [`0049f750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0049f/0049f750.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00abe2fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00abe/00abe2fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072f120 ["INT_ADD", "register:40f0:8", ["const:72f120:8", "const:4:8"]]
+- 0072f120 ["CALL", null, ["callee:008524fc:8"]]
++ 0072f4d0 ["INT_ADD", "register:40f0:8", ["const:72f4d0:8", "const:4:8"]]
++ 0072f4d0 ["CALL", null, ["callee:008524fc:8"]]
+- 0072f13c ["INT_ADD", "register:40f0:8", ["const:72f13c:8", "const:4:8"]]
+- 0072f13c ["CALL", null, ["callee:00abe2fc:8"]]
++ 0072f4ec ["INT_ADD", "register:40f0:8", ["const:72f4ec:8", "const:4:8"]]
++ 0072f4ec ["CALL", null, ["callee:00abe2fc:8"]]
+- 0072f194 ["INT_ADD", "register:40f0:8", ["const:72f194:8", "const:4:8"]]
+- 0072f194 ["CALL", null, ["callee:0049f750:8"]]
++ 0072f544 ["INT_ADD", "register:40f0:8", ["const:72f544:8", "const:4:8"]]
++ 0072f544 ["CALL", null, ["callee:0049f750:8"]]
+~~~
+
+
+<a id="compare-e1ea622b0e8f33bb7ac9515fbe389ca0"></a>
+
+### [`0072f198`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072f/0072f198.md) → [`0072f548`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f548.md) FUN_0072f548
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 4件 [`005fe6ac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005fe/005fe6ac.md) [`0089b00c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089b/0089b00c.md) [`0089e8d4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089e/0089e8d4.md) [`00b3e870`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3e/00b3e870.md) · 呼出先 3件 [`0049f430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0049f/0049f430.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00abd308`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00abd/00abd308.md)
+- 新版 呼出元 4件 [`005fea5c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005fe/005fea5c.md) [`0089b55c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089b/0089b55c.md) [`0089f880`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089f/0089f880.md) [`00b3f864`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3f/00b3f864.md) · 呼出先 3件 [`0049f750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0049f/0049f750.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00abe2fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00abe/00abe2fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072f1cc ["INT_ADD", "register:40f0:8", ["const:72f1cc:8", "const:4:8"]]
+- 0072f1cc ["CALL", null, ["callee:008524fc:8"]]
++ 0072f57c ["INT_ADD", "register:40f0:8", ["const:72f57c:8", "const:4:8"]]
++ 0072f57c ["CALL", null, ["callee:008524fc:8"]]
+- 0072f1e8 ["INT_ADD", "register:40f0:8", ["const:72f1e8:8", "const:4:8"]]
+- 0072f1e8 ["CALL", null, ["callee:00abe2fc:8"]]
++ 0072f598 ["INT_ADD", "register:40f0:8", ["const:72f598:8", "const:4:8"]]
++ 0072f598 ["CALL", null, ["callee:00abe2fc:8"]]
+- 0072f22c ["INT_ADD", "register:40f0:8", ["const:72f22c:8", "const:4:8"]]
+- 0072f22c ["CALL", null, ["callee:0049f750:8"]]
++ 0072f5dc ["INT_ADD", "register:40f0:8", ["const:72f5dc:8", "const:4:8"]]
++ 0072f5dc ["CALL", null, ["callee:0049f750:8"]]
+~~~
+
+
+<a id="compare-1f381a8f49912a3866e329ab1cc44b14"></a>
+
+### [`0072f230`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072f/0072f230.md) → [`0072f5e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f5e0.md) FUN_0072f5e0
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`005fe6ac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005fe/005fe6ac.md) · 呼出先 27件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`0046d7f0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d7f0.md) [`0048cec4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0048c/0048cec4.md) [`0049f430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0049f/0049f430.md)
+- 新版 呼出元 1件 [`005fea5c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005fe/005fea5c.md) · 呼出先 27件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`0046db10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046db10.md) [`0048d1e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0048d/0048d1e4.md) [`0049f750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0049f/0049f750.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0072f284 ["INT_ADD", "register:40f0:8", ["const:72f284:8", "const:4:8"]]
+- 0072f284 ["CALL", null, ["callee:0048d1e4:8"]]
++ 0072f634 ["INT_ADD", "register:40f0:8", ["const:72f634:8", "const:4:8"]]
++ 0072f634 ["CALL", null, ["callee:0048d1e4:8"]]
+- 0072f2b0 ["INT_ADD", "register:40f0:8", ["const:72f2b0:8", "const:4:8"]]
+- 0072f2b0 ["CALL", null, ["callee:00a36be0:8"]]
++ 0072f660 ["INT_ADD", "register:40f0:8", ["const:72f660:8", "const:4:8"]]
++ 0072f660 ["CALL", null, ["callee:00a36be0:8"]]
+- 0072f2b4 ["INT_ADD", "register:40f0:8", ["const:72f2b4:8", "const:4:8"]]
+- 0072f2b4 ["CALL", null, ["callee:00a39bb4:8"]]
++ 0072f664 ["INT_ADD", "register:40f0:8", ["const:72f664:8", "const:4:8"]]
++ 0072f664 ["CALL", null, ["callee:00a39bb4:8"]]
+~~~
+
+
+<a id="compare-878ef8d4f2f3b50f0238b513548d16ea"></a>
+
+### [`007303cc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00730/007303cc.md) → [`0073077c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00730/0073077c.md) FUN_0073077c
+
+根拠 `similar_code_order_and_calls` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0072f230`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072f/0072f230.md) · 呼出先 11件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`0046d7f0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d7f0.md) [`0049f430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0049f/0049f430.md) [`00676aa0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00676/00676aa0.md) [`00731b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731b50.md)
+- 新版 呼出元 1件 [`0072f5e0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072f/0072f5e0.md) · 呼出先 11件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`0046db10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046db10.md) [`0049f750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0049f/0049f750.md) [`00676e50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00676/00676e50.md) [`00731f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731f00.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00730420 ["INT_ADD", "register:40f0:8", ["const:730420:8", "const:4:8"]]
+- 00730420 ["CALL", null, ["callee:008524fc:8"]]
++ 007307d0 ["INT_ADD", "register:40f0:8", ["const:7307d0:8", "const:4:8"]]
++ 007307d0 ["CALL", null, ["callee:008524fc:8"]]
+- 0073043c ["INT_ADD", "register:40f0:8", ["const:73043c:8", "const:4:8"]]
+- 0073043c ["CALL", null, ["callee:00abe2fc:8"]]
++ 007307ec ["INT_ADD", "register:40f0:8", ["const:7307ec:8", "const:4:8"]]
++ 007307ec ["CALL", null, ["callee:00abe2fc:8"]]
+- 00730514 ["INT_ADD", "register:40f0:8", ["const:730514:8", "const:4:8"]]
+- 00730514 ["CALL", null, ["callee:0043bf04:8"]]
++ 007308c4 ["INT_ADD", "register:40f0:8", ["const:7308c4:8", "const:4:8"]]
++ 007308c4 ["CALL", null, ["callee:0043bf04:8"]]
+~~~
+
+
+<a id="compare-eb4ac4b8727918ad5a8293b160962f61"></a>
+
+### [`00730d54`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00730/00730d54.md) → [`00731104`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731104.md) FUN_00731104
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`005fe6ac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005fe/005fe6ac.md) [`0085d54c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0085d/0085d54c.md) [`009d0374`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/009d0/009d0374.md) · 呼出先 1件 [`00731b3c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731b3c.md)
+- 新版 呼出元 3件 [`005fea5c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005fe/005fea5c.md) [`0085e4f8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0085e/0085e4f8.md) [`009d1320`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/009d1/009d1320.md) · 呼出先 1件 [`00731eec`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731eec.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00730d78 ["INT_ADD", "register:40f0:8", ["const:730d78:8", "const:4:8"]]
+- 00730d78 ["CALL", null, ["callee:00731eec:8"]]
++ 00731128 ["INT_ADD", "register:40f0:8", ["const:731128:8", "const:4:8"]]
++ 00731128 ["CALL", null, ["callee:00731eec:8"]]
+~~~
+
+
+<a id="compare-04a439d088d0dc50cad496620d9ed088"></a>
+
+### [`00731380`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731380.md) → [`00731730`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731730.md) FUN_00731730
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00769ddc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00769/00769ddc.md) · 呼出先 4件 [`0048cec4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0048c/0048cec4.md) [`00731b3c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731b3c.md) [`00731b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731b50.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 1件 [`0076a1b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0076a/0076a1b8.md) · 呼出先 4件 [`0048d1e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0048d/0048d1e4.md) [`00731eec`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731eec.md) [`00731f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731f00.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0073139c ["INT_ADD", "register:40f0:8", ["const:73139c:8", "const:4:8"]]
+- 0073139c ["CALL", null, ["callee:0048d1e4:8"]]
++ 0073174c ["INT_ADD", "register:40f0:8", ["const:73174c:8", "const:4:8"]]
++ 0073174c ["CALL", null, ["callee:0048d1e4:8"]]
+- 007313e4 ["INT_ADD", "register:40f0:8", ["const:7313e4:8", "const:4:8"]]
+- 007313e4 ["CALL", null, ["callee:008524fc:8"]]
++ 00731794 ["INT_ADD", "register:40f0:8", ["const:731794:8", "const:4:8"]]
++ 00731794 ["CALL", null, ["callee:008524fc:8"]]
+- 00731458 ["INT_ADD", "register:40f0:8", ["const:731458:8", "const:4:8"]]
+- 00731458 ["CALL", null, ["callee:00731f00:8"]]
++ 00731808 ["INT_ADD", "register:40f0:8", ["const:731808:8", "const:4:8"]]
++ 00731808 ["CALL", null, ["callee:00731f00:8"]]
+~~~
+
+
+<a id="compare-cd46f442be1d04f46f7eda72127238ed"></a>
+
+### [`00731464`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731464.md) → [`00731814`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731814.md) FUN_00731814
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00b3e1d4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3e/00b3e1d4.md) · 呼出先 3件 [`0049f430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0049f/0049f430.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00abd308`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00abd/00abd308.md)
+- 新版 呼出元 1件 [`00b3f1c8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3f/00b3f1c8.md) · 呼出先 3件 [`0049f750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0049f/0049f750.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00abe2fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00abe/00abe2fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007314a8 ["INT_ADD", "register:40f0:8", ["const:7314a8:8", "const:4:8"]]
+- 007314a8 ["CALL", null, ["callee:008524fc:8"]]
++ 00731858 ["INT_ADD", "register:40f0:8", ["const:731858:8", "const:4:8"]]
++ 00731858 ["CALL", null, ["callee:008524fc:8"]]
+- 007314c4 ["INT_ADD", "register:40f0:8", ["const:7314c4:8", "const:4:8"]]
+- 007314c4 ["CALL", null, ["callee:00abe2fc:8"]]
++ 00731874 ["INT_ADD", "register:40f0:8", ["const:731874:8", "const:4:8"]]
++ 00731874 ["CALL", null, ["callee:00abe2fc:8"]]
+- 00731514 ["INT_ADD", "register:40f0:8", ["const:731514:8", "const:4:8"]]
+- 00731514 ["CALL", null, ["callee:008524fc:8"]]
++ 007318c4 ["INT_ADD", "register:40f0:8", ["const:7318c4:8", "const:4:8"]]
++ 007318c4 ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-f18dae574958b54768e3650f11cd18a0"></a>
+
+### [`00731580`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731580.md) → [`00731930`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731930.md) FUN_00731930
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00b3d6b4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b3d/00b3d6b4.md) · 呼出先 5件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`0049f430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0049f/0049f430.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00abd308`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00abd/00abd308.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 1件 [`00b3e6a8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b3e/00b3e6a8.md) · 呼出先 5件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`0049f750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0049f/0049f750.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00abe2fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00abe/00abe2fc.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007315bc ["INT_ADD", "register:40f0:8", ["const:7315bc:8", "const:4:8"]]
+- 007315bc ["CALL", null, ["callee:008524fc:8"]]
++ 0073196c ["INT_ADD", "register:40f0:8", ["const:73196c:8", "const:4:8"]]
++ 0073196c ["CALL", null, ["callee:008524fc:8"]]
+- 007315d8 ["INT_ADD", "register:40f0:8", ["const:7315d8:8", "const:4:8"]]
+- 007315d8 ["CALL", null, ["callee:00abe2fc:8"]]
++ 00731988 ["INT_ADD", "register:40f0:8", ["const:731988:8", "const:4:8"]]
++ 00731988 ["CALL", null, ["callee:00abe2fc:8"]]
+- 00731604 ["INT_ADD", "register:40f0:8", ["const:731604:8", "const:4:8"]]
+- 00731604 ["CALL", null, ["callee:008524fc:8"]]
++ 007319b4 ["INT_ADD", "register:40f0:8", ["const:7319b4:8", "const:4:8"]]
++ 007319b4 ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-fb73288d97d5c632cdbd451874e749d8"></a>
+
+### [`007316c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/007316c8.md) → [`00731a78`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731a78.md) FUN_00731a78
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`00769ddc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00769/00769ddc.md) [`007738ec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00773/007738ec.md) · 呼出先 3件 [`00800244`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00800/00800244.md) [`008003d0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00800/008003d0.md) [`00800684`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00800/00800684.md)
+- 新版 呼出元 2件 [`0076a1b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0076a/0076a1b8.md) [`00773cc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00773/00773cc8.md) · 呼出先 3件 [`008011a8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/008011a8.md) [`00801334`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801334.md) [`008015e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/008015e8.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007316e4 ["INT_ADD", "register:40f0:8", ["const:7316e4:8", "const:4:8"]]
+- 007316e4 ["CALL", null, ["callee:00801334:8"]]
++ 00731a94 ["INT_ADD", "register:40f0:8", ["const:731a94:8", "const:4:8"]]
++ 00731a94 ["CALL", null, ["callee:00801334:8"]]
+- 007316f0 ["INT_ADD", "register:40f0:8", ["const:7316f0:8", "const:4:8"]]
+- 007316f0 ["CALL", null, ["callee:008015e8:8"]]
++ 00731aa0 ["INT_ADD", "register:40f0:8", ["const:731aa0:8", "const:4:8"]]
++ 00731aa0 ["CALL", null, ["callee:008015e8:8"]]
+- 00731704 ["INT_ADD", "register:40f0:8", ["const:731704:8", "const:4:8"]]
+- 00731704 ["CALL", null, ["callee:008011a8:8"]]
++ 00731ab4 ["INT_ADD", "register:40f0:8", ["const:731ab4:8", "const:4:8"]]
++ 00731ab4 ["CALL", null, ["callee:008011a8:8"]]
+~~~
+
+
+<a id="compare-5a812d2152d5f2b31c82cb49d8ffa03e"></a>
+
+### [`0073178c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/0073178c.md) → [`00731b3c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731b3c.md) FUN_00731b3c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00606b24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00606/00606b24.md) [`007738ec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00773/007738ec.md) [`007ccf44`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007cc/007ccf44.md) · 呼出先 2件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 3件 [`00606ed4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00606/00606ed4.md) [`00773cc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00773/00773cc8.md) [`007cdea8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007cd/007cdea8.md) · 呼出先 2件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007317f0 ["INT_ADD", "register:40f0:8", ["const:7317f0:8", "const:4:8"]]
+- 007317f0 ["CALL", null, ["callee:00c58f30:8"]]
++ 00731ba0 ["INT_ADD", "register:40f0:8", ["const:731ba0:8", "const:4:8"]]
++ 00731ba0 ["CALL", null, ["callee:00c58f30:8"]]
+- 00731830 ["INT_ADD", "register:40f0:8", ["const:731830:8", "const:4:8"]]
+- 00731830 ["CALL", null, ["callee:0043bf04:8"]]
++ 00731be0 ["INT_ADD", "register:40f0:8", ["const:731be0:8", "const:4:8"]]
++ 00731be0 ["CALL", null, ["callee:0043bf04:8"]]
+~~~
+
+
+<a id="compare-1bbd84b63aa1d0ed5dd3a444cbc083e2"></a>
+
+### [`00731864`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731864.md) → [`00731c14`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731c14.md) FUN_00731c14
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0075ba1c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075b/0075ba1c.md) · 呼出先 8件 [`0046d7f0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0046d/0046d7f0.md) [`0048cec4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0048c/0048cec4.md) [`0049f430`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0049f/0049f430.md) [`00730c14`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00730/00730c14.md) [`00731b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731b50.md)
+- 新版 呼出元 1件 [`0075bdcc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075b/0075bdcc.md) · 呼出先 8件 [`0046db10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0046d/0046db10.md) [`0048d1e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0048d/0048d1e4.md) [`0049f750`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0049f/0049f750.md) [`00730fc4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00730/00730fc4.md) [`00731f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731f00.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007318d8 ["INT_ADD", "register:40f0:8", ["const:7318d8:8", "const:4:8"]]
+- 007318d8 ["CALL", null, ["callee:0046db10:8"]]
++ 00731c88 ["INT_ADD", "register:40f0:8", ["const:731c88:8", "const:4:8"]]
++ 00731c88 ["CALL", null, ["callee:0046db10:8"]]
+- 00731960 ["INT_ADD", "register:40f0:8", ["const:731960:8", "const:4:8"]]
+- 00731960 ["CALL", null, ["callee:0048d1e4:8"]]
++ 00731d10 ["INT_ADD", "register:40f0:8", ["const:731d10:8", "const:4:8"]]
++ 00731d10 ["CALL", null, ["callee:0048d1e4:8"]]
+- 0073196c ["INT_ADD", "register:40f0:8", ["const:73196c:8", "const:4:8"]]
+- 0073196c ["CALL", null, ["callee:008015e8:8"]]
++ 00731d1c ["INT_ADD", "register:40f0:8", ["const:731d1c:8", "const:4:8"]]
++ 00731d1c ["CALL", null, ["callee:008015e8:8"]]
+~~~
+
+
+<a id="compare-48c7fa107f57668782168f692052e9fd"></a>
+
+### [`00731a00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731a00.md) → [`00731db0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731db0.md) FUN_00731db0
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`0072ca68`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072ca68.md) [`00731a00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731a00.md) [`00848d9c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00848/00848d9c.md) · 呼出先 3件 [`00731a00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731a00.md) [`00731a50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731a50.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 3件 [`0072ce18`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072ce18.md) [`00731db0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731db0.md) [`00849d48`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00849/00849d48.md) · 呼出先 3件 [`00731db0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731db0.md) [`00731e00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731e00.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00731a20 ["INT_ADD", "register:40f0:8", ["const:731a20:8", "const:4:8"]]
+- 00731a20 ["CALL", null, ["local:b0:8"]]
++ 00731dd0 ["INT_ADD", "register:40f0:8", ["const:731dd0:8", "const:4:8"]]
++ 00731dd0 ["CALL", null, ["local:b0:8"]]
+- 00731a2c ["INT_ADD", "register:40f0:8", ["const:731a2c:8", "const:4:8"]]
+- 00731a2c ["CALL", null, ["local:b0:8"]]
++ 00731ddc ["INT_ADD", "register:40f0:8", ["const:731ddc:8", "const:4:8"]]
++ 00731ddc ["CALL", null, ["local:b0:8"]]
+- 00731a38 ["INT_ADD", "register:40f0:8", ["const:731a38:8", "const:4:8"]]
+- 00731a38 ["CALL", null, ["callee:00731e00:8"]]
++ 00731de8 ["INT_ADD", "register:40f0:8", ["const:731de8:8", "const:4:8"]]
++ 00731de8 ["CALL", null, ["callee:00731e00:8"]]
+~~~
+
+
+<a id="compare-0b5bcbe6326a5ba59781de6d9d7fe7ee"></a>
+
+### [`00731a50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731a50.md) → [`00731e00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731e00.md) FUN_00731e00
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`00731a00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731a00.md) [`00731a50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731a50.md) · 呼出先 2件 [`00731a50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731a50.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 2件 [`00731db0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731db0.md) [`00731e00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731e00.md) · 呼出先 2件 [`00731e00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731e00.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00731a6c ["INT_ADD", "register:40f0:8", ["const:731a6c:8", "const:4:8"]]
+- 00731a6c ["CALL", null, ["local:b0:8"]]
++ 00731e1c ["INT_ADD", "register:40f0:8", ["const:731e1c:8", "const:4:8"]]
++ 00731e1c ["CALL", null, ["local:b0:8"]]
+- 00731a78 ["INT_ADD", "register:40f0:8", ["const:731a78:8", "const:4:8"]]
+- 00731a78 ["CALL", null, ["local:b0:8"]]
++ 00731e28 ["INT_ADD", "register:40f0:8", ["const:731e28:8", "const:4:8"]]
++ 00731e28 ["CALL", null, ["local:b0:8"]]
+- 00731a94 ["INT_ADD", "register:40f0:8", ["const:731a94:8", "const:4:8"]]
+- 00731a94 ["CALL", null, ["callee:00c58f50:8"]]
++ 00731e44 ["INT_ADD", "register:40f0:8", ["const:731e44:8", "const:4:8"]]
++ 00731e44 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-cd3a85befda0d100b9a399200aec6985"></a>
+
+### [`00731ad8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731ad8.md) → [`00731e88`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731e88.md) FUN_00731e88
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`0072ca68`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0072c/0072ca68.md) [`00731ad8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731ad8.md) [`00848d9c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00848/00848d9c.md) · 呼出先 2件 [`00731ad8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00731/00731ad8.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md)
+- 新版 呼出元 3件 [`0072ce18`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0072c/0072ce18.md) [`00731e88`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731e88.md) [`00849d48`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00849/00849d48.md) · 呼出先 2件 [`00731e88`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00731/00731e88.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00731af4 ["INT_ADD", "register:40f0:8", ["const:731af4:8", "const:4:8"]]
+- 00731af4 ["CALL", null, ["local:b0:8"]]
++ 00731ea4 ["INT_ADD", "register:40f0:8", ["const:731ea4:8", "const:4:8"]]
++ 00731ea4 ["CALL", null, ["local:b0:8"]]
+- 00731b00 ["INT_ADD", "register:40f0:8", ["const:731b00:8", "const:4:8"]]
+- 00731b00 ["CALL", null, ["local:b0:8"]]
++ 00731eb0 ["INT_ADD", "register:40f0:8", ["const:731eb0:8", "const:4:8"]]
++ 00731eb0 ["CALL", null, ["local:b0:8"]]
+- 00731b10 ["INT_ADD", "register:40f0:8", ["const:731b10:8", "const:4:8"]]
+- 00731b10 ["CALL", null, ["callee:00c58f50:8"]]
++ 00731ec0 ["INT_ADD", "register:40f0:8", ["const:731ec0:8", "const:4:8"]]
++ 00731ec0 ["CALL", null, ["callee:00c58f50:8"]]
+~~~
+
+
+<a id="compare-fcb1d5cd8a45ba6586e3f5c7c22bf6cd"></a>
+
+### [`00732084`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732084.md) → [`00732434`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00732/00732434.md) FUN_00732434
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 0件  · 呼出先 4件 [`00467ba0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00467/00467ba0.md) [`00468fc8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00468/00468fc8.md) [`00acbf10`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00acb/00acbf10.md) [`00acbf4c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00acb/00acbf4c.md)
+- 新版 呼出元 0件  · 呼出先 4件 [`00467ec0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00467/00467ec0.md) [`004692e8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00469/004692e8.md) [`00accf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00acc/00accf04.md) [`00accf40`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00acc/00accf40.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007320b0 ["INT_ADD", "register:40f0:8", ["const:7320b0:8", "const:4:8"]]
+- 007320b0 ["CALL", null, ["callee:00467ec0:8"]]
++ 00732460 ["INT_ADD", "register:40f0:8", ["const:732460:8", "const:4:8"]]
++ 00732460 ["CALL", null, ["callee:00467ec0:8"]]
+- 007320bc ["INT_ADD", "register:40f0:8", ["const:7320bc:8", "const:4:8"]]
+- 007320bc ["CALL", null, ["callee:00accf04:8"]]
++ 0073246c ["INT_ADD", "register:40f0:8", ["const:73246c:8", "const:4:8"]]
++ 0073246c ["CALL", null, ["callee:00accf04:8"]]
+- 007320c8 ["INT_ADD", "register:40f0:8", ["const:7320c8:8", "const:4:8"]]
+- 007320c8 ["CALL", null, ["callee:00accf40:8"]]
++ 00732478 ["INT_ADD", "register:40f0:8", ["const:732478:8", "const:4:8"]]
++ 00732478 ["CALL", null, ["callee:00accf40:8"]]
+~~~
+
+
+<a id="compare-7d847fd20819b828045d356e2e281636"></a>
+
+### [`0073288c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/0073288c.md) → [`00732c3c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00732/00732c3c.md) FUN_00732c3c
+
+根拠 `similar_code_order_and_calls` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`007bda9c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007bd/007bda9c.md) [`007efd00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007ef/007efd00.md) [`0089b2e4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089b/0089b2e4.md) · 呼出先 2件 [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00a87220`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a87/00a87220.md)
+- 新版 呼出元 3件 [`007bea00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007be/007bea00.md) [`007f0c64`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007f0/007f0c64.md) [`0089c290`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089c/0089c290.md) · 呼出先 2件 [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00a88214`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a88/00a88214.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00732954 ["INT_ADD", "register:40f0:8", ["const:732954:8", "const:4:8"]]
+- 00732954 ["CALL", null, ["callee:008524fc:8"]]
++ 00732d04 ["INT_ADD", "register:40f0:8", ["const:732d04:8", "const:4:8"]]
++ 00732d04 ["CALL", null, ["callee:008524fc:8"]]
+- 0073295c ["INT_ADD", "register:40f0:8", ["const:73295c:8", "const:4:8"]]
+- 0073295c ["CALL", null, ["callee:00a88214:8"]]
++ 00732d0c ["INT_ADD", "register:40f0:8", ["const:732d0c:8", "const:4:8"]]
++ 00732d0c ["CALL", null, ["callee:00a88214:8"]]
+~~~
+
+
+<a id="compare-82054451f866d079abd9c9855db564de"></a>
+
+### [`0073299c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/0073299c.md) → [`00732d4c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00732/00732d4c.md) FUN_00732d4c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00a26210`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a26/00a26210.md) · 呼出先 3件 [`00480158`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480158.md) [`00480338`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480338.md) [`00480784`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480784.md)
+- 新版 呼出元 1件 [`00a271bc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a27/00a271bc.md) · 呼出先 3件 [`00480478`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00480/00480478.md) [`00480658`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00480/00480658.md) [`00480aa4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00480/00480aa4.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007329b4 ["INT_ADD", "register:40f0:8", ["const:7329b4:8", "const:4:8"]]
+- 007329b4 ["CALL", null, ["callee:00480658:8"]]
++ 00732d64 ["INT_ADD", "register:40f0:8", ["const:732d64:8", "const:4:8"]]
++ 00732d64 ["CALL", null, ["callee:00480658:8"]]
+- 007329c4 ["INT_ADD", "register:40f0:8", ["const:7329c4:8", "const:4:8"]]
+- 007329c4 ["CALL", null, ["callee:00480658:8"]]
++ 00732d74 ["INT_ADD", "register:40f0:8", ["const:732d74:8", "const:4:8"]]
++ 00732d74 ["CALL", null, ["callee:00480658:8"]]
+- 007329d4 ["INT_ADD", "register:40f0:8", ["const:7329d4:8", "const:4:8"]]
+- 007329d4 ["CALL", null, ["callee:00480478:8"]]
++ 00732d84 ["INT_ADD", "register:40f0:8", ["const:732d84:8", "const:4:8"]]
++ 00732d84 ["CALL", null, ["callee:00480478:8"]]
+~~~
+
+
+<a id="compare-73ea30a79bc0088dd356896f9bb4642f"></a>
+
+### [`00732b54`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732b54.md) → [`00732f04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00732/00732f04.md) FUN_00732f04
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00a2b33c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a2b/00a2b33c.md) · 呼出先 3件 [`00480d30`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480d30.md) [`00480d88`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00480/00480d88.md) [`004810d8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00481/004810d8.md)
+- 新版 呼出元 1件 [`00a2c310`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a2c/00a2c310.md) · 呼出先 3件 [`00481050`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00481/00481050.md) [`004810a8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00481/004810a8.md) [`004813f8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00481/004813f8.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00732b74 ["INT_ADD", "register:40f0:8", ["const:732b74:8", "const:4:8"]]
+- 00732b74 ["CALL", null, ["callee:004810a8:8"]]
++ 00732f24 ["INT_ADD", "register:40f0:8", ["const:732f24:8", "const:4:8"]]
++ 00732f24 ["CALL", null, ["callee:004810a8:8"]]
+- 00732b80 ["INT_ADD", "register:40f0:8", ["const:732b80:8", "const:4:8"]]
+- 00732b80 ["CALL", null, ["callee:004810a8:8"]]
++ 00732f30 ["INT_ADD", "register:40f0:8", ["const:732f30:8", "const:4:8"]]
++ 00732f30 ["CALL", null, ["callee:004810a8:8"]]
+- 00732b8c ["INT_ADD", "register:40f0:8", ["const:732b8c:8", "const:4:8"]]
+- 00732b8c ["CALL", null, ["callee:00481050:8"]]
++ 00732f3c ["INT_ADD", "register:40f0:8", ["const:732f3c:8", "const:4:8"]]
++ 00732f3c ["CALL", null, ["callee:00481050:8"]]
+~~~
+
+
+<a id="compare-e421ecba14ae1688b10c2d39b4564456"></a>
+
+### [`0073318c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/0073318c.md) → [`0073353c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/0073353c.md) FUN_0073353c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 4件 [`00732f24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732f24.md) [`00735be4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735be4.md) [`0088c8c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0088c/0088c8c8.md) [`0089e8d4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089e/0089e8d4.md) · 呼出先 8件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`00440f9c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f9c.md) [`007340c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/007340c8.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 4件 [`007332d4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/007332d4.md) [`00735f94`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00735/00735f94.md) [`0088d874`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0088d/0088d874.md) [`0089f880`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089f/0089f880.md) · 呼出先 8件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`004412bc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/004412bc.md) [`00734478`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/00734478.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007331cc ["INT_ADD", "register:40f0:8", ["const:7331cc:8", "const:4:8"]]
+- 007331cc ["CALL", null, ["callee:008524fc:8"]]
++ 0073357c ["INT_ADD", "register:40f0:8", ["const:73357c:8", "const:4:8"]]
++ 0073357c ["CALL", null, ["callee:008524fc:8"]]
+- 00733218 ["INT_ADD", "register:40f0:8", ["const:733218:8", "const:4:8"]]
+- 00733218 ["CALL", null, ["callee:00734478:8"]]
++ 007335c8 ["INT_ADD", "register:40f0:8", ["const:7335c8:8", "const:4:8"]]
++ 007335c8 ["CALL", null, ["callee:00734478:8"]]
+- 007332a4 ["INT_ADD", "register:40f0:8", ["const:7332a4:8", "const:4:8"]]
+- 007332a4 ["CALL", null, ["callee:00c58f30:8"]]
++ 00733654 ["INT_ADD", "register:40f0:8", ["const:733654:8", "const:4:8"]]
++ 00733654 ["CALL", null, ["callee:00c58f30:8"]]
+~~~
+
+
+<a id="compare-bd8081de93008874672f61573c99ea19"></a>
+
+### [`00733734`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733734.md) → [`00733ae4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733ae4.md) FUN_00733ae4
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 6件 [`007647c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00764/007647c8.md) [`007bda9c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007bd/007bda9c.md) [`007ccf44`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/007cc/007ccf44.md) [`00856e84`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00856/00856e84.md) [`0089b2e4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089b/0089b2e4.md) · 呼出先 2件 [`00733760`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733760.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 6件 [`00764ba4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00764/00764ba4.md) [`007bea00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007be/007bea00.md) [`007cdea8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/007cd/007cdea8.md) [`00857e30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00857/00857e30.md) [`0089c290`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089c/0089c290.md) · 呼出先 2件 [`00733b10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733b10.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00733744 ["INT_ADD", "register:40f0:8", ["const:733744:8", "const:4:8"]]
+- 00733744 ["CALL", null, ["callee:008524fc:8"]]
++ 00733af4 ["INT_ADD", "register:40f0:8", ["const:733af4:8", "const:4:8"]]
++ 00733af4 ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-d1d20ed8ed1e8388fb969201e3ca1810"></a>
+
+### [`00733760`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733760.md) → [`00733b10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733b10.md) FUN_00733b10
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 17件 [`00732d50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732d50.md) [`00733734`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733734.md) [`00734420`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/00734420.md) [`007359bc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/007359bc.md) [`00735d34`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735d34.md) · 呼出先 2件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 17件 [`00733100`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733100.md) [`00733ae4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733ae4.md) [`007347d0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/007347d0.md) [`00735d6c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00735/00735d6c.md) [`007360e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/007360e4.md) · 呼出先 2件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 0073382c ["INT_ADD", "register:40f0:8", ["const:73382c:8", "const:4:8"]]
+- 0073382c ["CALL", null, ["callee:00c58f30:8"]]
++ 00733bdc ["INT_ADD", "register:40f0:8", ["const:733bdc:8", "const:4:8"]]
++ 00733bdc ["CALL", null, ["callee:00c58f30:8"]]
+- 00733864 ["INT_ADD", "register:40f0:8", ["const:733864:8", "const:4:8"]]
+- 00733864 ["CALL", null, ["callee:0043bf04:8"]]
++ 00733c14 ["INT_ADD", "register:40f0:8", ["const:733c14:8", "const:4:8"]]
++ 00733c14 ["CALL", null, ["callee:0043bf04:8"]]
+~~~
+
+
+<a id="compare-ef5b2d7af04abf465c0cf2f1a74553f6"></a>
+
+### [`00733ebc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733ebc.md) → [`0073426c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/0073426c.md) FUN_0073426c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`00733b50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733b50.md) [`0088c8c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0088c/0088c8c8.md) · 呼出先 4件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`00737bbc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00737/00737bbc.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 2件 [`00733f00`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733f00.md) [`0088d874`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0088d/0088d874.md) · 呼出先 4件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`00737f6c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00737/00737f6c.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00733ed0 ["INT_ADD", "register:40f0:8", ["const:733ed0:8", "const:4:8"]]
+- 00733ed0 ["CALL", null, ["callee:00737f6c:8"]]
++ 00734280 ["INT_ADD", "register:40f0:8", ["const:734280:8", "const:4:8"]]
++ 00734280 ["CALL", null, ["callee:00737f6c:8"]]
+- 00733ee0 ["INT_ADD", "register:40f0:8", ["const:733ee0:8", "const:4:8"]]
+- 00733ee0 ["CALL", null, ["callee:008524fc:8"]]
++ 00734290 ["INT_ADD", "register:40f0:8", ["const:734290:8", "const:4:8"]]
++ 00734290 ["CALL", null, ["callee:008524fc:8"]]
+- 00733f38 ["INT_ADD", "register:40f0:8", ["const:733f38:8", "const:4:8"]]
+- 00733f38 ["CALL", null, ["callee:00c58f30:8"]]
++ 007342e8 ["INT_ADD", "register:40f0:8", ["const:7342e8:8", "const:4:8"]]
++ 007342e8 ["CALL", null, ["callee:00c58f30:8"]]
+~~~
+
+
+<a id="compare-a07a714c43982a2a45e8f9060b7f5e04"></a>
+
+### [`007341d4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/007341d4.md) → [`00734584`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/00734584.md) FUN_00734584
+
+根拠 `code_order_and_references` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`007340c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/007340c8.md) · 呼出先 4件 [`0043bb60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bb60.md) [`0073a3ac`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0073a/0073a3ac.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c57fb0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57fb0.md)
+- 新版 呼出元 1件 [`00734478`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/00734478.md) · 呼出先 4件 [`0043be80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043be80.md) [`0073a75c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073a/0073a75c.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c58f80`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f80.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00734228 ["INT_ADD", "register:40f0:8", ["const:734228:8", "const:4:8"]]
+- 00734228 ["CALL", null, ["callee:0043be80:8"]]
++ 007345d8 ["INT_ADD", "register:40f0:8", ["const:7345d8:8", "const:4:8"]]
++ 007345d8 ["CALL", null, ["callee:0043be80:8"]]
+- 00734238 ["INT_ADD", "register:40f0:8", ["const:734238:8", "const:4:8"]]
+- 00734238 ["CALL", null, ["callee:0043be80:8"]]
++ 007345e8 ["INT_ADD", "register:40f0:8", ["const:7345e8:8", "const:4:8"]]
++ 007345e8 ["CALL", null, ["callee:0043be80:8"]]
+- 00734268 ["INT_ADD", "register:40f0:8", ["const:734268:8", "const:4:8"]]
+- 00734268 ["CALL", null, ["callee:0073a75c:8"]]
++ 00734618 ["INT_ADD", "register:40f0:8", ["const:734618:8", "const:4:8"]]
++ 00734618 ["CALL", null, ["callee:0073a75c:8"]]
+~~~
+
+
+<a id="compare-2d02cf847b12202f89b5bb10899bee2f"></a>
+
+### [`007342f8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/007342f8.md) → [`007346a8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/007346a8.md) FUN_007346a8
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`0084e5f4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0084e/0084e5f4.md) · 呼出先 6件 [`005c17dc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005c1/005c17dc.md) [`005c1c30`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/005c1/005c1c30.md) [`00676aa0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00676/00676aa0.md) [`00734420`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/00734420.md) [`0073aea0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0073a/0073aea0.md)
+- 新版 呼出元 1件 [`0084f5a0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0084f/0084f5a0.md) · 呼出先 6件 [`005c1b8c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005c1/005c1b8c.md) [`005c1fe0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/005c1/005c1fe0.md) [`00676e50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00676/00676e50.md) [`007347d0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/007347d0.md) [`0073b250`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073b/0073b250.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00734318 ["INT_ADD", "register:40f0:8", ["const:734318:8", "const:4:8"]]
+- 00734318 ["CALL", null, ["callee:0073b250:8"]]
++ 007346c8 ["INT_ADD", "register:40f0:8", ["const:7346c8:8", "const:4:8"]]
++ 007346c8 ["CALL", null, ["callee:0073b250:8"]]
+- 00734334 ["INT_ADD", "register:40f0:8", ["const:734334:8", "const:4:8"]]
+- 00734334 ["CALL", null, ["callee:00676e50:8"]]
++ 007346e4 ["INT_ADD", "register:40f0:8", ["const:7346e4:8", "const:4:8"]]
++ 007346e4 ["CALL", null, ["callee:00676e50:8"]]
+- 00734348 ["INT_ADD", "register:40f0:8", ["const:734348:8", "const:4:8"]]
+- 00734348 ["CALL", null, ["callee:007347d0:8"]]
++ 007346f8 ["INT_ADD", "register:40f0:8", ["const:7346f8:8", "const:4:8"]]
++ 007346f8 ["CALL", null, ["callee:007347d0:8"]]
+~~~
+
+
+<a id="compare-bf51e7d49d9cd675cef5d14ca1a1050f"></a>
+
+### [`00735708`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735708.md) → [`00735ab8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00735/00735ab8.md) FUN_00735ab8
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00734420`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/00734420.md) [`0073675c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00736/0073675c.md) [`00736c74`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00736/00736c74.md) · 呼出先 5件 [`00a35bec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a35/00a35bec.md) [`00a370b8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a37/00a370b8.md) [`00a378d0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a37/00a378d0.md) [`00a38c10`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a38/00a38c10.md) [`00a38c2c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a38/00a38c2c.md)
+- 新版 呼出元 3件 [`007347d0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/007347d0.md) [`00736b0c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/00736b0c.md) [`00737024`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00737/00737024.md) · 呼出先 5件 [`00a36be0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a36/00a36be0.md) [`00a380ac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a38/00a380ac.md) [`00a388c4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a38/00a388c4.md) [`00a39c04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a39/00a39c04.md) [`00a39c20`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a39/00a39c20.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00735724 ["INT_ADD", "register:40f0:8", ["const:735724:8", "const:4:8"]]
+- 00735724 ["CALL", null, ["callee:00a36be0:8"]]
++ 00735ad4 ["INT_ADD", "register:40f0:8", ["const:735ad4:8", "const:4:8"]]
++ 00735ad4 ["CALL", null, ["callee:00a36be0:8"]]
+- 00735728 ["INT_ADD", "register:40f0:8", ["const:735728:8", "const:4:8"]]
+- 00735728 ["CALL", null, ["callee:00a39c04:8"]]
++ 00735ad8 ["INT_ADD", "register:40f0:8", ["const:735ad8:8", "const:4:8"]]
++ 00735ad8 ["CALL", null, ["callee:00a39c04:8"]]
+- 00735740 ["INT_ADD", "register:40f0:8", ["const:735740:8", "const:4:8"]]
+- 00735740 ["CALL", null, ["callee:00a36be0:8"]]
++ 00735af0 ["INT_ADD", "register:40f0:8", ["const:735af0:8", "const:4:8"]]
++ 00735af0 ["CALL", null, ["callee:00a36be0:8"]]
+~~~
+
+
+<a id="compare-cb94c965bec5c7235e8400abcbacce0d"></a>
+
+### [`0073579c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/0073579c.md) → [`00735b4c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00735/00735b4c.md) FUN_00735b4c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00734420`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/00734420.md) [`00735d34`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735d34.md) [`007394fc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00739/007394fc.md) · 呼出先 6件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`0073afa0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0073a/0073afa0.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md) [`00c57f80`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f80.md) [`00c58010`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c58/00c58010.md)
+- 新版 呼出元 3件 [`007347d0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/007347d0.md) [`007360e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/007360e4.md) [`007398ac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00739/007398ac.md) · 呼出先 6件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`0073b350`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073b/0073b350.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md) [`00c58f50`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f50.md) [`00c58fe0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58fe0.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00735840 ["INT_ADD", "register:40f0:8", ["const:735840:8", "const:4:8"]]
+- 00735840 ["CALL", null, ["callee:00c58f30:8"]]
++ 00735bf0 ["INT_ADD", "register:40f0:8", ["const:735bf0:8", "const:4:8"]]
++ 00735bf0 ["CALL", null, ["callee:00c58f30:8"]]
+- 007358b8 ["INT_ADD", "register:40f0:8", ["const:7358b8:8", "const:4:8"]]
+- 007358b8 ["CALL", null, ["callee:00c58fe0:8"]]
++ 00735c68 ["INT_ADD", "register:40f0:8", ["const:735c68:8", "const:4:8"]]
++ 00735c68 ["CALL", null, ["callee:00c58fe0:8"]]
+- 00735900 ["INT_ADD", "register:40f0:8", ["const:735900:8", "const:4:8"]]
+- 00735900 ["CALL", null, ["callee:00c58f30:8"]]
++ 00735cb0 ["INT_ADD", "register:40f0:8", ["const:735cb0:8", "const:4:8"]]
++ 00735cb0 ["CALL", null, ["callee:00c58f30:8"]]
+~~~
+
+
+<a id="compare-215911b001b767e6f45133d3735905a6"></a>
+
+### [`007359bc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/007359bc.md) → [`00735d6c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00735/00735d6c.md) FUN_00735d6c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`00734420`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/00734420.md) [`00735d34`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735d34.md) [`00736074`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00736/00736074.md) · 呼出先 6件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`00732f24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732f24.md) [`00733760`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733760.md) [`0073af8c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0073a/0073af8c.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 3件 [`007347d0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/007347d0.md) [`007360e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/007360e4.md) [`00736424`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/00736424.md) · 呼出先 6件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`007332d4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/007332d4.md) [`00733b10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733b10.md) [`0073b33c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073b/0073b33c.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00735a0c ["INT_ADD", "register:40f0:8", ["const:735a0c:8", "const:4:8"]]
+- 00735a0c ["CALL", null, ["callee:0043bf04:8"]]
++ 00735dbc ["INT_ADD", "register:40f0:8", ["const:735dbc:8", "const:4:8"]]
++ 00735dbc ["CALL", null, ["callee:0043bf04:8"]]
+- 00735a3c ["INT_ADD", "register:40f0:8", ["const:735a3c:8", "const:4:8"]]
+- 00735a3c ["CALL", null, ["callee:007332d4:8"]]
++ 00735dec ["INT_ADD", "register:40f0:8", ["const:735dec:8", "const:4:8"]]
++ 00735dec ["CALL", null, ["callee:007332d4:8"]]
+- 00735a58 ["INT_ADD", "register:40f0:8", ["const:735a58:8", "const:4:8"]]
+- 00735a58 ["CALL", null, ["callee:008524fc:8"]]
++ 00735e08 ["INT_ADD", "register:40f0:8", ["const:735e08:8", "const:4:8"]]
++ 00735e08 ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-bb992b87f8397b337896dfd3d955403d"></a>
+
+### [`00735be4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735be4.md) → [`00735f94`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00735/00735f94.md) FUN_00735f94
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 5件 [`00736074`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00736/00736074.md) [`0075d7b4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075d/0075d7b4.md) [`00922e1c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00922/00922e1c.md) [`00a8a488`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a8a/00a8a488.md) [`00b28ff0`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00b28/00b28ff0.md) · 呼出先 11件 [`0048cec4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0048c/0048cec4.md) [`0073318c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/0073318c.md) [`00735d34`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735d34.md) [`00a35bec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a35/00a35bec.md) [`00a370b8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a37/00a370b8.md)
+- 新版 呼出元 5件 [`00736424`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/00736424.md) [`0075db64`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075d/0075db64.md) [`00923dc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00923/00923dc8.md) [`00a8b47c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a8b/00a8b47c.md) [`00b29fe4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00b29/00b29fe4.md) · 呼出先 11件 [`0048d1e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0048d/0048d1e4.md) [`0073353c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/0073353c.md) [`007360e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/007360e4.md) [`00a36be0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a36/00a36be0.md) [`00a380ac`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a38/00a380ac.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00735c14 ["INT_ADD", "register:40f0:8", ["const:735c14:8", "const:4:8"]]
+- 00735c14 ["CALL", null, ["callee:0048d1e4:8"]]
++ 00735fc4 ["INT_ADD", "register:40f0:8", ["const:735fc4:8", "const:4:8"]]
++ 00735fc4 ["CALL", null, ["callee:0048d1e4:8"]]
+- 00735c1c ["INT_ADD", "register:40f0:8", ["const:735c1c:8", "const:4:8"]]
+- 00735c1c ["CALL", null, ["callee:00a36be0:8"]]
++ 00735fcc ["INT_ADD", "register:40f0:8", ["const:735fcc:8", "const:4:8"]]
++ 00735fcc ["CALL", null, ["callee:00a36be0:8"]]
+- 00735c20 ["INT_ADD", "register:40f0:8", ["const:735c20:8", "const:4:8"]]
+- 00735c20 ["CALL", null, ["callee:00a39c04:8"]]
++ 00735fd0 ["INT_ADD", "register:40f0:8", ["const:735fd0:8", "const:4:8"]]
++ 00735fd0 ["CALL", null, ["callee:00a39c04:8"]]
+~~~
+
+
+<a id="compare-a0212cfbc548471434f3dfe82cf6466b"></a>
+
+### [`00735d34`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735d34.md) → [`007360e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/007360e4.md) FUN_007360e4
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 1件 [`00735be4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/00735be4.md) · 呼出先 13件 [`00440f00`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00440/00440f00.md) [`0048cec4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0048c/0048cec4.md) [`00732d50`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732d50.md) [`00732f24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732f24.md) [`00733760`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733760.md)
+- 新版 呼出元 1件 [`00735f94`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00735/00735f94.md) · 呼出先 13件 [`00441220`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00441/00441220.md) [`0048d1e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0048d/0048d1e4.md) [`00733100`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733100.md) [`007332d4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/007332d4.md) [`00733b10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733b10.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00735d68 ["INT_ADD", "register:40f0:8", ["const:735d68:8", "const:4:8"]]
+- 00735d68 ["CALL", null, ["callee:00733100:8"]]
++ 00736118 ["INT_ADD", "register:40f0:8", ["const:736118:8", "const:4:8"]]
++ 00736118 ["CALL", null, ["callee:00733100:8"]]
+- 00735d78 ["INT_ADD", "register:40f0:8", ["const:735d78:8", "const:4:8"]]
+- 00735d78 ["CALL", null, ["callee:0048d1e4:8"]]
++ 00736128 ["INT_ADD", "register:40f0:8", ["const:736128:8", "const:4:8"]]
++ 00736128 ["CALL", null, ["callee:0048d1e4:8"]]
+- 00735dbc ["INT_ADD", "register:40f0:8", ["const:735dbc:8", "const:4:8"]]
+- 00735dbc ["CALL", null, ["callee:008524fc:8"]]
++ 0073616c ["INT_ADD", "register:40f0:8", ["const:73616c:8", "const:4:8"]]
++ 0073616c ["CALL", null, ["callee:008524fc:8"]]
+~~~
+
+
+<a id="compare-06c746b246484a8738e7afc45c99e793"></a>
+
+### [`00736074`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00736/00736074.md) → [`00736424`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/00736424.md) FUN_00736424
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`0088c8c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0088c/0088c8c8.md) [`0089b2e4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0089b/0089b2e4.md) [`008d9c58`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/008d9/008d9c58.md) · 呼出先 10件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`00732f24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732f24.md) [`00733760`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733760.md) [`00734420`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00734/00734420.md) [`007359bc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00735/007359bc.md)
+- 新版 呼出元 3件 [`0088d874`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0088d/0088d874.md) [`0089c290`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0089c/0089c290.md) [`008dac04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/008da/008dac04.md) · 呼出先 10件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`007332d4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/007332d4.md) [`00733b10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733b10.md) [`007347d0`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00734/007347d0.md) [`00735d6c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00735/00735d6c.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007360b0 ["INT_ADD", "register:40f0:8", ["const:7360b0:8", "const:4:8"]]
+- 007360b0 ["CALL", null, ["callee:007332d4:8"]]
++ 00736460 ["INT_ADD", "register:40f0:8", ["const:736460:8", "const:4:8"]]
++ 00736460 ["CALL", null, ["callee:007332d4:8"]]
+- 007360bc ["INT_ADD", "register:40f0:8", ["const:7360bc:8", "const:4:8"]]
+- 007360bc ["CALL", null, ["callee:007347d0:8"]]
++ 0073646c ["INT_ADD", "register:40f0:8", ["const:73646c:8", "const:4:8"]]
++ 0073646c ["CALL", null, ["callee:007347d0:8"]]
+- 007360c4 ["INT_ADD", "register:40f0:8", ["const:7360c4:8", "const:4:8"]]
+- 007360c4 ["CALL", null, ["callee:00735f94:8"]]
++ 00736474 ["INT_ADD", "register:40f0:8", ["const:736474:8", "const:4:8"]]
++ 00736474 ["CALL", null, ["callee:00735f94:8"]]
+~~~
+
+
+<a id="compare-e05a93acc411f1b8b7ba30b963a17bec"></a>
+
+### [`00736344`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00736/00736344.md) → [`007366f4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00736/007366f4.md) FUN_007366f4
+
+根拠 `similar_code_order_and_calls` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`0075ebd8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0075e/0075ebd8.md) [`00a95838`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00a95/00a95838.md) · 呼出先 4件 [`0043bbe4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0043b/0043bbe4.md) [`0048cec4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0048c/0048cec4.md) [`00727a28`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00727/00727a28.md) [`00c57f60`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00c57/00c57f60.md)
+- 新版 呼出元 2件 [`0075ef88`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0075e/0075ef88.md) [`00a9682c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a96/00a9682c.md) · 呼出先 4件 [`0043bf04`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0043b/0043bf04.md) [`0048d1e4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0048d/0048d1e4.md) [`00727dd8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00727/00727dd8.md) [`00c58f30`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00c58/00c58f30.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00736368 ["INT_ADD", "register:40f0:8", ["const:736368:8", "const:4:8"]]
+- 00736368 ["CALL", null, ["callee:00727dd8:8"]]
++ 00736718 ["INT_ADD", "register:40f0:8", ["const:736718:8", "const:4:8"]]
++ 00736718 ["CALL", null, ["callee:00727dd8:8"]]
+- 00736370 ["INT_ADD", "register:40f0:8", ["const:736370:8", "const:4:8"]]
+- 00736370 ["CALL", null, ["callee:0048d1e4:8"]]
++ 00736720 ["INT_ADD", "register:40f0:8", ["const:736720:8", "const:4:8"]]
++ 00736720 ["CALL", null, ["callee:0048d1e4:8"]]
+- 007364b4 ["INT_ADD", "register:40f0:8", ["const:7364b4:8", "const:4:8"]]
+- 007364b4 ["CALL", null, ["callee:00c58f30:8"]]
++ 00736864 ["INT_ADD", "register:40f0:8", ["const:736864:8", "const:4:8"]]
++ 00736864 ["CALL", null, ["callee:00c58f30:8"]]
+~~~
+
+
+<a id="compare-fbb4d500c4c8d92f0467aa0aa585a071"></a>
+
+### [`007373a4`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00737/007373a4.md) → [`00737754`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00737/00737754.md) FUN_00737754
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 3件 [`007647c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00764/007647c8.md) [`00769ddc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00769/00769ddc.md) [`007738ec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00773/007738ec.md) · 呼出先 4件 [`00732f24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732f24.md) [`00733760`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733760.md) [`0073af8c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0073a/0073af8c.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 3件 [`00764ba4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00764/00764ba4.md) [`0076a1b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0076a/0076a1b8.md) [`00773cc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00773/00773cc8.md) · 呼出先 4件 [`007332d4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/007332d4.md) [`00733b10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733b10.md) [`0073b33c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073b/0073b33c.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 00737404 ["INT_ADD", "register:40f0:8", ["const:737404:8", "const:4:8"]]
+- 00737404 ["CALL", null, ["callee:007332d4:8"]]
++ 007377b4 ["INT_ADD", "register:40f0:8", ["const:7377b4:8", "const:4:8"]]
++ 007377b4 ["CALL", null, ["callee:007332d4:8"]]
+- 0073741c ["INT_ADD", "register:40f0:8", ["const:73741c:8", "const:4:8"]]
+- 0073741c ["CALL", null, ["callee:008524fc:8"]]
++ 007377cc ["INT_ADD", "register:40f0:8", ["const:7377cc:8", "const:4:8"]]
++ 007377cc ["CALL", null, ["callee:008524fc:8"]]
+- 00737428 ["INT_ADD", "register:40f0:8", ["const:737428:8", "const:4:8"]]
+- 00737428 ["CALL", null, ["callee:00733b10:8"]]
++ 007377d8 ["INT_ADD", "register:40f0:8", ["const:7377d8:8", "const:4:8"]]
++ 007377d8 ["CALL", null, ["callee:00733b10:8"]]
+~~~
+
+
+<a id="compare-3149cb31bbaff9c9ca747977e04e923b"></a>
+
+### [`0073748c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00737/0073748c.md) → [`0073783c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00737/0073783c.md) FUN_0073783c
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`007647c8`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00764/007647c8.md) [`0077a470`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0077a/0077a470.md) · 呼出先 4件 [`00732f24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732f24.md) [`00733760`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733760.md) [`0073af8c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0073a/0073af8c.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 2件 [`00764ba4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00764/00764ba4.md) [`0077a84c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0077a/0077a84c.md) · 呼出先 4件 [`007332d4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/007332d4.md) [`00733b10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733b10.md) [`0073b33c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073b/0073b33c.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007374ec ["INT_ADD", "register:40f0:8", ["const:7374ec:8", "const:4:8"]]
+- 007374ec ["CALL", null, ["callee:007332d4:8"]]
++ 0073789c ["INT_ADD", "register:40f0:8", ["const:73789c:8", "const:4:8"]]
++ 0073789c ["CALL", null, ["callee:007332d4:8"]]
+- 00737504 ["INT_ADD", "register:40f0:8", ["const:737504:8", "const:4:8"]]
+- 00737504 ["CALL", null, ["callee:008524fc:8"]]
++ 007378b4 ["INT_ADD", "register:40f0:8", ["const:7378b4:8", "const:4:8"]]
++ 007378b4 ["CALL", null, ["callee:008524fc:8"]]
+- 00737510 ["INT_ADD", "register:40f0:8", ["const:737510:8", "const:4:8"]]
+- 00737510 ["CALL", null, ["callee:00733b10:8"]]
++ 007378c0 ["INT_ADD", "register:40f0:8", ["const:7378c0:8", "const:4:8"]]
++ 007378c0 ["CALL", null, ["callee:00733b10:8"]]
+~~~
+
+
+<a id="compare-4c18d867ad30d4e5760735b30dd89b4d"></a>
+
+### [`00737588`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00737/00737588.md) → [`00737938`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00737/00737938.md) FUN_00737938
+
+根拠 `unique_code_and_context` · `raw_instruction_pcode` · `observed` · 参照 `equal`
+
+- 旧版 呼出元 2件 [`00769ddc`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00769/00769ddc.md) [`007738ec`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00773/007738ec.md) · 呼出先 4件 [`00732f24`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00732/00732f24.md) [`00733760`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00733/00733760.md) [`0073af8c`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/0073a/0073af8c.md) [`00851550`](../../../../reference/16.0.2/arm64-v8a/baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6/functions/00851/00851550.md)
+- 新版 呼出元 2件 [`0076a1b8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0076a/0076a1b8.md) [`00773cc8`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00773/00773cc8.md) · 呼出先 4件 [`007332d4`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/007332d4.md) [`00733b10`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00733/00733b10.md) [`0073b33c`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/0073b/0073b33c.md) [`008524fc`](../../../../reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00852/008524fc.md)
+
+変更の種類 constant, operands_and_dependencies
+
+命令の説明率　旧版 100.00% / 新版 100.00%
+
+~~~diff
+- 007375e4 ["INT_ADD", "register:40f0:8", ["const:7375e4:8", "const:4:8"]]
+- 007375e4 ["CALL", null, ["callee:007332d4:8"]]
++ 00737994 ["INT_ADD", "register:40f0:8", ["const:737994:8", "const:4:8"]]
++ 00737994 ["CALL", null, ["callee:007332d4:8"]]
+- 007375fc ["INT_ADD", "register:40f0:8", ["const:7375fc:8", "const:4:8"]]
+- 007375fc ["CALL", null, ["callee:008524fc:8"]]
++ 007379ac ["INT_ADD", "register:40f0:8", ["const:7379ac:8", "const:4:8"]]
++ 007379ac ["CALL", null, ["callee:008524fc:8"]]
+- 00737608 ["INT_ADD", "register:40f0:8", ["const:737608:8", "const:4:8"]]
+- 00737608 ["CALL", null, ["callee:00733b10:8"]]
++ 007379b8 ["INT_ADD", "register:40f0:8", ["const:7379b8:8", "const:4:8"]]
++ 007379b8 ["CALL", null, ["callee:00733b10:8"]]
+~~~
+
+

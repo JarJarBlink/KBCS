@@ -18,11 +18,11 @@
   "format": 2,
   "source_archive_sha256": "10e0656c64fd5f767b866838d0e943f05f15d70a060f0242320f08dadf85b22e",
   "source_version_code": 1600010,
-  "comparison_state": "complete",
+  "comparison_state": "no_baseline",
   "tracking_format": 2,
-  "tracking_policy": "observed-effects-v1",
-  "tracking_run": "648ae6f970369597a09542a0",
-  "tracking_page": "research/comparisons/arm64-v8a/648ae6f970369597a09542a0/README.md",
+  "tracking_policy": "block-correspondence-v1",
+  "tracking_run": "c6e4dfc940403d119ed8b991",
+  "tracking_page": "research/comparisons/arm64-v8a/c6e4dfc940403d119ed8b991/README.md",
   "tracking_sources": [
     {
       "version": "16.0.1",

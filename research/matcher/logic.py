@@ -1,5 +1,4 @@
-﻿from collections import Counter
-from difflib import SequenceMatcher
+﻿from collections import Counter, defaultdict
 from itertools import groupby, islice
 
 from matcher import effects
@@ -17,20 +16,20 @@ def args_of(op):
     return (op[1], *op[2])
 
 
-def refs_signature(row, targets):
+def refs_signature(row, targets, positions=None):
     entry = int(row['address'], 16)
     body = [(int(a, 16), int(b, 16)) for a, b in row['ranges']]
     result, calls = Counter(), set()
     unknown = row.get('unresolved', 0)
     for site, target, kind, _, callee, name, datatype in row['refs']:
-        position = int(site, 16) - entry
+        position = positions.get(site, 'unmatched:' + site) if positions is not None else int(site, 16) - entry
         if 'CALL' in kind or 'JUMP' in kind:
             if 'CALL' in kind:
                 calls.add(site)
             if callee in targets:
                 key = ('mapped_function', targets[callee])
             elif 'JUMP' in kind and ADDRESS.fullmatch(target) and any(a <= int(target, 16) <= b for a, b in body):
-                key = ('local_branch', int(target, 16) - entry)
+                key = ('local_branch', positions.get(target, 'unmatched:' + target) if positions is not None else int(target, 16) - entry)
             else:
                 key = ('unresolved_target', target)
                 unknown += 1
@@ -41,14 +40,16 @@ def refs_signature(row, targets):
         result[(position, kind, key)] += 1
     for site, kind in row.get('call_positions', ()):
         if site not in calls:
-            result[(int(site, 16)-entry, kind, ('unresolved_target', None))] += 1
+            position = positions.get(site, 'unmatched:' + site) if positions is not None else int(site, 16)-entry
+            result[(position, kind, ('unresolved_target', None))] += 1
             unknown += 1
     return result, unknown
 
 
-def reference_comparison(old, new, old_targets, new_targets):
-    left, left_unknown = refs_signature(old, old_targets)
-    right, right_unknown = refs_signature(new, new_targets)
+def reference_comparison(old, new, old_targets, new_targets, *, positions=None):
+    left, left_unknown = refs_signature(old, old_targets, positions)
+    right, right_unknown = refs_signature(new, new_targets,
+        {site: site for site, *_ in new['instructions']} if positions is not None and 'instructions' in new else None)
     removed, added = left - right, right - left
     unknown = [left_unknown, right_unknown]
     state = 'changed' if removed or added else 'unresolved' if any(unknown) else 'equal'
@@ -67,10 +68,39 @@ def reference_comparison(old, new, old_targets, new_targets):
             if 'WRITE' in kind and key[0] == 'storage':
                 counts[(kind, key[1])] += count
         return counts
+    old_calls, new_calls = defaultdict(set), defaultdict(set)
+    for rows, grouped in ((left, old_calls), (right, new_calls)):
+        for (site, kind, target), count in rows.items():
+            if calls(kind, target):
+                grouped[site].add(target)
+    retargeted = sum(old_calls[site] != new_calls[site] for site in old_calls.keys() & new_calls.keys())
     return {'state': state, 'unknown': unknown, 'counts': [left.total(), right.total()],
             'removed': list(islice(removed.elements(), 16)), 'added': list(islice(added.elements(), 16)),
-            'changed_kinds': dict(kinds), 'mapped_call_target_changed': bool(kinds) and endpoints(left, calls) != endpoints(right, calls),
+            'changed_kinds': dict(kinds), 'mapped_call_target_changed': bool(retargeted),
+            'mapped_call_target_changes': retargeted, 'mapped_call_inventory_changed': endpoints(left, calls) != endpoints(right, calls),
             'write_reference_changed': bool(kinds) and writes(left) != writes(right)}
+
+
+def data_contents(old, new, positions):
+    groups = []
+    for row in (old, new):
+        items = defaultdict(list)
+        for item in row.get('reference_details', ()):
+            if item.get('resolution') == 'defined_data':
+                items[item['source']].append(item)
+        groups.append(items)
+    changes, checked, limited = [], 0, 0
+    for site, rows in groups[0].items():
+        others = groups[1].get(positions.get(site), ())
+        if len(rows) != 1 or len(others) != 1 or 'bytes' not in rows[0] or 'bytes' not in others[0]:
+            limited += len(rows)
+            continue
+        a, b = rows[0], others[0]
+        checked += 1
+        if any(a.get(key) != b.get(key) for key in ('bytes', 'size', 'offset', 'capture_bytes')):
+            changes.append({'old': a, 'new': b, 'scope': 'captured_static_bytes_at_corresponding_instruction'})
+        limited += int(a.get('capture_state') != 'complete_static_bytes' or b.get('capture_state') != 'complete_static_bytes')
+    return {'checked': checked, 'changed': changes, 'limited': limited, 'runtime_values': 'unchecked'}
 
 
 def explain_ops(before, after):
@@ -180,7 +210,7 @@ def relocation_shape(row, targets, *, raw=None):
 def grade(record, old, new, left, right, targets, abi):
     record['confidence'] = 'limited' if record['warnings'] else 'observed'
     impact = record.get('impact', {})
-    significant = impact
+    significant = {key: count for key, count in impact.items() if not key.startswith('unresolved_')}
     if impact:
         before = relocation_shape(old, targets[0], raw=left)
         after = relocation_shape(new, targets[1], raw=right)
@@ -189,7 +219,8 @@ def grade(record, old, new, left, right, targets, abi):
         elif before != [op for _, op in left] or after != [op for _, op in right]:
             first = [(site, op) for (site, _), op in zip(left, before)]
             second = [(site, op) for (site, _), op in zip(right, after)]
-            significant, _ = effects.changes(old, new, first, second, abi, include_evidence=False)
+            significant, _ = effects.changes(old, new, first, second, abi, include_evidence=False,
+                                             positions=record.get('_positions'))
         record['priority_impact'] = significant
         record['address_sensitive_impact'] = {kind: amount - significant.get(kind, 0) for kind, amount in impact.items()
                                               if amount > significant.get(kind, 0)}
@@ -201,7 +232,7 @@ def grade(record, old, new, left, right, targets, abi):
         record['confidence'] = 'limited' if record['warnings'] or any(
             item['confidence'] == 'limited' for item in record.get('effects', ()) if item['kind'] in significant
         ) else 'bounded' if significant else 'observed'
-    elif record['cfg_changed'] or record['reference_changed'] or (
+    elif record.get('data_contents', {}).get('changed') or record['cfg_changed'] or record['reference_changed'] or (
             record['status'] == 'logic_change_candidate' and tags & {'constant', 'comparison', 'operation_order', 'operation_sequence'}
             and not record.get('address_sensitive_impact')):
         record['importance'] = 'high'
@@ -223,12 +254,19 @@ def skipped(shapes, references):
             'unchecked': ['raw_pcode_operands', 'reaching_definitions', 'runtime_behavior']}
 
 
-def compare(old, new, old_targets, new_targets, *, references=None, abi=False):
+def instruction_bytes(row):
+    return {instruction[0]: display[0] for instruction, display in zip(row['instructions'], row.get('disassembly', ()))}
+
+
+def compare(old, new, old_targets, new_targets, *, abi=False, alignment=None, detail_limit=MAX_DETAIL):
+    from matcher import blocks
     old_cfg, new_cfg = cfg(old), cfg(new)
     graph = old_cfg != new_cfg
     left, right = operations(old, old_targets), operations(new, new_targets)
     a, b = [op for _, op in left], [op for _, op in right]
-    refs = references if references is not None else reference_comparison(old, new, old_targets, new_targets)
+    alignment = alignment or blocks.align(old, new, old_targets, new_targets)
+    positions = alignment['sites']
+    refs = reference_comparison(old, new, old_targets, new_targets, positions=positions)
     ref_changed = refs['state'] == 'changed'
     machine = old['bytes_sha256'] != new['bytes_sha256']
     warnings = []
@@ -236,12 +274,26 @@ def compare(old, new, old_targets, new_targets, *, references=None, abi=False):
         warnings.append('unresolved_reference_or_flow')
     if old['instruction_bytes'] != old['body_bytes'] or new['instruction_bytes'] != new['body_bytes']:
         warnings.append('incomplete_instruction_coverage')
+    missing = [sum(site not in seen for site, *_ in row['instructions'])
+               for row, seen in ((old, positions), (new, set(positions.values())))]
+    incomplete = any(missing) or bool(alignment['truncated']) or 'incomplete_instruction_coverage' in warnings
+    if incomplete:
+        warnings.append('instruction_positions_unresolved')
     result = {'scope': 'raw_instruction_pcode', 'operations': [len(a), len(b)], 'cfg_changed': graph,
               'machine_changed': machine, 'machine_equal': not machine, 'cfg_equal': not graph,
               'reference_changed': ref_changed, 'reference_state': refs['state'], 'references': refs,
               'equivalence': 'unproven', 'unchecked': ['cross_block_values', 'runtime_behavior'],
               'warnings': warnings,
               'changes': [], 'details': [], 'detail_truncated': False}
+    result['normalization_basis'] = ['recorded_reference_targets', 'pc_relative_address_generation', 'matched_instruction_sites']
+    result['instruction_correspondence'] = {k: alignment[k] for k in
+        ('coverage', 'instruction_counts', 'cfg_coverage', 'unexplained_critical', 'truncated', 'graph_basis')}
+    result['instruction_correspondence']['unmapped'] = missing
+    result['instruction_correspondence']['block_counts'] = [len(old['blocks']), len(new['blocks'])]
+    result['instruction_correspondence']['mapped_blocks'] = len(alignment.get('blocks', ()))
+    result['data_contents'] = data_contents(old, new, positions)
+    result['verified_branch_inversions'] = alignment['verified_branch_inversions']
+    result['_positions'] = positions
     if abi:
         result['unchecked'].extend(['actual_call_signature', 'stack_and_vector_arguments'])
     if graph:
@@ -253,9 +305,16 @@ def compare(old, new, old_targets, new_targets, *, references=None, abi=False):
     if flow_shape_changed:
         result['changes'].append('cfg_edge_inventory')
     if a == b:
-        result['status'] = 'structure_or_reference_change' if graph or ref_changed else (
-            'reference_unresolved' if warnings else 'machine_only_observed' if machine else 'no_difference_in_scope')
+        if machine:
+            before, after = instruction_bytes(old), instruction_bytes(new)
+            different = ({'old': [x, before[x]], 'new': [y, after[y]]} for x, y in positions.items()
+                         if x in before and y in after and before[x] != after[y])
+            result['machine_sample'] = list(islice(different, 3))
+        result['status'] = 'data_change_candidate' if result['data_contents']['changed'] else 'structure_or_reference_change' if graph or ref_changed else (
+            'alignment_unresolved' if incomplete else 'reference_unresolved' if warnings
+            else 'machine_only_observed' if machine else 'no_difference_in_scope')
         grade(result, old, new, left, right, (old_targets, new_targets), abi)
+        result.pop('_positions')
         return result
     tags = explain_ops(a, b) | set(result['changes'])
     if conditions(left) != conditions(right):
@@ -267,9 +326,9 @@ def compare(old, new, old_targets, new_targets, *, references=None, abi=False):
                    for ops in (a, b)]
     relocation = known_calls[0] == known_calls[1] and not graph and (
         relocation_shape(old, old_targets) == relocation_shape(new, new_targets))
-    impact, effects_found = effects.changes(old, new, left, right, abi)
+    impact, effects_found = effects.changes(old, new, left, right, abi, positions=positions)
     if relocation:
-        result['status'] = 'reference_sensitive'
+        result['status'] = 'alignment_unresolved' if incomplete else 'reference_sensitive'
     elif relaxed_registers(a) == relaxed_registers(b):
         local_renaming = (not impact and not graph and not ref_changed and not warnings and
                           old_dependencies == new_dependencies and
@@ -279,25 +338,40 @@ def compare(old, new, old_targets, new_targets, *, references=None, abi=False):
         result['status'] = 'logic_change_candidate'
     result['impact'] = impact
     result['effects'] = effects_found
+    if incomplete and not (any(not key.startswith('unresolved_') for key in impact)
+                           or refs['mapped_call_target_changed'] or result['data_contents']['changed']):
+        result['status'] = 'alignment_unresolved'
     tags.update(impact)
-    if max(len(a), len(b)) <= 3500:
-        changes = ((i, j, k, l) for op, i, j, k, l in SequenceMatcher(None, a, b, autojunk=False).get_opcodes()
-                   if op != 'equal')
-    else:
-        prefix = next((i for i, pair in enumerate(zip(a, b)) if pair[0] != pair[1]), min(len(a), len(b)))
-        changes = iter([(prefix, len(a), prefix, len(b))])
-        result['detail_truncated'] = True
-    for i, j, k, l in islice(changes, MAX_DETAIL + 1):
-        if len(result['details']) == MAX_DETAIL:
+    grouped = []
+    for sequence in (left, right):
+        by_site = defaultdict(list)
+        for site, op in sequence:
+            by_site[site].append((site, op))
+        grouped.append(by_site)
+    important = {item[side]['site'] for item in effects_found for side in ('old', 'new') if item.get(side)}
+    changes = [(site, positions.get(site)) for site in grouped[0]
+               if [op for _, op in grouped[0][site]] != [op for _, op in grouped[1].get(positions.get(site), ())]]
+    mapped = set(positions.values())
+    changes.extend((None, site) for site in grouped[1] if site not in mapped)
+    changes.sort(key=lambda item: (not bool(set(item) & important), item[0] or item[1]))
+    listings = (instruction_bytes(old), instruction_bytes(new)) if changes else ({}, {})
+    for old_site, new_site in changes:
+        if detail_limit is not None and len(result['details']) == detail_limit:
             result['detail_truncated'] = True
             break
-        local = explain_ops(a[i:j], b[k:l])
+        first, second = grouped[0].get(old_site, ()), grouped[1].get(new_site, ())
+        local = explain_ops([op for _, op in first], [op for _, op in second])
         tags.update(local)
-        result['details'].append({'old': left[i:min(i + 6, j)], 'new': right[k:min(k + 6, l)],
-                                  'counts': [j - i, l - k], 'types': sorted(local)})
-        result['detail_truncated'] |= max(j - i, l - k) > 6
+        limit = None if detail_limit is None else 6
+        result['details'].append({'old': list(first[:limit]), 'new': list(second[:limit]),
+                                  'counts': [len(first), len(second)], 'types': sorted(local),
+                                  'sites': [old_site, new_site],
+                                  'machine_bytes': [listings[0].get(old_site), listings[1].get(new_site)],
+                                  'correspondence': 'mapped_instruction' if old_site and new_site else 'unmatched_instruction'})
+        result['detail_truncated'] |= limit is not None and max(len(first), len(second)) > limit
     result['changes'] = sorted(tags)
     grade(result, old, new, left, right, (old_targets, new_targets), abi)
+    result.pop('_positions')
     return result
 
 

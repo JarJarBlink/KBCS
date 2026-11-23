@@ -1,13 +1,11 @@
 ﻿import re
-import shutil
 import tempfile
 from pathlib import Path
 
-from indexer.ci import public_only, publish_worktree, reference_worktree, restore
+from indexer.ci import public_only, restore
 from indexer.reference import export_cache, reference_path, replace_reference
-from indexer.store import LOCAL, digest, read_json, write_json
-from matcher.comparison_pages import COMPARISON_LINK, DIRECTIONS, carry_function_comparisons, carry_links, disconnect, overlay
-from matcher.tracking_pages import link
+from indexer.store import LOCAL, read_json, write_json
+from matcher.comparison_pages import DIRECTIONS, carry_function_comparisons, disconnect, preserve_published_links
 
 
 def checkpoint_key(tag):
@@ -36,61 +34,42 @@ def same_reference(manifest, expected):
     return all(manifest.get(key) == value for key, value in expected.items())
 
 
-def link_comparison(source):
-    readme = source / 'README.md'
-    link_line = COMPARISON_LINK
-    if link_line not in readme.read_text(encoding='utf-8-sig'):
-        with readme.open('a', encoding='utf-8') as output:
-            output.write('\n' + link_line + '\n')
+def stage_materials(cache, data, structure, output, reference=None, *, base_url=None):
+    source, report = export_cache(cache, output, structure=structure)
+    report.update(source_archive_sha256=data['archiveSha256'], source_version_code=data['versionCode'],
+                  comparison_state='pending')
+    write_json(source / 'manifest.json', report)
+    if reference is None:
+        return source
+    destination = reference / reference_path(report)
+    keys = ('source_database_sha256', 'analysis_revision', 'source_archive_sha256', 'source_version_code')
+    expected = {key: report[key] for key in keys}
+    previous = destination / 'manifest.json'
+    if previous.is_file() and same_reference(read_json(previous), expected):
+        carry_function_comparisons(destination, source, reference.parent.parent)
+    for replaced in destination.parent.glob('*/manifest.json'):
+        if base_url and (replaced != previous or not same_reference(read_json(replaced), expected)):
+            preserve_published_links(reference.parent.parent, replaced.parent, base_url)
+        for direction in DIRECTIONS:
+            disconnect(reference, replaced.parent, direction, replacing=True)
+    replace_reference(source, reference, move=source.stat().st_dev == reference.stat().st_dev)
+    return destination
 
 
 def publish_materials(tag, publish):
     from indexer.ci_structure import structure_checkpoint
 
     public_only()
+    if publish:
+        return publish_comparison(tag, True, regenerate=True)
     LOCAL.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ci-materials-', dir=LOCAL) as directory:
         root = Path(directory) / 'cache'
         data, identity = restore_completed(tag, root)
         structure, _ = structure_checkpoint(root, None, data, identity, tag, Path(directory) / 'structure', extract=False)
-        source, report = export_cache(root, Path(directory) / 'reference', structure=structure)
-        report.update(source_archive_sha256=data['archiveSha256'], source_version_code=data['versionCode'],
-                      comparison_state='pending')
-        write_json(source / 'manifest.json', report)
-        if publish:
-            revision = identity['analysis_revision']
-            work = reference_worktree(revision + '-materials')
-            reference = work / 'research/reference'
-            manifest = reference / reference_path(identity) / 'manifest.json'
-            expected = {key: report[key] for key in ('source_database_sha256', 'analysis_revision', 'source_archive_sha256', 'source_version_code')}
-            previous = read_json(manifest) if manifest.is_file() else None
-            if previous and same_reference(previous, expected):
-                comparison = manifest.with_name('comparison.md')
-                if previous.get('tracking_format') == 2:
-                    keys = ('comparison_state', 'tracking_format', 'tracking_policy', 'tracking_navigation_format', 'tracking_run', 'tracking_page', 'tracking_sources')
-                    report.update({key: previous[key] for key in keys if key in previous})
-                    if report.get('tracking_page'):
-                        target = work / report['tracking_page']
-                        overlay(source / 'README.md', 'tracking',
-                                f'[バージョン間の関数追跡]({link(target, manifest.with_name("README.md"))})',
-                                '## アドレス索引\n')
-                elif previous.get('comparison_state') == 'complete' and comparison.is_file():
-                    shutil.copyfile(comparison, source / comparison.name)
-                    link_comparison(source)
-                    report['comparison_state'] = 'complete'
-                elif previous.get('comparison_state') == 'no_baseline':
-                    report['comparison_state'] = 'no_baseline'
-                carry_links(manifest.parent, source)
-                carry_function_comparisons(manifest.parent, source, work)
-                write_json(source / 'manifest.json', report)
-            else:
-                for replaced in manifest.parent.parent.glob('*/manifest.json'):
-                    for direction in DIRECTIONS:
-                        disconnect(reference, replaced.parent, direction, replacing=True)
-            replace_reference(source, reference)
-            publish_worktree(work, f'Publish native references {revision}')
+        stage_materials(root, data, structure, Path(directory) / 'reference')
 
 
-def publish_comparison(tag, publish):
+def publish_comparison(tag, publish, *, regenerate=False):
     from indexer.ci_tracking import publish_tracking
-    publish_tracking(tag, publish)
+    publish_tracking(tag, publish, regenerate=regenerate)

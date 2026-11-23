@@ -39,9 +39,17 @@ python -m indexer.reference --cache <完成キャッシュ> --structure <structu
 python -m matcher.tracking_pages --db <完成tracking.sqlite> --repository C:/KBCS-work/work --output C:/KBCS-work/work/research/comparisons/arm64-v8a/<実行ID> --asset-url <検証済みSQLiteのRelease URL> --attach
 ```
 
-`tracking_pages.render_pages` は掲載行のファイル・アンカーを `navigation.json` に保存する。識別子は版・ABI・SO SHA・解析リビジョン・入口の組をハッシュ化する。`attach_adjacent_links` は競合のない採用関係だけを逆向き・順向きにたどる。対応行に到達できれば直接リンク、自分の要確認候補があれば `要確認`、それ以外は生成済みの区間の `版の比較一覧` に進む。候補から同一関数の経路を作らない。
+`tracking_pages.render_pages` は比較のファイル・アンカーと両側の入口を `navigation.json` に保存する。識別子は版・ABI・SO SHA・解析リビジョン・入口の組をハッシュ化する。`attach_adjacent_links` は公開順の隣接区間で採用された相手だけを、関数詳細から直接たどれるようにする。未確定のときは根拠がある場合に候補行、それ以外は版の一覧へ進む。
 
-`function-comparisons.json` に各関数のリンクと両側の解析出典を保存する。新しい3版ウィンドウの区間を更新し、範囲外の区間は出典とファイル・アンカーの存在を検査して保持する。`carry_function_comparisons` は同じ索引DBと解析出典の再生成で有効なリンクを継承する。解析リビジョンの異なる関数へ直接リンクを転用しない。掲載ファイル、アンカーの存在・重複、区間の向き・重複、ナビゲーションSHAを検査してから更新する。
+`function-comparisons.json` に各関数のリンクと両側の解析出典を保存する。新しいウィンドウの隣接区間を更新し、範囲外のリンクは出典とリンク先が有効なものを保持する。`carry_function_comparisons` は同じ索引DBと解析出典を要求する。途中版が公開された場合は `refresh_affected_navigation` が旧区間を外す。通常の比較目次は `active.json` を使い、過去の区間は `archive.md` から参照する。
+
+`--attach` のローカル生成は `pending_full_validation` になる。隔離した作業ツリーが揃った状態で `--attach --verify-full` を指定すると、本番と同じ公開ゲートを使用する。比較本文を生成する段階でリンクとアンカーを検査し、公開ゲートで関数ページの全件、出典、前後の向き、採用済みリンクの左右対称性、比較行からの戻りを検査する。完了状態は `validated`。
+
+比較行は変更候補の重要箇所を抜粋する。1関数の全raw P-code差分が必要な場合は、同じ追跡実行で生成した `structures/*.sqlite` の旧版・新版を指定する。原本の出典を検証して1組だけ再計算し、詳細を複数ページに展開する。
+
+```powershell
+python -m matcher.logic_detail --db <完成tracking.sqlite> --indexes <旧構造索引SQLite> <新構造索引SQLite> --pair 1-2 --address 00a14de0 --output research/.local/logic-00a14de0
+```
 
 ## Actionsでの再生成
 
@@ -49,9 +57,9 @@ KBCSのmainへ実装を反映してから実行する。GitHubへの書込とwor
 
 - `analyze` は新規解析とチェックポイント・構造保存。
 - `backfill` は不足する現行エクスポーターの構造をReleaseへ保存。
-- `references` は対象版の構造だけを在庫確認・必要時補完してから関数資料を生成。
-- `match` は最大3版の構造を確認・補完し、追跡SQLite・比較資料・関数リンクを生成。
-- `all` は解析、構造補完、資料生成、追跡を順に実行。完成checkpoint指定時は解析を再利用。
+- `references` は対象版の資料を明示的に再生成する。`publish_reference=false` では対象版だけのプレビューを生成する。公開時は隣接比較も揃えて一括反映する。
+- `match` は直前2版・対象版・次の1版を参照する。現行形式の資料は再利用し、不足や出典差があれば対象版を生成する。
+- `all` は解析・構造補完の後に、完成した関数資料、比較、両側のリンクを同じGitコミットで反映する。完成checkpoint指定時は解析を再利用する。
 
 資料形式または生成器の署名が古い公開版は `references_pending`、資料は新形式で追跡導線が古い版は `pending` として再開する。現行形式・出典・追跡ウィンドウまで揃った版は重い処理を起動しない。エクスポーターSHAが変わると構造アセット名も変わり、旧アセットを保全したまま補完する。
 
@@ -61,7 +69,29 @@ KBCSのmainへ実装を反映してから実行する。GitHubへの書込とwor
 - `native-analysis-16.0.2-arm64-v8a-ea0159f06d493a87`
 - `native-analysis-16.0.3-arm64-v8a-9afc4f9e264e1fda`
 
-各タグを `checkpoint`、`stage=references`、`publish_reference=true` で順に実行した後、16.0.3のタグで `stage=match` を実行する。比較判定エンジンの設定も含めた新しいSQLiteを生成・公開する。既存の判定をそのまま使ったローカルの表示検証と区別する。標準Public runner、1ジョブ6時間以内、Release保存を維持する。
+各タグを `checkpoint` に指定し、`stage=references`、`publish_reference=true` を対象版ごとに実行すると、関数資料と影響する比較が一緒に更新される。既存資料に対して照合の改善だけを反映する場合は16.0.3のタグで `stage=match` を実行する。標準Public runnerで追跡ジョブの上限は300分。構造と追跡DBはReleaseへ保存する。
+
+## 全公開版の移行と復旧
+
+1. v3実装を反映した作業ツリーで、全公開版の計画を作る。対象版ごとの完成checkpoint、周辺最大4版、SO・解析リビジョン・元のSQLiteの組を固定する。
+
+   ```powershell
+   $env:PYTHONPATH = (Resolve-Path research).Path
+   python -m indexer.tracking_migration --repository . --output research/.local/migration-v3.json
+   ```
+
+2. 承認後、計画の `base` を起点に `branch` の名前でGitHub上にステージングブランチを作る。`steps[].inputs` を古い版から順番に `native-analysis.yml` に渡す。`stage=references` と `publish_reference=true` に加え `checkpoint`・`migration_branch`・`expected_window` を設定する。Runnerは出典を再照合し、保存済みキャッシュと検証済みReleaseアセットから復元する。各回で対象版・ABIを完全置換し、差分とリンクを検査してステージングへコミットする。
+3. 途中失敗や容量不足の後は、ステージングブランチの最新コミットを別の作業ツリーへ取得し、元計画を `--resume` で渡す。版の移行完了印と検証状態を確認し、出力された `next` から再開する。出典が計画と異なる場合は計画を作り直す。構造アセットが不足する場合は同じ完成checkpointの `stage=backfill` を使う。Pushが競合した場合は最新のステージングを基に同じ入力を再実行する。
+
+   ```powershell
+   python -m indexer.tracking_migration --repository C:/KBCS-work/staging --resume research/.local/migration-v3.json --output research/.local/migration-v3-status.json
+   ```
+
+4. `remaining=0` になると、計画対象の全隣接区間の登録と完成印も検査する。最新の `origin/main` が計画の `base` と一致することを確認する。そのコミットを起点にした隔離worktreeで `git merge --squash origin/<branch>` を行い、生成資料の差分だけを1コミットにまとめる。承認後に通常の非強制pushで公開する。mainが先に更新された場合はpushが競合で停止するので、新しいmainを基に再計画する。公開後に戻すときは資料切替コミットをrevertし、過去のGitコミットとReleaseから資料を復元する。
+
+通常の更新通知はmain向け、全版移行はステージング向け。最初の `workflow_dispatch` に計画の `base` を `migration_base` として渡すと、各版の検証とステージング反映の完了後に次の版を起動する。全版が揃うと生成資料だけを一つのコミットでmainへ反映する。失敗した場合はステージングとReleaseを残す。移行中にmainが進んだ場合は自動公開を止める。
+
+新しい追跡DBは `.sqlite.gz` で配布する。展開後のSQLiteのSHA-256は比較資料のmanifestを参照する。
 
 ## 検証
 
