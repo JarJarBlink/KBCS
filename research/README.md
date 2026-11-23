@@ -10,7 +10,7 @@
 
 [2版の実行・検索・判定の修正](matcher/docs/README.md)を参照してください。生成物は `.local/matching/` に保存します。
 
-Actionsは新しいJP版の資料を作り、同じABIの直前2版を使って関数の由来・構造・処理の変更候補を追跡します。結果は `research/comparisons/` と解析Releaseに保存します。[追跡v2の検索・設計](matcher/docs/tracking-v2.md) · [自動更新と復旧手順](docs/actions-analysis.md)
+Actionsは新しいJP版の資料を作り、同じABIの前後の公開版を使って関数の由来・構造・処理の変更候補を追跡します。結果は `research/comparisons/` と解析Releaseに保存します。[追跡v3の設計と照会](matcher/docs/tracking-v3.md) · [自動更新と復旧手順](docs/actions-analysis.md)
 
 ## 閲覧用の関数資料を作る
 
@@ -25,7 +25,7 @@ $env:PYTHONPATH = (Resolve-Path research).Path
 python -m indexer.reference --cache <完成済みキャッシュ> --structure <structure.jsonl.gz> --output research/.local/reference-preview
 ```
 
-関数ページの「連続バージョンの比較」から、調査対象の変更・対応候補へ移動できます。対応経路を特定できない区間には版全体の比較一覧を出します。[比較資料の作り方](matcher/docs/tracking-v2.md)
+関数ページの「バージョン間の関数追跡」から、採用済みの前後の関数詳細、比較行、調査候補に移動できます。対応先が未確定の場合は版の一覧を表示します。[比較資料の作り方](indexer/docs/native-reference.md)
 
 ## 全関数の参考資料を作成・再開
 

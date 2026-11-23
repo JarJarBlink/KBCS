@@ -46,11 +46,11 @@ workflowは `.github/workflows/native-analysis.yml`。
 
 上流のPlay更新検知・APK取得・展開・検証が完了し、`metadata/jp/current.json` がassetsのmainへ公開された版を対象にする。assetsの `notify-native-analysis.yml` がコミットSHA付きでKBCSを起動し、受付応答で終了する。既存のZIP配布と通知は独立。即時起動にはassets側の `KBCS_ACTIONS_TOKEN` が必要で、権限はKBCSへの `Actions: write` に限定する。[GitHubのworkflow dispatch権限](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
 
-KBCSはassetsの通知で受け取ったコミットから `current.json` と版別 `proof.json` を読む。通知失敗の補完は1日1回、03:37 JST（18:37 UTC）に最新版を確認する。確認時は原本・公開リビジョン・追跡ポリシーを照合し、公開済みの同一入力はGhidraのセットアップ前に終了する。関数資料まで済んだ入力は構造確認と追跡公開だけを再開する。
+KBCSはassetsの通知で受け取ったコミットから `current.json` と版別 `proof.json` を読む。確認時は原本・公開リビジョン・追跡ポリシーを照合し、公開済みの同一入力はGhidraのセットアップ前に終了する。関数資料まで済んだ入力は構造確認と追跡公開だけを再開する。
 
 新規版では保全済みのPrivate Releaseを取得し、アーカイブ、署名検証記録、base/ABI SplitのSHA-256、実APKのmanifestを照合する。検証済みABI Splitから抽出したSOのSHA-256を解析計画に固定する。同じ版でも原本アーカイブが変われば新規入力として扱う。v1の結果しか存在しない場合や、直前2版の構成・リビジョンが変わった場合は、公開済みcheckpointから追跡を実行する。
 
-手動確認は `workflow_dispatch` の `check_only=true`、最新版を確認・処理するには入力台帳を空にして通常起動する。`repository_dispatch: native-analysis-request` では、`publish_reference=true` を指定すると完成資料をmainへ公開する。通知と定期確認は同じ直列キューを使い、後着の確認は先行ジョブ完了後の公開状態を見て処理を決める。[GitHub Actionsの同時実行とキュー](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+通知が届かなかったときは `workflow_dispatch` を使う。`check_only=true` は状態の確認、入力台帳を空にした通常起動は最新版の処理を行う。`repository_dispatch: native-analysis-request` では `publish_reference=true` を指定すると完成資料をmainへ公開する。通知と手動起動は同じ直列キューを使う。[GitHub Actionsの同時実行とキュー](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency) · [全版の移行手順](../indexer/docs/native-reference.md#全公開版の移行と復旧)
 
 同じ入力でも、ツール・スクリプト・JDK・メモリ設定・ラベルが変わると別の解析IDになる。台帳の誤りや未知の版を名前から補完して実行しない。
 
