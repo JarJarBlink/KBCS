@@ -131,6 +131,11 @@ class TrackingTests(unittest.TestCase):
             links = function_comparison_links(page)
             self.assertTrue(links['v16.0.1 → v16.0.2'].endswith('0-1/README.md)（版の比較一覧）'))
             self.assertTrue(links['v16.0.2 → v16.0.3'].endswith('1-2/review-0001.md#review-1-00010000)（要確認）'))
+            text = page.read_text(encoding='utf-8-sig')
+            line = next(line for line in text.splitlines() if line.startswith('- [v16.0.1'))
+            page.write_text(text.replace(line, line + '\n' + line), encoding='utf-8-sig')
+            with self.assertRaisesRegex(ValueError, 'Duplicate comparison links'):
+                function_comparison_links(page)
 
     def test_logic_scope_and_changes(self):
         a, b = '00010000', '00020000'
