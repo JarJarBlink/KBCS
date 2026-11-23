@@ -8,7 +8,8 @@ import {applicableLimits,effectiveSpawn,stageDetailUrl} from './model.js';
 
 const decimal=new Intl.NumberFormat('ja-JP',{maximumFractionDigits:3});
 const percent=value=>decimal.format(value)+'%';
-const row=(label,value)=>'<tr><th scope="row">'+label+'</th><td>'+value+'</td></tr>';
+const cells=(label,value,colspan=1)=>'<th scope="row">'+label+'</th><td'+(colspan>1?' colspan="'+colspan+'"':'')+'>'+value+'</td>';
+const row=(label,value,colspan)=>'<tr>'+cells(label,value,colspan)+'</tr>';
 const table=body=>'<table class="stage-sheet"><tbody>'+body+'</tbody></table>';
 export function stageSummaryHtml(stage,map,crown=1,settings={seconds:true},enemies){
   const seconds=settings.seconds,spawn=stage.spawns.find(spawn=>spawn.enemy===stage.enemyCastle),enemy=spawn&&enemies?.enemies[spawn.enemy],options=spawn?stageEnemySettings(spawn,map,crown,settings):settings;
@@ -57,19 +58,30 @@ function ruleValueHtml(rule,seconds){
     default:return '<details><summary>データ内の設定値</summary><span class="db-meta">ルールID '+rule.id+' / '+p.join(', ')+'</span></details>';
   }
 }
-export function stageRulesHtml(database,stage,map,crown,units,seconds,{includeMap=true,selectedLimits=applicableLimits(map,stage,crown),showOtherCrowns=true}={}){
-  const limits=selectedLimits.filter(limit=>includeMap||limit.stage>=0),conditions=map.conditions.filter(condition=>(includeMap||condition.minStage!=null)&&(condition.minStage==null||stage.index>=condition.minStage));
-  const other=map.stars.flatMap((_,index)=>index+1===crown?[]:applicableLimits(map,stage,index+1).filter(limit=>includeMap||limit.stage>=0).map(limit=>({crown:index+1,limit})));
-  const body=((includeMap||limits.length)?row('出撃制限',limits.length?limits.map(limit=>limitHtml(limit,units)).join('<br>'):'この冠の指定なし'):'')+
-    (showOtherCrowns&&other.length?row('他の冠','<details><summary>出撃制限を確認</summary>'+other.map(({crown,limit})=>'<div>'+crown+'冠：'+limitHtml(limit,units)+'</div>').join('')+'</details>'):'')+
-    (includeMap&&map.rules.length?row('特殊ルール','<details><summary>'+escapeHtml(map.ruleName||'ルールの説明')+'</summary>'+(map.ruleDescription?'<div class="stage-description">'+escapeHtml(map.ruleDescription)+'</div>':'')+'<ul>'+map.rules.map(rule=>'<li>'+escapeHtml(rule.label)+'：'+ruleValueHtml(rule,seconds)+'</li>').join('')+'</ul></details>'):'')+
-    (includeMap&&map.scoreBonus?row('スコアボーナス','<strong>'+escapeHtml(map.scoreBonus.name)+'</strong><div class="stage-description">'+escapeHtml(map.scoreBonus.description)+'</div>'):'')+
-    (stage.pointRules?row('イベントPt','<details><summary>'+escapeHtml(stage.pointRules.name)+'</summary>'+stage.pointRules.sections.filter(section=>section.description).map(section=>'<strong>'+escapeHtml(section.name)+'</strong><div class="stage-description">'+escapeHtml(section.description)+'</div>').join('')+'</details>'):'')+
-    (conditions.length?row('表示・挑戦条件','<div class="stage-conditions">'+conditions.map(condition=>'<div class="stage-description">'+condition.kind+'：'+conditionHtml(condition,database)+'</div>').join('')+'</div>'):'')+
-    (stage.bossGuard?row('城バリア','ボスが残っている間、敵城への攻撃を防ぎます。'):'')+
-    (stage.levelSeal?row('Lv封印','基本Lv解放値 '+stage.levelSeal.level+' / ＋Lv解放 '+(stage.levelSeal.plus?'あり':'なし')+'<div class="db-meta">魔界編のクリア状況によって実際に使えるLvは変わります。</div>'):'')+
-    (stage.ex||stage.exLottery?.length?row('連戦・EX',exLinksHtml(database,stage)):'')+
-    (includeMap&&map.notes?.length?row('マップ固有の仕様','<details><summary>確認する</summary>'+map.notes.map(note=>'<p class="stage-description">'+escapeHtml(note)+'</p>').join('')+'</details>'):'');
+function stageRuleRowsHtml(database,stage,map,crown,units,seconds,{includeMap=true,selectedLimits=applicableLimits(map,stage,crown),showOtherCrowns=true,mapOverview=false,mapPointRules=''}={}){
+  const limits=selectedLimits.filter(limit=>includeMap||limit.stage>=0);
+  const conditions=map.conditions.filter(condition=>(includeMap||condition.minStage!=null)&&(condition.minStage==null||stage.index>=condition.minStage));
+  const other=showOtherCrowns?map.stars.flatMap((_,index)=>index+1===crown?[]:applicableLimits(map,stage,index+1)
+    .filter(limit=>(includeMap||limit.stage>=0)&&(!mapOverview||limit.crown>=0))
+    .map(limit=>({crown:index+1,limit}))):[];
+  const ruleRow=(label,value)=>row(label,value,mapOverview?3:1);
+  const conditionsRow=conditions.length?ruleRow('表示・挑戦条件','<div class="stage-conditions">'+conditions.map(condition=>'<div class="stage-description">'+escapeHtml(condition.kind)+'：'+conditionHtml(condition,database)+'</div>').join('')+'</div>'):'';
+  const scoreRow=includeMap&&map.scoreBonus?ruleRow('スコアボーナス','<strong>'+escapeHtml(map.scoreBonus.name)+'</strong><div class="stage-description">'+escapeHtml(map.scoreBonus.description)+'</div>'):'';
+  const pointRules=stage.pointRules;
+  const pointHtml=pointRules?'<details><summary>'+escapeHtml(pointRules.name)+'</summary>'+
+    pointRules.sections.filter(section=>section.description).map(section=>'<strong>'+escapeHtml(section.name)+'</strong><div class="stage-description">'+escapeHtml(section.description)+'</div>').join('')+'</details>':mapPointRules;
+  const pointRow=pointHtml?ruleRow('イベントPt',pointHtml):'';
+  return ((limits.length||(mapOverview?other.length:includeMap))?ruleRow('出撃制限',limits.length?limits.map(limit=>limitHtml(limit,units)).join('<br>'):'この冠の指定なし'):'')+
+    (other.length?ruleRow('他の冠','<details><summary>出撃制限を確認</summary>'+other.map(({crown,limit})=>'<div>'+crown+'冠：'+limitHtml(limit,units)+'</div>').join('')+'</details>'):'')+
+    (includeMap&&map.rules.length?ruleRow('特殊ルール','<details><summary>'+escapeHtml(map.ruleName||'ルールの説明')+'</summary>'+(map.ruleDescription?'<div class="stage-description">'+escapeHtml(map.ruleDescription)+'</div>':'')+'<ul>'+map.rules.map(rule=>'<li>'+escapeHtml(rule.label)+'：'+ruleValueHtml(rule,seconds)+'</li>').join('')+'</ul></details>'):'')+
+    (mapOverview?conditionsRow+pointRow+scoreRow:scoreRow+pointRow+conditionsRow)+
+    (stage.bossGuard?ruleRow('城バリア','ボスが残っている間、敵城への攻撃を防ぎます。'):'')+
+    (stage.levelSeal?ruleRow('Lv封印','基本Lv解放値 '+stage.levelSeal.level+' / ＋Lv解放 '+(stage.levelSeal.plus?'あり':'なし')+'<div class="db-meta">魔界編のクリア状況によって実際に使えるLvは変わります。</div>'):'')+
+    (stage.ex||stage.exLottery?.length?ruleRow('連戦・EX',exLinksHtml(database,stage)):'')+
+    (includeMap&&map.notes?.length?ruleRow('マップ固有の仕様','<details><summary>確認する</summary>'+map.notes.map(note=>'<p class="stage-description">'+escapeHtml(note)+'</p>').join('')+'</details>'):'');
+}
+export function stageRulesHtml(database,stage,map,crown,units,seconds,options){
+  const body=stageRuleRowsHtml(database,stage,map,crown,units,seconds,options);
   return body?table(body):'';
 }
 function exLinksHtml(database,stage){
@@ -112,11 +124,51 @@ export function stageSpawnsHtml(stage,map,crown,enemyDatabase,settings,{details=
   }).join('');
   return '<div class="db-table-wrap"><table class="db-table db-search-table stage-spawns'+(details?' show-detail':'')+'"><thead><tr>'+['アイコン','敵名','属性・種族','倍率（体力／攻撃）','出現数',stage.scoreMode||stage.timeLimit?'累積ダメージ条件':'敵城体力','初登場','再出現',...(stats?['体力','攻撃力','DPS']:[])].map(label=>'<th>'+label+'</th>').join('')+'<th class="stage-spawn-detail">レイヤー</th><th class="stage-spawn-detail">基礎点</th><th class="stage-spawn-detail">撃破条件</th></tr></thead><tbody>'+cells+'</tbody></table></div>';
 }
-export function stageMapInfoHtml(map,seconds){
-  const pair=(label,value)=>'<th scope="row">'+label+'</th><td>'+value+'</td>';
-  return table('<tr>'+pair('ステージ数',map.stages.length)+pair('冠倍率',map.stars.map((value,index)=>(index+1)+'冠 '+percent(value)).join(' / '))+'</tr><tr>'+pair('クリア可能回数',map.clearLimit?map.clearLimit+'回':'制限なし')+pair('インターバル',map.interval?formatTime(map.interval*60*30,seconds):'なし')+'</tr><tr>'+pair('クリア後の表示',map.hiddenAfterClear?'非表示':'表示')+pair('アビス',map.abyss?'あり':'なし')+'</tr>');
+function mapRow(first,second){
+  if(first&&second)return '<tr>'+cells(...first)+cells(...second)+'</tr>';
+  const field=first??second;
+  return field?row(...field,3):'';
 }
-
-export function stageMapOverviewHtml(database,map,crown,units,seconds){
-  return stageMapInfoHtml(map,seconds)+stageRulesHtml(database,{index:-1},map,crown,units,seconds);
+function stageMapInfoRowsHtml(map,stages){
+  const values=stages.map(stage=>stage.difficulty).filter(Number.isFinite);
+  const min=Math.min(...values),max=Math.max(...values);
+  const difficulty=values.length?['マップ難易度','★'+min+(min===max?'':'〜'+max)]:null;
+  const crowns=map.stars.map((value,index)=>(index+1)+'冠 '+percent(value)).join(' / ');
+  const clearLimit=Number.isFinite(map.clearLimit)?['クリア可能回数',map.clearLimit>0?formatNumber(map.clearLimit)+'回':'制限なし']:null;
+  const hours=Math.floor(map.interval/60),minutes=map.interval%60;
+  const interval=(hours?hours+'時間':'')+(minutes?minutes+'分':'');
+  const resetType=map.rewardResetType;
+  const reset=resetType==null?null:['報酬リセット',['なし','報酬のみ','報酬とクリア状況'][resetType]??'方式 '+escapeHtml(resetType)+'（詳細未確認）'];
+  const visibility=typeof map.hiddenAfterClear==='boolean'?['クリア後の表示',map.hiddenAfterClear?'非表示':'表示']:null;
+  return mapRow(['ステージ数',formatNumber(map.stages.length)],difficulty)+
+    (crowns?row('冠倍率',crowns,3):'')+
+    (map.clearLimit>0||map.interval>0?mapRow(clearLimit,Number.isFinite(map.interval)?['インターバル',interval||'なし']:null):'')+
+    (resetType||map.hiddenAfterClear?mapRow(reset,visibility):'');
+}
+function stageMapPointRulesHtml(stages,crown){
+  const pointStages=stages.filter(stage=>stage.pointRules);
+  if(!pointStages.length)return '';
+  const names=new Set(pointStages.map(stage=>stage.pointRules.name).filter(Boolean));
+  const links=pointStages.map(stage=>'<a href="'+escapeHtml(stageDetailUrl(stage,crown))+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</a>');
+  return '<details><summary>'+(names.size===1?escapeHtml([...names][0])+' / ':'')+'対象 '+pointStages.length+'ステージ</summary>'+links.join(' / ')+'</details>';
+}
+function stageMapExtendedRowsHtml(map){
+  // Map_option.csv の見出しと原値を使う。難易度の原値はステージ難易度範囲と別に扱う。
+  const columns=[[7,'ゲリラset'],[10,'表示順'],[12,'挑戦フラグ'],[15,'XP2倍広告'],[16,'生産額倍率'],[17,'統率力フラグ'],[18,'ステージ全表示設定'],[1,'星解放'],[2,'裏星解放'],[13,'マップ難易度（原値）']];
+  const fields=columns.flatMap(([index,label])=>{
+    const value=map.rawOptions?.[index];
+    return value==null||value===''?[]:[[label,escapeHtml(value)]];
+  });
+  if(map.nativeId!=null)fields.push(['内部マップID',escapeHtml(map.nativeId)]);
+  if(map.optionsRow>0)fields.push(['Map_option.csv 行',escapeHtml(map.optionsRow)]);
+  let rows='';
+  for(let index=0;index<fields.length;index+=2)rows+=mapRow(fields[index],fields[index+1]);
+  return rows;
+}
+export function stageMapOverviewHtml(database,map,crown,units,seconds,stages=database.stages){
+  const mapStages=stages.filter(stage=>stage.map===map.key);
+  const rules=stageRuleRowsHtml(database,{index:-1},map,crown,units,seconds,{mapOverview:true,mapPointRules:stageMapPointRulesHtml(mapStages,crown)});
+  const basic=stageMapInfoRowsHtml(map,mapStages)+rules+(map.abyss?row('アビス','あり',3):'');
+  return '<table class="stage-sheet stage-map-table" aria-label="マップ情報"><colgroup><col class="stage-map-label"><col><col class="stage-map-label"><col></colgroup>'+
+    '<tbody data-detail-level="basic">'+basic+'</tbody><tbody data-detail-level="extended" hidden>'+stageMapExtendedRowsHtml(map)+'</tbody></table>';
 }

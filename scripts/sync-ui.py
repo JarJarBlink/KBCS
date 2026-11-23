@@ -60,11 +60,21 @@ bindDetailNavigation('unit-detail','/pages/unit-detail/',()=>{
         text+="\nbindDetailNavigation('enemy-detail','/pages/tunit-detail/',target=>writeEnemySettings(new URLSearchParams(),!comparison.same&&Number(target.searchParams.get('id'))===comparison.id?comparison.settings:settings));\n"
     return text
 
+def relative_dependencies(text):
+    dependencies=re.findall(r'(?:from\s*|import\s*|@import\s*)["\']([^"\']+)["\']',text)
+    return (dependency for dependency in dependencies if dependency.startswith('.'))
+
 while queue:
     name=queue.pop()
     if name in seen:continue
     seen.add(name)
     path=source/name
+    if name in {'src/features/stages/view.js','src/features/stages/style.css'}:
+        # マップ表の表示とCSSはKBCS側で保守し、共通の依存だけ同期する。
+        local=output/name
+        for dependency in relative_dependencies(local.read_text(encoding='utf-8-sig')):
+            queue.append((local.parent/dependency).resolve().relative_to(output.resolve()).as_posix())
+        continue
     original=path.read_text(encoding='utf-8-sig')
     manifest[name]=hashlib.sha256(path.read_bytes()).hexdigest()
     text=original
@@ -87,13 +97,6 @@ export async function loadStageMap(database,key){return database.stages.filter(s
         text=text.replace('const chunks=new Map();\n','')
     if name=='src/features/stages/model.js':
         text=text.replace("?'EOC1':null)","?'N000':null)")
-    if name=='src/features/stages/view.js':
-        text=text.replace("spawn.enemy===stage.enemyCastle?'敵城':stage.scoreMode||stage.timeLimit?", "stage.damageCondition?")
-        text=text.replace("(spawn.boss?'<small>ボス（衝撃波あり）</small>':'')", "(spawn.boss?'<small>ボス'+(spawn.boss===2?' / 指定2':'')+'</small>':'')")
-        text=text.replace("'味方 '+spawn.kills+'体'", "spawn.kills+'体'")
-        text=text.replace("spawn.castle?percent(spawn.castle)+'以下':'条件なし'", "percent(spawn.castle)+'以下'")
-        text=text.replace('stage.spawns.map(original=>','stage.spawns.map((original,index)=>')
-        text=text.replace("return '<tr><td class=\"stage-enemy-icon\">'", "return '<tr data-stage-spawn=\"'+index+'\"><td class=\"stage-enemy-icon\">'")
     if name=='src/features/stages/search.js':
         text=text.replace("stageGimmicks.map(([key,label])=>", "stageGimmicks.filter(([key])=>database.stages.some(stage=>stage.flags.includes(key))).map(([key,label])=>")
         text=text.replace("+'マップ';element('stage-empty')", "+'マップ / '+rows.reduce((count,entry)=>count+entry.stages.length,0)+'ステージ';element('stage-empty')")
@@ -132,8 +135,6 @@ export async function loadStageMap(database,key){return database.stages.filter(s
         text=replace_once(text,'talent.values.at(-1)[0]','talent.values.at(-1)?.[0]')
     if name=='src/shared/game/database-view.js':
         text=replace_once(text,'export function abilityText(ability, seconds) {',"export function abilityText(ability, seconds) {\n  if(ability.support==='unsupported')return `${ability.label} ／ 原本値 ${ability.value}`;")
-    if name=='src/features/stages/view.js':
-        text=replace_once(text,'function ruleValueHtml(rule,seconds){',"function ruleValueHtml(rule,seconds){\n  if(rule.support==='unsupported')return '<pre>'+escapeHtml(JSON.stringify(rule.raw,null,2))+'</pre>';")
     if name=='src/features/units/growth.js':
         text=replace_once(text,'current.settings.attackTreasure,current.options.talents','current.settings.attackTreasure,current.settings.healthTreasureBonus,current.settings.attackTreasureBonus,current.options.combos,current.options.talents')
         text=replace_once(text,'属性倍率・コンボ・本能玉は含みません。','発動中の体力・攻撃力コンボを含みます。属性倍率・本能玉は含みません。')
