@@ -4,6 +4,13 @@
 
 SO SHA-256: `2c22d76fc1ddec676d4ed6206d5ec55a02a651f407d39d1c0b32ded16fd7eabe`
 
+<!-- kbcs-version-function-tracking -->
+## 連続バージョンの比較
+
+- [v16.0.1 → v16.0.2](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/0-1/machine_only_observed-0023.md#compare-3c414b1f0847e5a53cc5705ce4bdeaf1)
+- [v16.0.2 → v16.0.3](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/1-2/machine_only_observed-0022.md#compare-b2d0d2c691260f6dde7de9bc61dbc4b6)
+<!-- /kbcs-version-function-tracking -->
+
 ## 関数情報
 
 ~~~json

@@ -21,8 +21,8 @@
   "comparison_state": "complete",
   "tracking_format": 2,
   "tracking_policy": "observed-effects-v1",
-  "tracking_run": "26e7a8de0a7ec87003e6aefa",
-  "tracking_page": "research/comparisons/arm64-v8a/26e7a8de0a7ec87003e6aefa/README.md",
+  "tracking_run": "648ae6f970369597a09542a0",
+  "tracking_page": "research/comparisons/arm64-v8a/648ae6f970369597a09542a0/README.md",
   "tracking_sources": [
     {
       "version": "16.0.1",
@@ -30,5 +30,6 @@
       "sha256": "2c22d76fc1ddec676d4ed6206d5ec55a02a651f407d39d1c0b32ded16fd7eabe",
       "analysis_revision": "711084564ddd8b14"
     }
-  ]
+  ],
+  "tracking_navigation_format": 1
 }
