@@ -7,8 +7,8 @@ SO SHA-256: `baa753547ffc7548d0a9c2fb4bd57b11d39da0f12e2ccd794c51df995544a4f6`
 <!-- kbcs-version-function-tracking -->
 ## 連続バージョンの比較
 
-- [v16.0.1 → v16.0.2](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/0-1/review-0050.md#review-712273dca0353cfec38d8cf4463e1148)（要確認）
-- [v16.0.2 → v16.0.3](../../../../../../comparisons/arm64-v8a/648ae6f970369597a09542a0/1-2/priority-0038.md#compare-0a51063ff8f952fb69116b8f060d2e51)
+- [v16.0.1 → v16.0.2](../../../../../../comparisons/arm64-v8a/c6e4dfc940403d119ed8b991/0-1/review-0056.md#review-712273dca0353cfec38d8cf4463e1148)（要確認）
+- [v16.0.2 → v16.0.3](../../../../../../comparisons/arm64-v8a/c6e4dfc940403d119ed8b991/1-2/high-0005.md#compare-0a51063ff8f952fb69116b8f060d2e51)
 <!-- /kbcs-version-function-tracking -->
 
 ## 関数情報
