@@ -4,6 +4,12 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +23,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "8286fb1df866fcf2002d2ddf7cadd0689a190bcbe6265bdde78fab1bd7dd4b25",
-  "source_text_sha256": "8286fb1df866fcf2002d2ddf7cadd0689a190bcbe6265bdde78fab1bd7dd4b25"
+  "source_text_sha256": "8286fb1df866fcf2002d2ddf7cadd0689a190bcbe6265bdde78fab1bd7dd4b25",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "008aebec",
+        "008aec0f"
+      ]
+    ],
+    "bytes_sha256": "92cf4276950a52132b157467b2bdd52768d76ac73d1362f68e3b27993430742b",
+    "instruction_count": 9,
+    "instruction_bytes": 36,
+    "body_bytes": 36,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -28,6 +54,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 ## 呼び出し先
 
 - [00c58f30](../00c58/00c58f30.md)
+
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
 
 ## 疑似コード / UTF-8 135 bytes
 
@@ -43,4 +73,83 @@ void FUN_008aebec(void)
   return;
 }
 
+~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-008aebec"></a> `008aebec` | `fd 7b bf a9` | stp x29,x30,[sp, #-0x10]! | `FALL_THROUGH`
+<a id="insn-008aebf0"></a> `008aebf0` | `fd 03 00 91` | mov x29,sp | `FALL_THROUGH`
+<a id="insn-008aebf4"></a> `008aebf4` | `00 02 80 52` | mov w0,#0x10 | `FALL_THROUGH`
+<a id="insn-008aebf8"></a> `008aebf8` | `ce a8 0e 94` | bl 0x00c58f30 | `UNCONDITIONAL_CALL`
+<a id="insn-008aebfc"></a> `008aebfc` | `a8 1e 00 d0` | adrp x8,0xc84000 | `FALL_THROUGH`
+<a id="insn-008aec00"></a> `008aec00` | `08 01 31 91` | add x8,x8,#0xc40 | `FALL_THROUGH`
+<a id="insn-008aec04"></a> `008aec04` | `08 00 00 f9` | str x8,[x0] | `FALL_THROUGH`
+<a id="insn-008aec08"></a> `008aec08` | `fd 7b c1 a8` | ldp x29,x30,[sp], #0x10 | `FALL_THROUGH`
+<a id="insn-008aec0c"></a> `008aec0c` | `c0 03 5f d6` | ret | `TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`008aebec`](#insn-008aebec) 範囲 `[['008aebec', '008aec0f']]`
+
+## 命令位置別の参照
+
+- [`008aebec`](#insn-008aebec) → `Stack[-0x10]`（関数外または未収録） · `WRITE` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `None`
+- [`008aebf8`](#insn-008aebf8) → [`00c58f30`](../00c58/00c58f30.md) · `UNCONDITIONAL_CALL` · `DEFAULT` · 関数 `00c58f30` · 推定シンボル `None` · 推定型 `None`
+- [`008aec04`](#insn-008aec04) → `00c84c40`（関数外または未収録） · `DATA` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `undefined *`
+- [`008aec08`](#insn-008aec08) → `Stack[-0x10]`（関数外または未収録） · `DATA` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `None`
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+
+- 参照命令 [`008aebec`](#insn-008aebec)
+
+~~~json
+{
+  "source": "008aebec",
+  "target": "Stack[-0x10]",
+  "target_space": "stack",
+  "resolution": "boundary_unknown"
+}
+~~~
+- 参照命令 [`008aebf8`](#insn-008aebf8)
+
+~~~json
+{
+  "source": "008aebf8",
+  "target": "00c58f30",
+  "target_space": "ram",
+  "resolution": "function"
+}
+~~~
+- 参照命令 [`008aec04`](#insn-008aec04)
+
+~~~json
+{
+  "source": "008aec04",
+  "target": "00c84c40",
+  "target_space": "ram",
+  "resolution": "defined_data",
+  "start": "00c84c40",
+  "offset": 0,
+  "size": 8,
+  "datatype": "undefined *",
+  "capture_state": "pointer_requires_relocation_and_runtime_resolution"
+}
+~~~
+- 参照命令 [`008aec08`](#insn-008aec08)
+
+~~~json
+{
+  "source": "008aec08",
+  "target": "Stack[-0x10]",
+  "target_space": "stack",
+  "resolution": "boundary_unknown"
+}
 ~~~

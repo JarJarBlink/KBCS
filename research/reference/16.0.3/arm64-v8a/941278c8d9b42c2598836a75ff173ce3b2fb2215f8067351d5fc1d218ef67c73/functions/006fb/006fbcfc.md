@@ -4,6 +4,12 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +23,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "6a086c76a533842d9dabc3aa7f72d38cb9fdc739494a58cd2172f2f88ea5a975",
-  "source_text_sha256": "6a086c76a533842d9dabc3aa7f72d38cb9fdc739494a58cd2172f2f88ea5a975"
+  "source_text_sha256": "6a086c76a533842d9dabc3aa7f72d38cb9fdc739494a58cd2172f2f88ea5a975",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "006fbcfc",
+        "006fbd0f"
+      ]
+    ],
+    "bytes_sha256": "b244f83d152a0a8dabdfc22925608302894584dfa844a94f0dbe00bd655137c2",
+    "instruction_count": 5,
+    "instruction_bytes": 20,
+    "body_bytes": 20,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -28,6 +54,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 ## 呼び出し先
 
 解決済みの記録なし。
+
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
 
 ## 疑似コード / UTF-8 186 bytes
 
@@ -44,4 +74,46 @@ void FUN_006fbcfc(long param_1,undefined8 *param_2)
   return;
 }
 
+~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-006fbcfc"></a> `006fbcfc` | `08 04 40 f9` | ldr x8,[x0, #0x8] | `FALL_THROUGH`
+<a id="insn-006fbd00"></a> `006fbd00` | `e9 2b 00 90` | adrp x9,0xc77000 | `FALL_THROUGH`
+<a id="insn-006fbd04"></a> `006fbd04` | `29 a1 2e 91` | add x9,x9,#0xba8 | `FALL_THROUGH`
+<a id="insn-006fbd08"></a> `006fbd08` | `29 20 00 a9` | stp x9,x8,[x1] | `FALL_THROUGH`
+<a id="insn-006fbd0c"></a> `006fbd0c` | `c0 03 5f d6` | ret | `TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`006fbcfc`](#insn-006fbcfc) 範囲 `[['006fbcfc', '006fbd0f']]`
+
+## 命令位置別の参照
+
+- [`006fbd08`](#insn-006fbd08) → `00c77ba8`（関数外または未収録） · `DATA` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `undefined *`
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+
+- 参照命令 [`006fbd08`](#insn-006fbd08)
+
+~~~json
+{
+  "source": "006fbd08",
+  "target": "00c77ba8",
+  "target_space": "ram",
+  "resolution": "defined_data",
+  "start": "00c77ba8",
+  "offset": 0,
+  "size": 8,
+  "datatype": "undefined *",
+  "capture_state": "pointer_requires_relocation_and_runtime_resolution"
+}
 ~~~

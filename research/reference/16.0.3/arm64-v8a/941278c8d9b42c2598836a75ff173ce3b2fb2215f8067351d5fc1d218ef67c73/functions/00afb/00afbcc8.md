@@ -4,6 +4,12 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +23,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "f90ebe15a2edfc22cce08d54613679f53edd40a486bbd3e75e4bb95c75b40f40",
-  "source_text_sha256": "f90ebe15a2edfc22cce08d54613679f53edd40a486bbd3e75e4bb95c75b40f40"
+  "source_text_sha256": "f90ebe15a2edfc22cce08d54613679f53edd40a486bbd3e75e4bb95c75b40f40",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "00afbcc8",
+        "00afbd13"
+      ]
+    ],
+    "bytes_sha256": "5e0ad3c2a3bdf655e046372fa92a59b116fd342d5695d08040815128f4f2cfdd",
+    "instruction_count": 19,
+    "instruction_bytes": 76,
+    "body_bytes": 76,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -28,6 +54,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 ## 呼び出し先
 
 - [008524fc](../00852/008524fc.md)
+
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
 
 ## 疑似コード / UTF-8 209 bytes
 
@@ -43,4 +73,121 @@ void FUN_00afbcc8(int param_1,int param_2,uint param_3)
   return;
 }
 
+~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-00afbcc8"></a> `00afbcc8` | `fd 7b bd a9` | stp x29,x30,[sp, #-0x30]! | `FALL_THROUGH`
+<a id="insn-00afbccc"></a> `00afbccc` | `f5 0b 00 f9` | str x21,[sp, #0x10] | `FALL_THROUGH`
+<a id="insn-00afbcd0"></a> `00afbcd0` | `f4 4f 02 a9` | stp x20,x19,[sp, #0x20] | `FALL_THROUGH`
+<a id="insn-00afbcd4"></a> `00afbcd4` | `fd 03 00 91` | mov x29,sp | `FALL_THROUGH`
+<a id="insn-00afbcd8"></a> `00afbcd8` | `f3 03 01 2a` | mov w19,w1 | `FALL_THROUGH`
+<a id="insn-00afbcdc"></a> `00afbcdc` | `f4 03 00 2a` | mov w20,w0 | `FALL_THROUGH`
+<a id="insn-00afbce0"></a> `00afbce0` | `55 00 00 12` | and w21,w2,#0x1 | `FALL_THROUGH`
+<a id="insn-00afbce4"></a> `00afbce4` | `06 5a f5 97` | bl 0x008524fc | `UNCONDITIONAL_CALL`
+<a id="insn-00afbce8"></a> `00afbce8` | `88 00 99 52` | mov w8,#0xc804 | `FALL_THROUGH`
+<a id="insn-00afbcec"></a> `00afbcec` | `89 7d 80 52` | mov w9,#0x3ec | `FALL_THROUGH`
+<a id="insn-00afbcf0"></a> `00afbcf0` | `88 02 28 9b` | smaddl x8,w20,w8,x0 | `FALL_THROUGH`
+<a id="insn-00afbcf4"></a> `00afbcf4` | `68 22 29 9b` | smaddl x8,w19,w9,x8 | `FALL_THROUGH`
+<a id="insn-00afbcf8"></a> `00afbcf8` | `89 45 89 52` | mov w9,#0x4a2c | `FALL_THROUGH`
+<a id="insn-00afbcfc"></a> `00afbcfc` | `09 01 a0 72` | movk w9,#0x8, LSL #16 | `FALL_THROUGH`
+<a id="insn-00afbd00"></a> `00afbd00` | `15 69 29 b8` | str w21,[x8, x9, LSL #0x0] | `FALL_THROUGH`
+<a id="insn-00afbd04"></a> `00afbd04` | `f4 4f 42 a9` | ldp x20,x19,[sp, #0x20] | `FALL_THROUGH`
+<a id="insn-00afbd08"></a> `00afbd08` | `f5 0b 40 f9` | ldr x21,[sp, #0x10] | `FALL_THROUGH`
+<a id="insn-00afbd0c"></a> `00afbd0c` | `fd 7b c3 a8` | ldp x29,x30,[sp], #0x30 | `FALL_THROUGH`
+<a id="insn-00afbd10"></a> `00afbd10` | `c0 03 5f d6` | ret | `TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`00afbcc8`](#insn-00afbcc8) 範囲 `[['00afbcc8', '00afbd13']]`
+
+## 命令位置別の参照
+
+- [`00afbcc8`](#insn-00afbcc8) → `Stack[-0x30]`（関数外または未収録） · `WRITE` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `None`
+- [`00afbccc`](#insn-00afbccc) → `Stack[-0x20]`（関数外または未収録） · `WRITE` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `None`
+- [`00afbcd0`](#insn-00afbcd0) → `Stack[-0x10]`（関数外または未収録） · `WRITE` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `None`
+- [`00afbce4`](#insn-00afbce4) → [`008524fc`](../00852/008524fc.md) · `UNCONDITIONAL_CALL` · `DEFAULT` · 関数 `008524fc` · 推定シンボル `None` · 推定型 `None`
+- [`00afbd04`](#insn-00afbd04) → `Stack[-0x10]`（関数外または未収録） · `READ` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `None`
+- [`00afbd08`](#insn-00afbd08) → `Stack[-0x20]`（関数外または未収録） · `READ` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `None`
+- [`00afbd0c`](#insn-00afbd0c) → `Stack[-0x30]`（関数外または未収録） · `DATA` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `None`
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+
+- 参照命令 [`00afbcc8`](#insn-00afbcc8)
+
+~~~json
+{
+  "source": "00afbcc8",
+  "target": "Stack[-0x30]",
+  "target_space": "stack",
+  "resolution": "boundary_unknown"
+}
+~~~
+- 参照命令 [`00afbccc`](#insn-00afbccc)
+
+~~~json
+{
+  "source": "00afbccc",
+  "target": "Stack[-0x20]",
+  "target_space": "stack",
+  "resolution": "boundary_unknown"
+}
+~~~
+- 参照命令 [`00afbcd0`](#insn-00afbcd0)
+
+~~~json
+{
+  "source": "00afbcd0",
+  "target": "Stack[-0x10]",
+  "target_space": "stack",
+  "resolution": "boundary_unknown"
+}
+~~~
+- 参照命令 [`00afbce4`](#insn-00afbce4)
+
+~~~json
+{
+  "source": "00afbce4",
+  "target": "008524fc",
+  "target_space": "ram",
+  "resolution": "function"
+}
+~~~
+- 参照命令 [`00afbd04`](#insn-00afbd04)
+
+~~~json
+{
+  "source": "00afbd04",
+  "target": "Stack[-0x10]",
+  "target_space": "stack",
+  "resolution": "boundary_unknown"
+}
+~~~
+- 参照命令 [`00afbd08`](#insn-00afbd08)
+
+~~~json
+{
+  "source": "00afbd08",
+  "target": "Stack[-0x20]",
+  "target_space": "stack",
+  "resolution": "boundary_unknown"
+}
+~~~
+- 参照命令 [`00afbd0c`](#insn-00afbd0c)
+
+~~~json
+{
+  "source": "00afbd0c",
+  "target": "Stack[-0x30]",
+  "target_space": "stack",
+  "resolution": "boundary_unknown"
+}
 ~~~

@@ -4,6 +4,12 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +23,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "7844d6fcb8ce667c49cf2e3a9994c36eae0a5e5091cf0f5eb0fc71080e5dd44b",
-  "source_text_sha256": "7844d6fcb8ce667c49cf2e3a9994c36eae0a5e5091cf0f5eb0fc71080e5dd44b"
+  "source_text_sha256": "7844d6fcb8ce667c49cf2e3a9994c36eae0a5e5091cf0f5eb0fc71080e5dd44b",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "00bfdf6c",
+        "00bfdf73"
+      ]
+    ],
+    "bytes_sha256": "224d4df0836ae187285a713f6eab38d506f106d5205135a58ab1548d5684fce9",
+    "instruction_count": 2,
+    "instruction_bytes": 8,
+    "body_bytes": 8,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -28,6 +54,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 ## 呼び出し先
 
 - [00bfdf74](../00bfd/00bfdf74.md)
+
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
 
 ## 疑似コード / UTF-8 102 bytes
 
@@ -40,4 +70,38 @@ void _ZNSt6__ndk113basic_istreamIcNS_11char_traitsIcEEErsERx(void)
   return;
 }
 
+~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-00bfdf6c"></a> `00bfdf6c` | `5f 24 03 d5` | bti c | `FALL_THROUGH`
+<a id="insn-00bfdf70"></a> `00bfdf70` | `01 00 00 14` | b 0x00bfdf74 | `CALL_TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`00bfdf6c`](#insn-00bfdf6c) 範囲 `[['00bfdf6c', '00bfdf73']]`
+
+## 命令位置別の参照
+
+- [`00bfdf70`](#insn-00bfdf70) → [`00bfdf74`](00bfdf74.md) · `UNCONDITIONAL_CALL` · `DEFAULT` · 関数 `00bfdf74` · 推定シンボル `None` · 推定型 `None`
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+
+- 参照命令 [`00bfdf70`](#insn-00bfdf70)
+
+~~~json
+{
+  "source": "00bfdf70",
+  "target": "00bfdf74",
+  "target_space": "ram",
+  "resolution": "function"
+}
 ~~~

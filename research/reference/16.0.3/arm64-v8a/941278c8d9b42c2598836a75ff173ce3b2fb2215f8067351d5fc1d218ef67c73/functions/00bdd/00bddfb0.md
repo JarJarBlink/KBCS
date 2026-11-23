@@ -4,6 +4,12 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +23,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "e87e0b3906a9c3fbf704b1197f971050af56cace9ac0248f6e3219b772e9e870",
-  "source_text_sha256": "e87e0b3906a9c3fbf704b1197f971050af56cace9ac0248f6e3219b772e9e870"
+  "source_text_sha256": "e87e0b3906a9c3fbf704b1197f971050af56cace9ac0248f6e3219b772e9e870",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "00bddfb0",
+        "00bddfbb"
+      ]
+    ],
+    "bytes_sha256": "54e0439e0576928f0ce27fb72d81889060a1fe0ba199479f544f1711f01f961a",
+    "instruction_count": 3,
+    "instruction_bytes": 12,
+    "body_bytes": 12,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -29,6 +55,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
 解決済みの記録なし。
 
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
+
 ## 疑似コード / UTF-8 89 bytes
 
 ~~~c
@@ -39,4 +69,44 @@ undefined8 _ZN8firebase4auth11tokenresult8GetClassEv(void)
   return DAT_01127dc0;
 }
 
+~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-00bddfb0"></a> `00bddfb0` | `48 2a 00 d0` | adrp x8,0x1127000 | `FALL_THROUGH`
+<a id="insn-00bddfb4"></a> `00bddfb4` | `00 e1 46 f9` | ldr x0,[x8, #0xdc0] | `FALL_THROUGH`
+<a id="insn-00bddfb8"></a> `00bddfb8` | `c0 03 5f d6` | ret | `TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`00bddfb0`](#insn-00bddfb0) 範囲 `[['00bddfb0', '00bddfbb']]`
+
+## 命令位置別の参照
+
+- [`00bddfb4`](#insn-00bddfb4) → `01127dc0`（関数外または未収録） · `READ` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `undefined8`
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+
+- 参照命令 [`00bddfb4`](#insn-00bddfb4)
+
+~~~json
+{
+  "source": "00bddfb4",
+  "target": "01127dc0",
+  "target_space": "ram",
+  "resolution": "defined_data",
+  "start": "01127dc0",
+  "offset": 0,
+  "size": 8,
+  "datatype": "undefined8",
+  "capture_state": "not_readonly_initialized_data"
+}
 ~~~

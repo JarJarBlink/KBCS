@@ -4,6 +4,12 @@
 
 SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
+解析リビジョン `9afc4f9e264e1fda` · Ghidra `12.1.2`
+
+<a id="comparisons"></a>
+
+[擬似コード](#pseudocode) · [逆アセンブリ](#逆アセンブリ) · [分岐](#基本ブロックと分岐先) · [参照](#命令位置別の参照) · [比較](#comparisons)
+
 ## 関数情報
 
 ~~~json
@@ -17,7 +23,27 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
   "confidence": "unreviewed",
   "error": "",
   "source_sha256": "458bf7ea26f0e60fcbaa1dcb3f9225d1d703ecb6c766be9a4885ca4fd5c07421",
-  "source_text_sha256": "458bf7ea26f0e60fcbaa1dcb3f9225d1d703ecb6c766be9a4885ca4fd5c07421"
+  "source_text_sha256": "458bf7ea26f0e60fcbaa1dcb3f9225d1d703ecb6c766be9a4885ca4fd5c07421",
+  "structure_status": "available",
+  "structure_provenance": "receipt_verified",
+  "index_boundary_verification": "legacy_boundary_unverified",
+  "index_program_id": null,
+  "structure_program_id": "3440b6bda0ebc7fc",
+  "analysis_link": "legacy_program_id_unavailable",
+  "structure": {
+    "ranges": [
+      [
+        "007febcc",
+        "007febd7"
+      ]
+    ],
+    "bytes_sha256": "8e3e0c736817663b2a868856f0462ccbc464415433f14f598347fdbd098deb7b",
+    "instruction_count": 3,
+    "instruction_bytes": 12,
+    "body_bytes": 12,
+    "indirect": 0,
+    "unresolved": 0
+  }
 }
 ~~~
 
@@ -29,6 +55,10 @@ SO SHA-256: `941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73`
 
 解決済みの記録なし。
 
+<a id="pseudocode"></a>
+
+Ghidraによる復元。型・変数名・制御構造は推定です。
+
 ## 疑似コード / UTF-8 121 bytes
 
 ~~~c
@@ -39,4 +69,44 @@ pointer_____offset_0x10___ * FUN_007febcc(void)
   return &PTR__ZTVN10__cxxabiv117__class_type_infoE_16__00c7eca0;
 }
 
+~~~
+
+## 逆アセンブリ
+
+命令アドレス、生バイト（メモリ順）、オペランド、フロー。
+
+| アドレス | 生バイト | 命令・オペランド | フロー |
+| --- | --- | --- | --- |
+<a id="insn-007febcc"></a> `007febcc` | `00 24 00 90` | adrp x0,0xc7e000 | `FALL_THROUGH`
+<a id="insn-007febd0"></a> `007febd0` | `00 80 32 91` | add x0,x0,#0xca0 | `FALL_THROUGH`
+<a id="insn-007febd4"></a> `007febd4` | `c0 03 5f d6` | ret | `TERMINATOR`
+
+## 基本ブロックと分岐先
+
+- ブロック [`007febcc`](#insn-007febcc) 範囲 `[['007febcc', '007febd7']]`
+
+## 命令位置別の参照
+
+- [`007febd0`](#insn-007febd0) → `00c7eca0`（関数外または未収録） · `DATA` · `ANALYSIS` · 関数 `None` · 推定シンボル `None` · 推定型 `pointer __((offset(0x10)))`
+
+## 読み取り専用データの取得範囲
+
+Ghidraが定義した境界から先頭32バイトまで取得。型は推定値です。ポインタ、再配置、書込可能領域は取得理由を別記します。
+
+## 読み取り専用データ
+
+- 参照命令 [`007febd0`](#insn-007febd0)
+
+~~~json
+{
+  "source": "007febd0",
+  "target": "00c7eca0",
+  "target_space": "ram",
+  "resolution": "defined_data",
+  "start": "00c7eca0",
+  "offset": 0,
+  "size": 8,
+  "datatype": "pointer __((offset(0x10)))",
+  "capture_state": "pointer_requires_relocation_and_runtime_resolution"
+}
 ~~~
