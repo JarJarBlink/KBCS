@@ -1,4 +1,5 @@
 ﻿import json
+import gzip
 import os
 import shutil
 import tempfile
@@ -9,6 +10,7 @@ from indexer.ci import REPO, RESEARCH, acquire_input, public_only, publish_workt
 from indexer.ci_delivery import checkpoint_key, restore_completed, stage_materials
 from indexer.ci_structure import asset_record, deliver_asset, get_asset, structure_asset_name, structure_checkpoint
 from indexer.network import gh_json
+from indexer import migration_delivery
 from indexer.reference import reference_path
 from indexer.store import LOCAL, digest, read_json, reference_signature, write_json
 from indexer.tracking_migration import staging_branch, window_key
@@ -82,12 +84,31 @@ def verify_result(database, config_id):
     return result
 
 
+def pack_database(database, archive):
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    with database.open('rb') as source, archive.open('wb') as target:
+        with gzip.GzipFile(filename='', mode='wb', fileobj=target, compresslevel=1, mtime=0) as compressed:
+            shutil.copyfileobj(source, compressed, length=4 * 1024**2)
+
+
+def unpack_database(archive, database):
+    budget = shutil.disk_usage(database.parent).free - 512 * 1024**2
+    count = 0
+    with gzip.open(archive, 'rb') as source, database.open('wb') as target:
+        while chunk := source.read(4 * 1024**2):
+            count += len(chunk)
+            if count > budget:
+                raise OSError('Insufficient runner disk to restore the tracking database')
+            target.write(chunk)
+
+
 def publish_tracking(tag, publish, *, regenerate=False):
     import subprocess
 
     public_only()
     branch, expected = os.environ.get('MIGRATION_BRANCH', ''), os.environ.get('EXPECTED_WINDOW', '')
-    if branch or expected:
+    base = os.environ.get('MIGRATION_BASE', '')
+    if branch or expected or base:
         if not (regenerate and publish and staging_branch(branch) and expected):
             raise ValueError('Migration requires a staging branch, a window hash and a published references replay')
     branch = branch or 'main'
@@ -95,9 +116,12 @@ def publish_tracking(tag, publish, *, regenerate=False):
     with tempfile.TemporaryDirectory(prefix='ci-tracking-', dir=LOCAL) as temporary:
         root = Path(temporary)
         cache = root / 'cache'
-        data, identity = restore_completed(tag, cache)
-        revision = identity['analysis_revision']
+        _, _, revision = checkpoint_key(tag)
         work = reference_worktree(revision + '-tracking', branch) if publish else None
+        if base and migration_delivery.check_step(work, base, branch, tag, expected):
+            migration_delivery.advance(work, base, branch)
+            return
+        data, identity = restore_completed(tag, cache)
         reference = work / 'research/reference' if work else None
         revision_sha = subprocess.check_output(['git', '-C', str(work), 'rev-parse', 'HEAD'], text=True).strip() if work else None
         manifest_path = reference / reference_path(identity) / 'manifest.json' if work else None
@@ -134,6 +158,8 @@ def publish_tracking(tag, publish, *, regenerate=False):
                     write_json(manifest_path, read_json(manifest_path) | {'migration_window': expected})
                 publish_worktree(work, f'Publish native tracking state {revision}',
                                  ('research/reference', 'research/comparisons'), branch=branch)
+                if base:
+                    migration_delivery.advance(work, base, branch)
             print('No earlier published reference for this ABI', flush=True)
             return
         java_home = Path(os.environ['JAVA_HOME'])
@@ -149,20 +175,24 @@ def publish_tracking(tag, publish, *, regenerate=False):
             datasets.append({'cache': source, 'identity': version, 'archive': archive, 'metrics': metrics})
         decisions = RESEARCH / 'comparisons/decisions'
         config_id, _ = tracking.configuration(datasets, decisions)
-        name = f'native-tracking-{config_id}.sqlite'
+        name = f'native-tracking-{config_id}.sqlite.gz'
         assets = root / 'delivery'
-        database = get_asset(tag, name, assets)
-        if database is None:
+        archive = get_asset(tag, name, assets)
+        database = assets / name.removesuffix('.gz')
+        if archive is None:
             datasets = [tracking.load_dataset(entry['cache'], binary(number), entry['archive'], entry['metrics'])
                         for number, entry in enumerate(datasets)]
-            generated = tracking.build(datasets, LOCAL / 'tracking', decisions=decisions)
-            database = assets / name
-            assets.mkdir(exist_ok=True)
-            shutil.copyfile(generated, database)
+            database = tracking.build(datasets, LOCAL / 'tracking', decisions=decisions)
+        else:
+            unpack_database(archive, database)
         result = verify_result(database, config_id)
         print(json.dumps({'window': [entry[1]['version'] for entry in entries],
                           'cycles': result['cycles'], 'seconds': result['seconds']}, ensure_ascii=False), flush=True)
         if publish:
+            if archive is None:
+                archive = assets / name
+                pack_database(database, archive)
+                deliver_asset(tag, archive)
             asset_url = f'https://github.com/{REPO}/releases/download/{tag}/{name}'
             destination = work / 'research/comparisons' / identity['architecture'] / result['run']
             tracking_pages.render(database, work, destination, asset_url)
@@ -172,6 +202,7 @@ def publish_tracking(tag, publish, *, regenerate=False):
             if expected:
                 write_json(manifest_path, read_json(manifest_path) | {'migration_window': expected})
             print(json.dumps({'v3_publication_check': report}, ensure_ascii=False), flush=True)
-            deliver_asset(tag, database)
             publish_worktree(work, f'Publish native tracking window {result["run"]}',
                              ('research/reference', 'research/comparisons'), branch=branch)
+            if base:
+                migration_delivery.advance(work, base, branch)
