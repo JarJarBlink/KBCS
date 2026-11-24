@@ -2,15 +2,15 @@
 
 ## 呼出しと責務
 
-`build.yml` のprepareが版とソースSHAを確定する。UI回帰チェックはprepareと並列。公開用Python試験はprepareで、PR等ではchecksで実行し、共通試験をOSごとに繰り返さない。prepareは版・lock・README・説明だけを変更するため、UIチェックは開始SHA、各OSのビルドと公開はprepare.outputs.commitを使う。
+`build.yml` は手動実行（`workflow_dispatch`）のみ。オリジナルリポジトリの `main` または `kbcs-v` タグを指定すると、prepareが配布版とソースSHAを確定する。UI回帰チェックはprepareと並列。公開用Python試験はprepareで、ビルドだけの手動実行ではchecksで実行する。prepareは版・lock・README・説明だけを変更するため、UIチェックは開始SHA、各OSのビルドと公開はprepare.outputs.commitを使う。
 
-`build`はmatrixから`build-platform.yml`を呼ぶ。Windows、Apple Silicon、Intelごとにbuild → publishが独立し、他OSの成功・終了を待たない。fail-fast=falseで一つの失敗から他OSを中断しない。各buildはread権限、公開jobだけがwrite権限を使う。呼出し元は再利用workflowへwriteを渡すが、fork PRのtokenはGitHubによりreadへ制限され、PRの公開条件もfalseになる。
+`build`はmatrixから`build-platform.yml`を呼ぶ。Windows、Apple Silicon、Intelごとにbuild → publishが独立し、他OSの成功・終了を待たない。fail-fast=falseで一つの失敗から他OSを中断しない。各buildはread権限、公開jobだけがwrite権限を使う。呼出し元は再利用workflowへwriteを渡す。
 
 採番はprepare-release.pyのselect_version。X.Y.Zの数値順でkbcs-vタグだけを比較する。入力なしでCargoが最新タグと同じ版ならpatch+1、未公開の予約版なら維持。明示版はCargo以上・既存タグより新しい版だけを許可する。workspace memberのCargo.lockだけを書き換える。README・日本語の説明はUTF-8 BOM。説明の自動生成は存在しない場合のみで、全OS成功という未確認の記述や、まだ存在しない配布物へのリンクを作らない。
 
-prepareは開始SHAとremote mainを比較し、github-actions[bot]のコミットをfast-forwardでpushする。同じ開始SHAを親に持つKBCS-Release-Sourceトレーラー付きbotコミットは再実行で再利用する。それ以上mainが進んでいれば古い実行を止める。元イベントのGITHUB_SHAと採番コミットは異なるため、package.pyのgit HEADと公開jobのKBCS_RELEASE_COMMITを一致させる。タグ指定では採番せずCargoとの一致を確認する。PR・他ブランチ・forkは公開しない。
+prepareは開始SHAとremote mainを比較し、github-actions[bot]のコミットをfast-forwardでpushする。同じ開始SHAを親に持つKBCS-Release-Sourceトレーラー付きbotコミットは再実行で再利用する。それ以上mainが進んでいれば古い実行を止める。元イベントのGITHUB_SHAと採番コミットは異なるため、package.pyのgit HEADと公開jobのKBCS_RELEASE_COMMITを一致させる。タグ指定では採番せずCargoとの一致を確認する。他ブランチやforkの手動実行はビルド成果物を作成する。
 
-GITHUB_TOKENのpushは新たなpush workflowを起動しないため、同じrunで採番・ビルド・公開を完了する。[GitHubのイベント規則](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)。
+採番時のpushとタグ作成を含め、手動起動した同じrunで配布まで進める。
 
 ## ビルド時間と失敗対策
 

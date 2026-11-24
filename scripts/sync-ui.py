@@ -14,7 +14,7 @@ for name,key in [('compile.mjs','compilerSha256'),('castles.mjs','castlesSha256'
         raise SystemExit('敵の解釈元が変更されています。enemy-fields.jsonとRust変換器を確認してください。')
 if hashlib.sha256((lab/'icons.mjs').read_bytes()).hexdigest()!=enemy_definitions['iconsSha256']:
     raise SystemExit('特性アイコンの対応元が変更されています。property-icons.jsonを確認してください。')
-queue=['src/app/main.js','src/features/units/search.js','src/features/units/growth.js','src/features/units/combo-builder.js','src/features/enemies/search.js','src/features/enemies/detail.js','src/features/enemies/style.css','src/shared/ui/site.css','src/features/units/style.css','src/features/stages/search.js','src/features/stages/view.js','src/features/stages/style.css']
+queue=['src/app/main.js','src/features/units/search.js','src/features/units/growth.js','src/features/units/combo-builder.js','src/features/enemies/search.js','src/features/enemies/detail.js','src/features/enemies/style.css','src/shared/ui/site.css','src/features/units/style.css','src/features/stages/search.js','src/features/stages/view.js']
 # ステージDBのページと表示モデルはKBCS側で保守し、共通の依存だけ同期する。
 stage_modules={'src/features/stages/'+name+'.js' for name in ['search','view','model']}
 local_dependencies={'simulation-profile.js','simulation-store.js','effect-support.js'}
