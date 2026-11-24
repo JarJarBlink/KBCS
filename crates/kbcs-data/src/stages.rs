@@ -1,4 +1,4 @@
-use crate::{
+﻿use crate::{
     model::{csv_rows, numeric_rows},
     store::Database,
 };
@@ -57,6 +57,7 @@ pub(super) fn rows(bytes: &[u8], columns: Option<usize>) -> Result<Vec<Row>> {
 mod extras;
 mod importer;
 mod rewards;
+mod sources;
 pub(crate) use importer::import;
 
 fn series_label(series: &str) -> &str {
@@ -497,7 +498,11 @@ fn catalog_selection(
         map["abyss"] = json!(values.get(2) == Some(&1));
         map["hiddenAfterClear"] = json!(values.get(14).is_some_and(|v| *v > 0));
     }
-    for (map, range) in maps.iter().zip(stage_ranges) {
+    for (map, range) in maps.iter_mut().zip(stage_ranges) {
+        let map_stages = &mut stages[range];
+        if selected.is_some() && !summary {
+            sources::detail_sources(database, map, map_stages);
+        }
         let flags = [
             (
                 map["rules"].as_array().is_some_and(|v| !v.is_empty()),
@@ -520,7 +525,7 @@ fn catalog_selection(
         ];
         let materials = map.pointer("/materials/items").and_then(Value::as_array);
         let series = map["series"].as_str().unwrap_or("");
-        for stage in &mut stages[range] {
+        for stage in map_stages {
             for (active, flag) in flags {
                 if active {
                     add_flag(stage, flag, true)?;
@@ -621,6 +626,15 @@ pub fn variant(
     for (key, v) in definition.as_object().context("戦闘定義不正")? {
         stage[key] = v.clone();
     }
+    let header_count = if stage["rawSettings"]
+        .as_array()
+        .is_some_and(|row| !row.is_empty())
+    {
+        2
+    } else {
+        1
+    };
+    stage["battleSourceRows"] = sources::battle_source_rows(database, path, header_count);
     let dynamic = [
         "missing",
         "noContinue",

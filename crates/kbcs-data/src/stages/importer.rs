@@ -1,4 +1,4 @@
-﻿use super::{Row, number, rows};
+﻿use super::{Row, number, rows, sources::map_option_rows};
 use crate::{
     import::read_asset,
     model::{csv_rows, plain_text},
@@ -210,7 +210,7 @@ pub(crate) fn import(
         .into_iter()
         .filter_map(|r| Some((r.first()?.parse().ok()?, plain_text(r.get(1)?))))
         .collect();
-    let options = rows(&load("Data/Map_option.csv")?, Some(19))?;
+    let (_, options) = map_option_rows(&load("Data/Map_option.csv")?)?;
     let limits = rows(&load("Data/Stage_option.csv")?, Some(9))?;
     let difficulties: BTreeMap<i64, Vec<Option<f64>>> =
         if dataset.files.contains_key("Data/difficulty_level.tsv") {
