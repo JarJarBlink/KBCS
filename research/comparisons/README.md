@@ -1,9 +1,12 @@
 ﻿# ネイティブ関数の追跡資料
 
-- [arm64-v8a/26e7a8de0a7ec87003e6aefa](arm64-v8a/26e7a8de0a7ec87003e6aefa/README.md)
-- [arm64-v8a/3592e49aae228b6db87210dc](arm64-v8a/3592e49aae228b6db87210dc/README.md)
-- [arm64-v8a/648ae6f970369597a09542a0](arm64-v8a/648ae6f970369597a09542a0/README.md)
-- [arm64-v8a/9a70ab56d42846316c9fe233](arm64-v8a/9a70ab56d42846316c9fe233/README.md)
-- [arm64-v8a/a05f9f4f481ae994718c5500](arm64-v8a/a05f9f4f481ae994718c5500/README.md)
-- [arm64-v8a/fa9cbdc8303e1b3a86470d44](arm64-v8a/fa9cbdc8303e1b3a86470d44/README.md)
-- [arm64-v8a/c6e4dfc940403d119ed8b991](arm64-v8a/c6e4dfc940403d119ed8b991/README.md)
+## 現行の隣接公開版
+
+- [v15.7.2 → v15.7.3 · arm64-v8a](arm64-v8a/a3b91f0e1be9445c739dcadd/0-1/README.md)
+- [v15.7.3 → v15.7.4 · arm64-v8a](arm64-v8a/af8902ef9a3f2de12eeaa7fe/0-1/README.md)
+- [v15.7.4 → v16.0.0 · arm64-v8a](arm64-v8a/9801c0f5b635b1292885b4ed/0-1/README.md)
+- [v16.0.0 → v16.0.1 · arm64-v8a](arm64-v8a/6bf8de28d08f0f4f0e3c832d/0-1/README.md)
+- [v16.0.1 → v16.0.2 · arm64-v8a](arm64-v8a/d102850eb939af4f4bb0eaf5/0-1/README.md)
+- [v16.0.2 → v16.0.3 · arm64-v8a](arm64-v8a/d102850eb939af4f4bb0eaf5/1-2/README.md)
+
+[過去の比較区間](archive.md)

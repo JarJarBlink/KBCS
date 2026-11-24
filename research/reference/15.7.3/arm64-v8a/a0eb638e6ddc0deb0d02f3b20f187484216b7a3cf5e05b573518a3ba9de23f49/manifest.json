@@ -5,30 +5,55 @@
   "library": "libnative-lib.so",
   "ghidra": "12.1.2",
   "analysis_revision": "45565ee9c155ae02",
-  "pages": 25650,
-  "page_bytes": 82598383,
-  "max_page_bytes": 535374,
+  "pages": 25770,
+  "page_bytes": 664410908,
+  "max_page_bytes": 1048747,
   "cached": 25229,
   "failed": 0,
   "external": 292,
   "low_confidence": 2,
+  "disassembled": 24937,
+  "structure_unavailable": 292,
+  "instruction_count": 1841415,
+  "instruction_bytes": 7365660,
+  "legacy_boundary_unverified": 25229,
+  "structure_functions": 25229,
+  "structure_extra_functions": 0,
+  "verified_links": 3697755,
   "source_database_sha256": "63cda1a35f6b965f2efc20b1e0908da969835bdc4effcd267bf799128180ec90",
+  "source_index_sha256": "9eeac47a5a7cd53989492c2526397d7ba0f5d6222cdbd2164094213a89324db2",
   "functions": 25521,
+  "source_structure_sha256": "449854502ea2c7f77bcd0241c76024a60f76932cb1121cabca1d209f63d2a70a",
+  "reference_policy": "native-reference-v1",
+  "structure_provenance": "receipt_verified",
+  "structure_unavailable_reasons": {
+    "instruction_coverage_mismatch": 292
+  },
   "page_limit_bytes": 104857600,
   "format": 2,
+  "generator_signature": "92cb62eaf6b45a3db80d2de158c85335a0e89851dc3e60a0d00242cab999e361",
   "source_archive_sha256": "de22401e517e0a5822d4ccecf3535bda4eef4fef15d8b6812078cf5ff34243e9",
   "source_version_code": 1507030,
   "comparison_state": "complete",
-  "tracking_format": 2,
-  "tracking_policy": "observed-effects-v1",
-  "tracking_run": "fa9cbdc8303e1b3a86470d44",
-  "tracking_page": "research/comparisons/arm64-v8a/fa9cbdc8303e1b3a86470d44/README.md",
+  "tracking_format": 3,
+  "tracking_navigation_format": 2,
+  "tracking_policy": "audited-interval-correspondence-v3",
+  "tracking_run": "af8902ef9a3f2de12eeaa7fe",
+  "validation_state": "validated",
+  "tracking_page": "research/comparisons/arm64-v8a/af8902ef9a3f2de12eeaa7fe/README.md",
   "tracking_sources": [
+    {
+      "version": "15.7.2",
+      "architecture": "arm64-v8a",
+      "sha256": "6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea",
+      "analysis_revision": "5ed057380ac853a2"
+    },
     {
       "version": "15.7.3",
       "architecture": "arm64-v8a",
       "sha256": "a0eb638e6ddc0deb0d02f3b20f187484216b7a3cf5e05b573518a3ba9de23f49",
       "analysis_revision": "45565ee9c155ae02"
     }
-  ]
+  ],
+  "migration_window": "d4fdb16a32193f892c802225cd920181b95b024ef7a7b3bf35256d1e77206e8e"
 }
