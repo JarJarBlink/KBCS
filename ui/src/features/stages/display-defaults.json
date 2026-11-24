@@ -410,12 +410,6 @@
       "visibility": "always",
       "width": "full"
     },
-    "enemy.boss": {
-      "label": "ボス判定",
-      "order": 35,
-      "visibility": "whenActive",
-      "width": "full"
-    },
     "enemy.multipliers": {
       "label": "倍率\n（体力／攻撃）",
       "order": 40,

@@ -201,13 +201,18 @@ const fields=[
 
 const enemyField=(key,get,options)=>field('enemy',key,get,{layout:'column',...options});
 const enemyLink=(row,text,label)=>row.url?'<a href="'+esc(row.url)+'"'+(label?' aria-label="'+esc(label)+'"':'')+'>'+text+'</a>':text;
+function spawnIcon(row,{enemies}){
+  const {enemy,spawn}=row;
+  if(!enemy&&!spawn.boss)return state('missing');
+  const image=enemy?enemyImageHtml(enemies,enemy,36):'—';
+  const icon=spawn.boss?'<span class="stage-spawn-portrait">'+image+'<span class="stage-boss-mark">Boss</span></span>':image;
+  return html(enemyLink(row,icon,enemy?enemy.name+'の詳細'+(spawn.boss?'（ボス）':''):''));
+}
 fields.push(
   enemyField('id',({spawn})=>numeric(spawn.enemy)),
-  enemyField('icon',(row,{enemies})=>row.enemy?html(enemyLink(row,enemyImageHtml(enemies,row.enemy,36),row.enemy.name+'の詳細')):state('missing')),
+  enemyField('icon',spawnIcon),
   enemyField('name',row=>row.enemy?html(enemyLink(row,esc(row.enemy.name))):state('missing')),
   enemyField('attributes',(row,{enemies})=>row.enemy?html('<div class="enemy-properties">'+enemyAttributesHtml(enemies,row.enemy)+'</div>'):state('outside')),
-  enemyField('boss',({spawn,startsAsCastle})=>spawn.boss?
-    value('ボス / '+(startsAsCastle?'初回フレームに衝撃波':'0F後に衝撃波')):state('outside')),
   enemyField('multipliers',({spawn})=>value(pc(spawn.health)+(spawn.attack!==spawn.health?'/'+pc(spawn.attack):'')),{wrapHeading:true}),
   enemyField('count',({spawn})=>value(spawn.count===0?'無制限':spawn.count)),
   enemyField('gate',({spawn},{stage})=>value(stage.damageCondition?number(spawn.castle)+'以上':pc(spawn.castle)+'以下')),
@@ -232,11 +237,10 @@ export function enemyColumns(display,context){
 }
 export function enemyRecords(context){
   const {stage,map,crown,enemies,settings,stats,enemyStatus}=context;
-  const castle=stage.spawns.find(spawn=>spawn.enemy===stage.enemyCastle);
   return stage.spawns.map(original=>{
     const spawn=effectiveSpawn(original,map,crown),enemy=enemies.enemies[spawn.enemy];
     const summary=stats&&enemy&&enemyStatus==='ready'?calculateEnemyStats(enemy,stageEnemySettings(original,map,crown,settings)):null;
-    return {original,spawn,enemy,startsAsCastle:original===castle,stats:summary,url:enemy?stageEnemyDetailUrl(enemy,original,map,crown):''};
+    return {original,spawn,enemy,stats:summary,url:enemy?stageEnemyDetailUrl(enemy,original,map,crown):''};
   });
 }
 
