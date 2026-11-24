@@ -15,10 +15,11 @@ async function renderSvgImage(svg,images,zoom=1) {
   try{const image=await loadImage(url),canvas=document.createElement('canvas');canvas.width=Math.ceil(rect.width*2);canvas.height=Math.ceil(rect.height*2);canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);return {url:canvas.toDataURL('image/png'),width:rect.width,height:rect.height};}
   finally{URL.revokeObjectURL(url);}
 }
-export async function saveElementImage(target,filename) {
+export async function saveElementImage(target,filename,{expandScroll}={}) {
   if(!target||!target.getClientRects().length)throw Error('保存する表示を開いてください。');
   const {default:html2canvas}=await import('/vendor/html2canvas.js');
   const shell=target.closest('.site-shell'),zoom=shell?Number(getComputedStyle(shell).zoom)||1:1,layoutWidth=shell?.offsetWidth;
+  const expandedWidth=expandScroll?Math.max(0,...[...target.querySelectorAll(expandScroll)].map(node=>node.scrollWidth-node.clientWidth)):0;
   const include=node=>{
     const closed=node.closest('details:not([open])');
     return !node.closest('[data-capture-exclude="'+CSS.escape(target.id)+'"]')&&(!closed||node.closest('summary')?.parentElement===closed);
@@ -32,6 +33,10 @@ export async function saveElementImage(target,filename) {
   const canvas=await html2canvas(target,{scale:2,useCORS:true,backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim(),logging:false,ignoreElements:node=>node.tagName==='BUTTON'&&!node.hasAttribute('data-capture-include')||node.getAttribute('data-capture-exclude')===target.id,onclone:document=>{
     const clone=document.getElementById(target.id);
     const shell=clone.closest('.site-shell');if(shell){shell.style.zoom='1';shell.style.width=layoutWidth+'px';}
+    if(expandedWidth>0){
+      clone.style.width=target.offsetWidth+expandedWidth+'px';
+      for(const scroll of clone.querySelectorAll(expandScroll)){scroll.style.overflow='visible';scroll.scrollLeft=0;}
+    }
     // html2canvasが閉じたdetailsの内容を重ねて描くため、保存用の複製で明示的に隠す。
     for(const details of clone.querySelectorAll('details:not([open])'))for(const child of details.children)if(child.tagName!=='SUMMARY')child.style.setProperty('display','none','important');
     for(const image of clone.querySelectorAll('img')){const data=images.get(image.currentSrc||image.src);if(data)image.src=data.url;}

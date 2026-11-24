@@ -168,8 +168,6 @@ body:has(.workspace) { height:100dvh; min-height:0; overflow:hidden; background:
 .workspace-stage-list [aria-current="page"] { color:var(--color-accent); background:var(--color-surface); border-left:2px solid var(--color-accent); }
 .stage-native-source { margin-block:6px; border:1px solid var(--color-border); padding:4px; font-size:11px; }
 .stage-native-source code { overflow-wrap:anywhere; }
-#stage-detail-controls { display:grid; gap:10px; }
-#stage-crown button { display:grid; justify-items:center; font-size:10px; }
 .workspace .stage-page > .stage-heading { margin:0; }
 .workspace .stage-page #stage-title { font-size:14px; }
 .workspace-left #stage-filters .db-toolbar { display:flex; flex-wrap:wrap; align-items:center; }

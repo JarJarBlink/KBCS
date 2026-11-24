@@ -21,7 +21,7 @@ export function initializeWorkspace(){
   navigation.querySelector('[data-page-forward]').addEventListener('click',()=>history.forward());
   navigation.querySelector('[data-page-reload]').addEventListener('click',()=>location.reload());
   const page=location.pathname.split('/').filter(Boolean).at(-1)||'home';
-  const titles={'settings':'設定','inventory':'持ち物','stage-sortie':'出撃準備','formation':'キャラクター編成','stage-play':'ステージ Play','unit-motion':'キャラモーション','enemy-motion':'敵モーション','effect-motion':'その他モーション','unit-search':'キャラ検索','unit-detail':'キャラ詳細','tunit-search':'敵検索','tunit-detail':'敵詳細','stage-search':'ステージ検索','stage-detail':'ステージ詳細',home:'ホーム'};
+  const titles={'settings':'設定','inventory':'持ち物','stage-sortie':'出撃準備','formation':'キャラクター編成','stage-play':'ステージ Play','unit-motion':'キャラモーション','enemy-motion':'敵モーション','effect-motion':'その他モーション','unit-search':'キャラ検索','unit-detail':'キャラ詳細','tunit-search':'敵検索','tunit-detail':'敵詳細','stage-search':'ステージ検索','stage-detail':'ステージ詳細','display-settings':'DBの表示設定',home:'ホーム'};
   const title=titles[page]||main.querySelector('h1')?.textContent||'KBCS';
   let saved={};
   try{saved=JSON.parse(localStorage.getItem('kbcs:workspace')||'{}')||{};}catch{}
@@ -128,7 +128,6 @@ export function initializeWorkspace(){
     });
   }else if(page==='stage-detail'){
     move('#stage-navigation',left.content);
-    move('#stage-detail-controls',settingsGroup);
     move('#stage-message',information);
   }else if(page==='unit-motion'||page==='enemy-motion'||page==='effect-motion'){
     left.panel.querySelector('h2').textContent='モーション';

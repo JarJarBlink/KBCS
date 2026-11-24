@@ -100,6 +100,8 @@ Apple Silicon利用者から背景7/139/1057でQuery returned no rows、開始�
 
 ## 検索用のデータと詳細項目
 
+正式116列、旧CSV・旧DBの対応は[ステージ原列台帳 v3](stage-columns-v3.md)を参照。
+
 `stages::search_index` は既存カタログと同じ集計から一覧・絞り込みに使う属性だけを返す。検索と詳細のAPIは同じ冠・報酬・出現定義を読む。集計は同一マップのステージ範囲を使い、報酬定義はIDごとに取得する。`view::search_index` は同一の成長曲線を共有し、詳細専用の説明や進化条件を省く。キャラ詳細の攻撃段別データは `attack` の発生F、特性フラグ、範囲を使う。
 
 マップ詳細の報酬リセット方式は `Map_option.csv` の0始まりの列8。列9はクリア可能回数、列11は分単位のインターバル、列14はクリア後の非表示設定。方式1はS436、方式2はS384・S411・C216〜219を、対応する更新ページと保存データで照合した。方式3は詳細を確定できていないため番号と未確認の表示を残す。表示に使う値はローカルDB由来。［[Ver.16.0の更新情報](https://bc-event.pages.dev/update/)・[Ver.15.7の更新情報](https://bc-event.pages.dev/update/150700)・[JDBのマップ設定CSV](https://jarjarblink.github.io/JDB/static/data/DataLocal/Map_option.csv)］
