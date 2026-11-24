@@ -136,8 +136,8 @@ body:has(.workspace) { height:100dvh; min-height:0; overflow:hidden; background:
 @media (max-width:900px) { .workspace .site-nav { margin-left:0; gap:8px; } .workspace .site-header { gap:6px; } }
 /* 注釈用の狭いサイド画面では、パネルを重ねて中央を潰さない。 */
 @media (max-width:799px) {
-  .workspace-body { grid-template-columns:minmax(0,1fr); }
-  .workspace-editor { grid-column:1; grid-row:1; }
+  .workspace-body { grid-template-columns:auto minmax(0,1fr) auto; }
+  .workspace-editor { grid-column:2; grid-row:1; }
   .workspace-panel { position:absolute; grid-area:auto; top:0; bottom:0; z-index:5; max-width:calc(100% - 36px); box-shadow:0 0 12px #0006; }
   .workspace-left { left:0; width:var(--workspace-left); border-right:1px solid var(--color-border); }
   .workspace-right { right:0; width:var(--workspace-right); border-left:1px solid var(--color-border); }
@@ -168,7 +168,6 @@ body:has(.workspace) { height:100dvh; min-height:0; overflow:hidden; background:
 .workspace-stage-list [aria-current="page"] { color:var(--color-accent); background:var(--color-surface); border-left:2px solid var(--color-accent); }
 .stage-native-source { margin-block:6px; border:1px solid var(--color-border); padding:4px; font-size:11px; }
 .stage-native-source code { overflow-wrap:anywhere; }
-.workspace .stage-page > .stage-heading { margin:0; }
 .workspace .stage-page #stage-title { font-size:14px; }
 .workspace-left #stage-filters .db-toolbar { display:flex; flex-wrap:wrap; align-items:center; }
 .workspace-left #stage-filters input[type=search] { width:100%; min-width:0; }
@@ -205,6 +204,11 @@ body:has(.workspace) { height:100dvh; min-height:0; overflow:hidden; background:
 .workspace-edge-left{grid-column:1;border-right:1px solid var(--color-border)}
 .workspace-edge-right{grid-column:5;border-left:1px solid var(--color-border)}
 .workspace-edge[hidden]{display:none}.workspace-edge:hover{color:var(--color-text);background:var(--color-control)}
+@media (max-width:799px){.workspace-edge-right{grid-column:3}}
+@media (max-width:420px){
+  .site-shell.workspace{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .workspace .site-header{flex-wrap:wrap;min-width:0;min-height:36px}
+}
 
 /* 編成の浮遊画像は左右ペイン・中央SVGのクリップより外側へ描く。 */
 .formation-native{touch-action:none;user-select:none}

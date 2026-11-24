@@ -9,9 +9,16 @@ const bonusRows=(context,rows,condition)=>rows.map(reward=>[item(context,reward)
 const rewardGroup=rows=>({rows,active:true});
 const field=(id,get,layout='row')=>({id:'reward.'+id,group:'reward',get,layout,fullOnly:true});
 
+function radarRefundOnly(stage){
+  const [reward]=stage.drops;
+  // 比較値0は通常抽選では当選しない。レーダーで当選した場合はID 1を1個受け取る。
+  return stage.drops.length===1&&stage.rewardMode===-1&&reward.kind==='normal'&&reward.weight===0&&reward.id===1&&reward.count===1;
+}
+
 const trackingNames={crown:'先頭報酬を冠ごとに記録',shared:'先頭報酬の記録を全冠で共有',ownership:'先頭報酬の所持・解放状態を参照',history:'初回の重み抽選履歴を記録',none:'取得済み記録による制限なし'};
 function rewardPolicy(context){
   const {stage,crown}=context;
+  if(radarRefundOnly(stage))return value('トレジャーレーダー返還用',false);
   if(!stage.drops.length)return state(stage.metadataRow?'inactive':'missing');
   if(!Number.isInteger(stage.rewardMode))return state('missing');
   const policy=context.calculation?.policy;
@@ -43,6 +50,7 @@ export const rewardFields=[
   field('drops',context=>{
     const {stage,detail}=context;
     if(!stage.drops.length)return stage.metadataRow>0||stage.rawRewards?.length?state('inactive'):state('missing');
+    if(radarRefundOnly(stage))return value('なし。トレジャーレーダー返還あり。');
     return rewardGroup(stage.drops.map(reward=>{
       const condition=reward.chance!=null?percent(reward.chance):
         reward.kind==='weight'&&Number.isFinite(reward.weight)?(detail?'重み '+number(reward.weight)+' / ':'')+'重み抽選（入手確率未確認）':

@@ -40,7 +40,9 @@ export function sheetRows(fields,context,{detail=false,source=false}={}){
   flush();return rows;
 }
 
-export function sheetTable(label,rows){return '<table class="data-sheet" aria-label="'+escapeHtml(label)+'">'+sheetColumns+'<tbody>'+rows+'</tbody></table>';}
+export function sheetTable(label,rows,{heading=''}={}){
+  return '<table class="data-sheet" aria-label="'+escapeHtml(label)+'">'+sheetColumns+(heading?'<thead>'+heading+'</thead>':'')+'<tbody>'+rows+'</tbody></table>';
+}
 
 export function columnTable(label,fields,records,context,{detail=false,source=false}={}){
   const columns=fields.flatMap(setting=>{
@@ -51,6 +53,6 @@ export function columnTable(label,fields,records,context,{detail=false,source=fa
   });
   if(!columns.length||!records.length)return '';
   return '<div class="data-sheet-scroll" tabindex="0" role="region" aria-label="'+escapeHtml(label)+'"><table class="data-sheet data-sheet-columns" aria-label="'+escapeHtml(label)+'"><thead><tr>'+
-    columns.map(({setting})=>'<th scope="col" class="'+fieldClass(setting)+'">'+fieldLabel(setting)+fieldDescription(setting)+'</th>').join('')+'</tr></thead><tbody>'+
+    columns.map(({setting})=>'<th scope="col" class="'+fieldClass(setting)+(setting.field.wrapHeading?' data-sheet-wrap-heading':'')+'">'+fieldLabel(setting)+fieldDescription(setting)+'</th>').join('')+'</tr></thead><tbody>'+
     records.map((_,index)=>'<tr>'+columns.map(({setting,values})=>'<td class="'+fieldClass(setting)+'">'+fieldContent(values[index])+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
 }

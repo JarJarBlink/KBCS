@@ -61,7 +61,7 @@
 | `map.header[3]` | `mapDisplayConditionId` | B | map.conditions | map.displayConditions |
 | `map.header[4]` | `mapEntryConditionId` | B | map.conditions | map.entryConditions |
 | `map.header[5]` | `requiredUserRank` | B | map.rawHeaders[0][5] | map.rank |
-| `map.header[6]` | `declaredSortieCostTypeCode` | C | map.rawHeaders[0][6] | map.costCode |
+| `map.header[6]` | `declaredSortieCostTypeCode` | C | map.rawHeaders[0][6] | map.costCode, stage.energy |
 | `map.pattern[0]` | `mapPatternCode` | B | map.rawHeaders[1][0] | map.pattern |
 | `map.stage[0]` | `sortieCostRaw` | B | stage.energy | stage.energy |
 | `map.stage[1]` | `baseXp` | A | stage.xp | stage.xp, stage.baseXp |
@@ -133,7 +133,7 @@
 | `map.options[10]` | `displaySortKey` | A | map.rawOptions[10] | map.sort |
 | `map.options[11]` | `mapCooldownMinutes` | A | map.interval | map.cooldown |
 | `map.options[12]` | `challengeEntryTrackingFlag` | B | map.rawOptions[12] | map.entryTracking |
-| `map.options[13]` | `mapDifficultyBadgeMask` | A | map.rawOptions[13] | map.badges |
+| `map.options[13]` | `mapDifficultyBadgeMask` | A | map.rawOptions[13] | map.badges, map.difficulty, stage.difficulty |
 | `map.options[14]` | `hideAfterClearFlag` | B | map.hiddenAfterClear | map.hideAfterClear |
 | `map.options[15]` | `doubleXpAdEligibilityFlag` | A | map.rawOptions[15] | map.ad |
 | `map.options[16]` | `productionPriceMultiplierPercent` | A | map.rawOptions[16] | map.price |
@@ -145,6 +145,6 @@
 ## 動作検証の境界
 
 - 味方死亡数閾値の取得・表示までを扱う。死亡数を増やす全命令・例外は未検証。待機保持の原値を保持し、時間の起点を追加解釈しない。
-- 消費資源コードは宣言値。レジェンド系列の通常経路を表示し、その他の支払資源は原値と未確認表示を使う。ネコビタン等の強制上書き、確定済み支払関数の網羅照合は残課題。
+- JP 15.7.4 ARM64（SO SHA-256 `669438f86b41c10c7a387b96eb1ab5ca82a350bacc89ec06c05f699ec3727590`）の `009a3a30` がヘッダー列6を種別・マップ別の表へ登録し、`007cffdc` が非0をアイテム消費経路と判定する。種別−10（B系列）はヘッダーに関係なくアイテム経路で、`007d00d0` は商をネコビタン種別0～2として解決する。通常アイテムの商はアイテムID。両方とも `007d0208`・`007d02a0` が下3桁を個数として読む。S434の `259010`、`259030`、`259100` は伝説の札束10・30・100個、B000の `3` はネコビタンA 3個。ステージDBでは確認済みの通常経路にCSVの統率力を表示する。実出撃時の期間補正や支払い処理はこの表示の範囲外。
 - 追加冠解放と従来の abyss は別項目。難易度バッジはビット番号と原値を表示する。個別のバッジ名、入場履歴の保存先、拡張領域の永続化形式、報酬リセット方式3の詳細は引き続き未確認。全ステージ一覧表示やXP広告対象のフラグから実際の挑戦可否・報酬を断定しない。
 - 予約列9は対象版の主ローダーについての根拠に限る。EX・章・特殊系列の全報酬、キャラグループtype1、解放や保存のライフサイクルの同値性は本実装の検証範囲外。

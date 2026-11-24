@@ -30,17 +30,20 @@ function sourceBlock(rows,extra=''){
     (rows?sheetTable('元データ・計算内訳',rows):'')+extra+'</details>'):'';
 }
 export function stageMapSheet(context){
-  const {display,detail}=context;
+  const {display,detail,map}=context;
   const raw=display.source.filter(setting=>setting.field.id==='source.mapColumns');
   const options={detail,source:true};
+  const heading='<tr><th colspan="4"><div class="stage-sheet-heading"><h1 id="stage-title">'+esc(map.key+' '+map.name)+'</h1></div></th></tr>';
   return sheetTable('マップ情報',sheetRows(display.map,context,{detail})+
-    sourceBlock(sheetRows([...display.map,...raw],context,options),sheetRows(raw,context,{detail})?sheetTable('マップ設定の元データ',sheetRows(raw,context,{detail})):''));
+    sourceBlock(sheetRows([...display.map,...raw],context,options),sheetRows(raw,context,{detail})?sheetTable('マップ設定の元データ',sheetRows(raw,context,{detail})):''),{heading});
 }
 export function stageSheetParts(context){
-  const {display,stage,detail}=context;
+  const {display,stage,detail,sortieResource}=context;
+  const fields=display.stage.map(setting=>setting.field.id==='stage.energy'&&setting.label==='統率力'&&sortieResource!=='energy'?
+    {...setting,label:'出撃コスト'}:setting);
   const options={detail,source:true};
   const source=display.source.filter(setting=>setting.field.id!=='source.mapColumns');
-  const sourceRows=detail?sheetRows([...display.stage,...source],context,options):'';
+  const sourceRows=detail?sheetRows([...fields,...source],context,options):'';
   const sourceMedia=mediaHtml(context,true),sourceRewards=detail?rewardRows(display.reward,context,true):'';
   const records=stage.spawns.length?enemyRecords(context):[];
   const columns=enemyColumns(display,context);
@@ -53,7 +56,7 @@ export function stageSheetParts(context){
   const normalSource=sheetRows(source,context,{detail});
   return {
     heading:headingHtml(context),
-    basic:sheetRows(display.stage,context,{detail}),
+    basic:sheetRows(fields,context,{detail}),
     media:block?sheetRow(block):'',
     reward:rewardRows(display.reward,context),
     source:normalSource+sourceBlock(sourceRows,extra),
@@ -67,7 +70,7 @@ function replaceMarkup(target,html){
   if(markup.get(target)===html)return;
   const history=[...target.querySelectorAll('details')].map(node=>[node.querySelector('summary')?.textContent,node.open]);
   const focus=target.contains(document.activeElement)?document.activeElement:null;
-  const select=focus?.dataset.stagePattern,crown=focus?.dataset.crown;
+  const select=focus?.dataset.stagePattern,crown=focus?.dataset.crown,xp=focus?.matches('[data-stage-xp-settings]');
   const scrolls=[...target.querySelectorAll('.data-sheet-scroll')].map(node=>node.scrollLeft);
   target.innerHTML=html;
   markup.set(target,html);
@@ -76,7 +79,7 @@ function replaceMarkup(target,html){
     if(index>=0)node.open=history.splice(index,1)[0][1];
   }
   [...target.querySelectorAll('.data-sheet-scroll')].forEach((node,index)=>{node.scrollLeft=scrolls[index]??0;});
-  if(crown!=null||select!=null)target.querySelector(crown!=null?'[data-crown="'+crown+'"]':'[data-stage-pattern="'+select+'"]')?.focus({preventScroll:true});
+  if(crown!=null||select!=null||xp)target.querySelector(xp?'[data-stage-xp-settings]':crown!=null?'[data-crown="'+crown+'"]':'[data-stage-pattern="'+select+'"]')?.focus({preventScroll:true});
 }
 function memo(cache,key,run){
   if(cache.has(key))return cache.get(key);
@@ -118,10 +121,10 @@ function nativeJobs(context,visible,cache){
 }
 
 // 同じstageのメディアDOMは差し替えず、再生位置と編集中の表示状態を保つ。
-export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{},onMessage=()=>{}}={}){
+export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{},onXpSettings=()=>{},onMessage=()=>{}}={}){
   let current,revision=0;
   const cache=new Map(),enemyCache=new Map(),sheets=new Map();
-  const media=initializeStageMedia(root,id=>current?.visible.find(stage=>stage.id===id));
+  const media=initializeStageMedia(root,id=>current?.visible.find(stage=>stage.id===id),{preloadAudio:true});
   function draw(stage,context){
     let section=sheets.get(stage.id);
     if(!section){
@@ -177,6 +180,8 @@ export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{}
   root.addEventListener('click',async event=>{
     const crown=event.target.closest('[data-crown]');
     if(crown){onCrown(Number(crown.dataset.crown));return;}
+    const xp=event.target.closest('[data-stage-xp-settings]');
+    if(xp){onXpSettings(xp);return;}
     const button=event.target.closest('[data-stage-capture]');
     if(!button)return;
     const id=button.dataset.stageCapture,target=sheets.get(id),name=id+'-'+current.crown+'crown';

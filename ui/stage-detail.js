@@ -11,7 +11,11 @@ import {readPageParams,writePageParams} from './native-state.js';
 
 const element=id=>document.getElementById(id),params=readPageParams('stage-detail');
 const settings=readGameSettings(),message=text=>element('stage-message').textContent=text;
-let data,ledger,configuration,stages=[],selected=params.get('stage')??'',crown=1;
+const xpDialog=element('stage-xp-dialog'),xpForm=xpDialog.querySelector('form');
+const xpInputs={clears:element('stage-xp-clears'),combo:element('stage-xp-combo'),okame:element('stage-xp-okame')};
+const xpSettings={clears:Math.max(0,Math.min(2147483647,Math.trunc(Number(params.get('clears')))||0)),
+  combo:Math.max(0,Math.min(100,Math.trunc(Number(params.get('combo')))||0)),okame:Number(params.get('okame')==='true')};
+let data,ledger,configuration,stages=[],selected=params.get('stage')??'',crown=1,xpOrigin;
 const variantRequests=new Map();
 const sheets=mountStageSheets(element('stage-map-info'),element('stage-output'),{
   onCrown(value){crown=value;refresh();},
@@ -26,34 +30,39 @@ const sheets=mountStageSheets(element('stage-map-info'),element('stage-output'),
       await render();
     }finally{if(variantRequests.get(stage.id)===request)variantRequests.delete(stage.id);}
   },
+  onXpSettings(button){
+    xpOrigin=button.closest('.stage-display-entry');
+    xpInputs.clears.value=xpSettings.clears;xpInputs.combo.value=xpSettings.combo;xpInputs.okame.checked=Boolean(xpSettings.okame);
+    element('stage-xp-profile').textContent='勉強力Lv'+settings.studyLevel+' / お宝＋'+settings.studyTreasureBonus+'%';
+    xpDialog.showModal();
+  },
   onMessage:message,
 });
-element('stage-display-mode').value='basic';
-element('stage-time').value=params.get('time')||(settings.seconds?'seconds':'frames');
+element('stage-display-mode').checked=false;
+element('stage-time').checked=params.has('time')?params.get('time')==='frames':!settings.seconds;
 element('stage-enemy-stats').checked=params.get('enemyStats')==='true';
-for(const key of ['clears','combo'])element('stage-xp-'+key).value=Math.max(0,Math.min(key==='combo'?100:2147483647,Math.trunc(Number(params.get(key)))||0));
-element('stage-xp-okame').checked=params.get('okame')==='true';
+xpForm.addEventListener('submit',()=>{
+  Object.assign(xpSettings,{clears:xpInputs.clears.valueAsNumber,combo:xpInputs.combo.valueAsNumber,okame:Number(xpInputs.okame.checked)});
+  refresh();
+});
+xpDialog.addEventListener('close',()=>xpOrigin?.querySelector('[data-stage-xp-settings]')?.focus({preventScroll:true}));
 
 function saveState(){
-  const state=new URLSearchParams({crown:String(crown),stage:selected,time:element('stage-time').value,enemyStats:String(element('stage-enemy-stats').checked)});
-  for(const key of ['clears','combo'])state.set(key,element('stage-xp-'+key).value);
-  state.set('okame',String(element('stage-xp-okame').checked));
+  const state=new URLSearchParams({crown:String(crown),stage:selected,time:settings.seconds?'seconds':'frames',
+    enemyStats:String(element('stage-enemy-stats').checked),clears:String(xpSettings.clears),combo:String(xpSettings.combo),okame:String(Boolean(xpSettings.okame))});
   writePageParams('stage-detail',state);
 }
 function render(){
   const {map,database}=data,visible=selected===''?stages:stages.filter(stage=>String(stage.index)===selected);
-  settings.seconds=element('stage-time').value==='seconds';
-  const detail=element('stage-display-mode').value==='detail',stats=element('stage-enemy-stats').checked;
-  const condition={clears:Number(element('stage-xp-clears').value),combo:Number(element('stage-xp-combo').value),okame:Number(element('stage-xp-okame').checked),studyLevel:settings.studyLevel,treasure:settings.studyTreasureBonus};
+  settings.seconds=!element('stage-time').checked;
+  const detail=element('stage-display-mode').checked,stats=element('stage-enemy-stats').checked;
+  const condition={...xpSettings,studyLevel:settings.studyLevel,treasure:settings.studyTreasureBonus};
   const display=configuration.resolve(activeDisplayPreset(configuration.read().value));
-  element('stage-visible-count').textContent=map.key+' / '+visible.length+'ステージ / '+crown+'冠';
-  element('stage-xp-profile').textContent='勉強力Lv'+condition.studyLevel+' / お宝＋'+condition.treasure+'%';
   for(const button of element('stage-navigation').querySelectorAll('[data-stage-choice]'))button.setAttribute('aria-current',button.dataset.stageChoice===selected?'page':'false');
   const mapIndex=database.maps.findIndex(item=>item.key===map.key);
   for(const [link,offset] of [[element('stage-previous'),-1],[element('stage-next'),1]])if(link)link.href=stageMapUrl(database.maps[mapIndex+offset],crown);
-  element('stage-display-settings').href='/pages/display-settings/?'+new URLSearchParams({database:'stages',map:map.key,stage:selected,crown:String(crown)});
   saveState();
-  return sheets.render({...data,visible,stages,crown,settings:{...settings},condition,display,detail,stats,ledger});
+  return sheets.render({...data,visible,stages,crown,settings:{...settings},condition,display,detail,stats,ledger,showXpSettings:true});
 }
 function refresh(){if(data)void render().catch(error=>message(error.message));}
 element('stage-navigation').addEventListener('click',event=>{
@@ -61,10 +70,10 @@ element('stage-navigation').addEventListener('click',event=>{
   selected=button.dataset.stageChoice;refresh();element('main').scrollTop=0;
   if(!document.querySelector('.workspace'))window.scrollTo(0,0);
 });
-for(const id of ['stage-time','stage-display-mode','stage-enemy-stats','stage-xp-clears','stage-xp-combo','stage-xp-okame'])element(id).addEventListener('change',refresh);
+for(const id of ['stage-time','stage-display-mode','stage-enemy-stats'])element(id).addEventListener('change',refresh);
 window.addEventListener('kbcs:simulation-change',event=>{Object.assign(settings,event.detail);refresh();});
 window.addEventListener('storage',event=>{if(event.key==='kbcs:database-display:stages')refresh();});
-window.addEventListener('pageshow',event=>{if(event.persisted){element('stage-display-mode').value='basic';refresh();}});
+window.addEventListener('pageshow',event=>{if(event.persisted){element('stage-display-mode').checked=false;refresh();}});
 
 async function load(){
   element('stage-retry').hidden=true;
@@ -76,7 +85,7 @@ async function load(){
     const {map,database}=data;stages=data.stages;
     selected=route.selected?String(stages.find(stage=>stage.id===route.selected).index):'';
     crown=Math.max(1,Math.min(map.stars.length,Math.trunc(Number(params.get('crown')))||1));
-    document.title=map.name+' | KBCS';element('stage-title').textContent=map.key+' '+map.name;
+    document.title=map.name+' | KBCS';
     element('stage-version').textContent='JP データv'+database.gameVersion;
     const index=database.maps.findIndex(value=>value.key===map.key);
     element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[database.maps[index-1],'前','previous'],[database.maps[index+1],'次','next']]

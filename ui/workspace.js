@@ -203,7 +203,7 @@ export function initializeWorkspace(){
     separator.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();resize(state[side+'Width']+(event.key==='ArrowRight'?10:-10)*(side==='left'?1:-1));store();});
   }
   const updateStatus=()=>{
-    const count=element('unit-result-count')||element('enemy-count')||element('unit-summary')||element('stage-count')||element('stage-visible-count')||element('data-state');
+    const count=element('unit-result-count')||element('enemy-count')||element('unit-summary')||element('stage-count')||element('data-state');
     const version=element('unit-data-version')||element('unit-detail-version')||element('enemy-version')||element('stage-version');
     element('workspace-status').textContent=count?.textContent||document.title.replace(/ \| KBCS?$/,'');
     element('workspace-version').textContent=version?.textContent||'';
@@ -213,7 +213,7 @@ export function initializeWorkspace(){
     viewbar.firstElementChild.textContent=current;
   };
   const observer=new MutationObserver(updateStatus);
-  for(const id of ['unit-result-count','unit-data-version','unit-detail-version','unit-summary','enemy-count','enemy-version','stage-count','stage-visible-count','stage-version','data-state','unit-export','enemy-filters','unit-detail-content','enemy-content']){
+  for(const id of ['unit-result-count','unit-data-version','unit-detail-version','unit-summary','enemy-count','enemy-version','stage-count','stage-version','data-state','unit-export','enemy-filters','unit-detail-content','enemy-content']){
     const node=element(id);if(node)observer.observe(node,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['hidden','disabled']});
   }
   observer.observe(document.querySelector('title'),{childList:true});updateStatus();apply();

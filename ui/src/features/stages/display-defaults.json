@@ -6,15 +6,13 @@
       "label": "ステージ数",
       "order": 10,
       "visibility": "always",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "map.difficulty": {
       "label": "マップ難易度",
       "order": 20,
       "visibility": "always",
-      "width": "half",
-      "description": "収録済みステージの難易度範囲"
+      "width": "half"
     },
     "map.crowns": {
       "label": "冠倍率",
@@ -26,8 +24,7 @@
       "label": "クリア回数上限",
       "order": 40,
       "visibility": "whenActive",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "map.cooldown": {
       "label": "再挑戦間隔",
@@ -75,8 +72,7 @@
       "label": "必要ユーザーランク",
       "order": 120,
       "visibility": "whenActive",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "map.points": {
       "label": "イベントPt・上限解放",
@@ -100,8 +96,7 @@
       "label": "生産コスト倍率",
       "order": 160,
       "visibility": "whenActive",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "map.resource": {
       "label": "消費資源設定",
@@ -161,8 +156,7 @@
       "label": "一覧表示順キー",
       "order": 260,
       "visibility": "detailOnly",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "map.badges": {
       "label": "難易度バッジ設定",
@@ -195,46 +189,40 @@
       "width": "full"
     },
     "stage.energy": {
-      "label": "出撃コスト",
+      "label": "統率力",
       "order": 10,
       "visibility": "always",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "stage.xp": {
-      "label": "XP",
+      "label": "獲得XP",
       "order": 20,
       "visibility": "always",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "stage.castleHealth": {
       "label": "城体力",
       "order": 30,
       "visibility": "always",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "stage.width": {
       "label": "ステージ幅",
       "order": 40,
       "visibility": "always",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "stage.difficulty": {
       "label": "難易度",
       "order": 50,
       "visibility": "always",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "stage.enemyLimit": {
       "label": "敵出現上限",
       "order": 60,
       "visibility": "always",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "stage.continue": {
       "label": "コンティニュー",
@@ -269,12 +257,6 @@
     "stage.conditions": {
       "label": "ステージ固有の条件",
       "order": 120,
-      "visibility": "whenActive",
-      "width": "full"
-    },
-    "stage.points": {
-      "label": "イベントPt",
-      "order": 130,
       "visibility": "whenActive",
       "width": "full"
     },
@@ -317,9 +299,8 @@
     "stage.baseXp": {
       "label": "基礎XP",
       "order": 200,
-      "visibility": "detailOnly",
-      "width": "half",
-      "align": "right"
+      "visibility": "sourceOnly",
+      "width": "half"
     },
     "stage.castleId": {
       "label": "敵城ユニット指定",
@@ -331,8 +312,7 @@
       "label": "敵出現上限の設定値",
       "order": 220,
       "visibility": "detailOnly",
-      "width": "half",
-      "align": "right"
+      "width": "half"
     },
     "stage.otherCrowns": {
       "label": "他の冠の出撃制限",
@@ -407,7 +387,7 @@
       "width": "full"
     },
     "enemy.icon": {
-      "label": "アイコン",
+      "label": "ID・アイコン",
       "order": 10,
       "visibility": "always",
       "width": "full"
@@ -425,7 +405,7 @@
       "width": "full"
     },
     "enemy.multipliers": {
-      "label": "倍率（体力／攻撃）",
+      "label": "倍率\n（体力／攻撃）",
       "order": 40,
       "visibility": "always",
       "width": "full"
@@ -482,22 +462,19 @@
       "label": "体力",
       "order": 130,
       "visibility": "always",
-      "width": "full",
-      "align": "right"
+      "width": "full"
     },
     "enemy.attack": {
       "label": "攻撃力",
       "order": 140,
       "visibility": "always",
-      "width": "full",
-      "align": "right"
+      "width": "full"
     },
     "enemy.dps": {
       "label": "DPS",
       "order": 150,
       "visibility": "always",
-      "width": "full",
-      "align": "right"
+      "width": "full"
     },
     "source.mapColumns": {
       "label": "マップ設定の元データ",

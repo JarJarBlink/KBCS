@@ -1,4 +1,4 @@
-﻿import {createAudioPreview} from '../../shared/browser/audio-preview.js';
+﻿import {createAudioPreview,fetchAudioBlob} from '../../shared/browser/audio-preview.js';
 import {NativeWebGLRenderer} from '../motion/native-webgl-renderer.js';
 import {escapeHtml as esc} from '../../shared/game/database-view.js';
 import {saveCanvasImage} from '../../shared/browser/capture.js';
@@ -114,9 +114,27 @@ export function stageMediaHtml(database,stage,enemies){
   return '<div class="stage-media" data-media-stage="'+esc(stage.id)+'"><div class="stage-media-background">'+parts.background+
     '</div><div class="stage-media-castle">'+parts.castle+'</div><div class="stage-music">'+parts.bgm+'</div></div>';
 }
-export function initializeStageMedia(root,resolveStage){
+export function initializeStageMedia(root,resolveStage,{preloadAudio=false}={}){
   let dialog,camera,activeStage,request=0,animation=0,lastTime=0,currentFrame=0,focus=0,clearGestures;
-  const previews=new WeakMap(),players=new Map();
+  const previews=new WeakMap(),players=new Map(),audioSources=new Map();
+  // 同じBGMは1回だけ取得し、表示中のプレーヤーで音源データを共有する。
+  async function prepareAudioUrl(source,signal){
+    if(!audioSources.has(source)){
+      const controller=new AbortController();
+      const blob=fetchAudioBlob(source,controller.signal).catch(error=>{
+        if(audioSources.get(source)?.controller===controller)audioSources.delete(source);
+        throw error;
+      });
+      audioSources.set(source,{controller,blob});
+    }
+    const blob=await audioSources.get(source).blob;
+    signal.throwIfAborted();return URL.createObjectURL(blob);
+  }
+  function discardAudioSources(active){
+    for(const [source,{controller}] of audioSources)if(!active.has(source)){
+      controller.abort();audioSources.delete(source);
+    }
+  }
   async function thumbnail(canvas){
     if(!previews.has(canvas)){
       const stage=resolveStage(canvas.closest('[data-media-stage]').dataset.mediaStage);
@@ -162,15 +180,19 @@ export function initializeStageMedia(root,resolveStage){
     await players.get(button.closest('.stage-track').querySelector('audio'))?.toggle();
   });
   return {
-    clear(){for(const player of players.values())player.dispose();players.clear();observer.disconnect();if(dialog?.open)dialog.close();},
+    clear(){for(const player of players.values())player.dispose();players.clear();discardAudioSources(new Set());observer.disconnect();if(dialog?.open)dialog.close();},
     refresh(){
       if(dialog?.open&&activeStage!==resolveStage(activeStage?.id))dialog.close();
       for(const [audio,player] of players)if(!root.contains(audio)){player.dispose();players.delete(audio);}
       for(const canvas of root.querySelectorAll('[data-media-stage] canvas'))if(!previews.has(canvas))observer.observe(canvas);
-      for(const audio of root.querySelectorAll('audio')){
+      const tracks=[...root.querySelectorAll('audio[data-source]')];
+      discardAudioSources(new Set(tracks.map(audio=>audio.dataset.source)));
+      for(const audio of tracks){
         if(players.has(audio))continue;
         const track=audio.closest('.stage-track');
-        players.set(audio,createAudioPreview(audio,track.querySelector('[data-track-play]'),track.querySelector('[data-track-seek]'),track.querySelector('[data-track-time]'),stopAudio));
+        const player=createAudioPreview(audio,track.querySelector('[data-track-play]'),track.querySelector('[data-track-seek]'),track.querySelector('[data-track-time]'),stopAudio,preloadAudio?prepareAudioUrl:undefined);
+        players.set(audio,player);
+        if(preloadAudio)void player.preload();
       }
     },
     prepareCapture:target=>Promise.all([...target.querySelectorAll('[data-media-stage] canvas')].map(thumbnail)),

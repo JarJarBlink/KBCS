@@ -20,7 +20,8 @@ const option=(context,key,format=numeric)=>{
 const fmtTime=(n,cfg,seconds)=>formatTime(n,cfg.formatter==='seconds'||cfg.formatter!=='frames'&&seconds);
 const timeOptions={formatters:['native','seconds','frames']};
 const elapsed=(n,cfg,seconds)=>n==null?state('missing'):value(fmtTime(n,cfg,seconds));
-const timeRange=(items,cfg,seconds)=>items?.length&&items.every(Number.isFinite)?value([...new Set(items)].map(n=>fmtTime(n,cfg,seconds)).join('〜')):state('missing');
+const timeRange=(items,cfg,seconds,showEndpoints=false)=>items?.length&&items.every(Number.isFinite)?
+  value((showEndpoints?items:[...new Set(items)]).map(n=>fmtTime(n,cfg,seconds)).join('〜')):state('missing');
 const pc=n=>decimals.format(n)+'%';
 const box=parts=>parts.length?html(parts.join('<br>')):state('inactive');
 const field=(group,key,get,options={})=>({id:group+'.'+key,group,get,...options});
@@ -30,11 +31,26 @@ const detailBox=(heading,content)=>'<details><summary>'+esc(heading)+'</summary>
 const protectedText=text=>'<div class="stage-description">'+esc(text)+'</div>';
 const chapter=map=>/^(EOC|ITF|COTC)/.test(map.series);
 
+function difficultyRange(values){
+  return [...new Set([Math.min(...values),Math.max(...values)])].map(n=>decimals.format(n)).join('～');
+}
+function difficultyLabel(badges,ratings){
+  const stars=badges.length?'★'+difficultyRange(badges):'';
+  const raw=ratings.length?difficultyRange(ratings):'';
+  if(stars&&raw)return value(stars+' ('+raw+')');
+  return stars||raw?value(stars||raw):state('missing');
+}
 export function mapDisplayContext(context){
   const {ledger,map,stages}=context;
   const options=namedColumns(ledger,'map.options',map.rawOptions,optionAnnotationIndex(map));
   const headers=namedColumns(ledger,'map.header',chapter(map)?null:map.rawHeaders?.[0]);
-  return {...context,options,headers,stages:stages??[]};
+  const mask=options.mapDifficultyBadgeMask.value;
+  const difficultyBadges=mask>0&&mask<4096?Array.from({length:12},(_,bit)=>bit+1).filter(star=>mask&(1<<(star-1))):[];
+  const costCode=headers.declaredSortieCostTypeCode;
+  const usesItems=costCode.value!=null&&costCode.value!==0;
+  const sortieResource=map.series==='B'?'catamin':usesItems?'item':
+    options.usesEnergyForSortie.value===1&&(!costCode.raw||costCode.value===0)?'energy':null;
+  return {...context,options,headers,difficultyBadges,sortieResource,stages:stages??[]};
 }
 function crownRates({map,crown}){
   return html(map.stars.map((rate,index)=>{
@@ -57,25 +73,47 @@ function conditions(context,filter,withScope=false){
   }));
 }
 function mapPoints({stages,crown}){
-  const points=stages.filter(stage=>stage.pointRules);
-  if(!points.length)return state('inactive');
-  const links=points.map(stage=>'<a href="'+esc(stageDetailUrl(stage,crown))+'">'+(stage.index+1)+'. '+esc(stage.name)+'</a>');
-  return html(detailBox('対象 '+points.length+'ステージ',links.join(' / ')));
+  const groups=new Map();
+  for(const stage of stages){
+    if(!stage.pointRules)continue;
+    const description=pointRuleHtml(stage.pointRules);
+    if(!groups.has(description))groups.set(description,[]);
+    groups.get(description).push(stage);
+  }
+  if(!groups.size)return state('inactive');
+  return html([...groups].map(([description,members])=>{
+    if(members.length===stages.length)return description;
+    const links=members.map(stage=>'<a href="'+esc(stageDetailUrl(stage,crown))+'">'+(stage.index+1)+'. '+esc(stage.name)+'</a>');
+    return '<div>'+links.join(' / ')+description+'</div>';
+  }).join(''));
 }
-function cost({stage,map,options,headers}){
+const cataminNames=['ネコビタンA','ネコビタンB','ネコビタンC'];
+function cost({stage,database,sortieResource,options}){
   if(stage.energy==null)return state('missing');
-  // 宣言コードと支払資源は別。確認済みの統率力経路だけを表示する。
-  const legend=['N','NA','ND'].includes(map.series)&&options.usesEnergyForSortie.value===1&&
-    (headers.declaredSortieCostTypeCode.value===0||headers.declaredSortieCostTypeCode.raw==null||headers.declaredSortieCostTypeCode.raw==='');
-  return legend?value(number(stage.energy)+'（統率力）'):value(number(stage.energy)+'（原値・消費資源未確認）');
+  if(!Number.isSafeInteger(stage.energy)||stage.energy<0)return state('unknown',String(stage.energy));
+  if(sortieResource==='energy')return numeric(stage.energy);
+  if(sortieResource==='catamin'||sortieResource==='item'){
+    // 本家は千の位以上をアイテム指定、下3桁を個数として読む。
+    const id=Math.floor(stage.energy/1000),count=stage.energy%1000;
+    const name=sortieResource==='catamin'?(cataminNames[id]??'ネコビタン種別 '+id):(database.rewards[id]?.name??'アイテムID '+id);
+    return value(name+' ×'+number(count));
+  }
+  if(stage.energy===0&&options.usesEnergyForSortie.value===0)return value('消費なし');
+  return state('unknown','原値 '+number(stage.energy));
 }
 function castle({stage,map,crown,settings,enemies,enemyStatus}){
-  if(stage.scoreMode)return value('スコア制');
+  const prefix=stage.scoreMode?'スコア制 / ':'';
+  const health=(hp,hidden=false)=>{
+    const shown=hidden?'???????':number(Math.min(hp,99999999));
+    return prefix+(shown===number(hp)?'':'表示：'+shown+' / ')+number(hp);
+  };
+  if(stage.enemyCastle==null)return Number.isFinite(stage.castleHealth)?value(health(stage.castleHealth)):state('missing');
   const spawn=stage.spawns.find(row=>row.enemy===stage.enemyCastle),enemy=spawn&&enemies.enemies[spawn.enemy];
-  if(!enemy)return numeric(stage.castleHealth);
+  if(!enemy)return value(prefix+'未収録');
   const link='<a href="'+esc(stageEnemyDetailUrl(enemy,spawn,map,crown))+'">敵ID '+enemy.id+'</a>';
-  if(enemyStatus!=='ready')return html(esc(enemyStatus==='error'?'取得できません':'計算中')+' '+link);
-  return html(number(calculateEnemyStats(enemy,stageEnemySettings(spawn,map,crown,settings)).hp)+' '+link);
+  if(enemyStatus!=='ready')return html(prefix+(enemyStatus==='error'?'取得できません':'計算中')+' '+link);
+  const hp=calculateEnemyStats(enemy,stageEnemySettings(spawn,map,crown,settings)).hp;
+  return html(esc(health(hp,enemy.invulnerable))+' '+link);
 }
 function pattern(stage){
   if(!stage.variants?.length)return state('inactive');
@@ -86,7 +124,7 @@ function optionFlag(context,key,on,off){return option(context,key,n=>flag(n,on,o
 
 const fields=[
   mapField('stageCount',({map})=>numeric(map.stages.length)),
-  mapField('difficulty',({stages})=>{const values=stages.map(stage=>stage.difficulty).filter(Number.isFinite);return values.length?value([...new Set([Math.min(...values),Math.max(...values)])].map(n=>decimals.format(n)).join('〜')):state('missing');}),
+  mapField('difficulty',({stages,difficultyBadges})=>difficultyLabel(difficultyBadges,stages.map(stage=>stage.difficulty).filter(Number.isFinite))),
   mapField('crowns',crownRates,long),
   mapField('clearLimit',context=>option(context,'mapClearCountLimit',n=>positive(n,n=>number(n)+'回'))),
   mapField('cooldown',(context,cfg)=>option(context,'mapCooldownMinutes',n=>positive(n,n=>fmtTime(n*1800,cfg,context.settings.seconds)+'（適用はクリア上限等の条件による）')),timeOptions),
@@ -122,18 +160,25 @@ const fields=[
   mapField('otherCrowns',context=>limits(context,null,true),long),
 
   stageField('energy',cost),
-  stageField('xp',({stage,calculation})=>stage.xp==null?state('missing'):value(calculation?.xp?number(calculation.xp[4]):calculation?.xpError?'取得できません':'計算中')),
+  stageField('xp',({stage,calculation,showXpSettings})=>{
+    if(stage.xp==null)return state('missing');
+    const result=calculation?.xp?number(calculation.xp[4]):calculation?.xpError?'取得できません':'計算中';
+    return showXpSettings?html('<div class="stage-xp-value"><span>'+esc(result)+'</span><button type="button" data-stage-xp-settings aria-haspopup="dialog" aria-label="獲得XPの計算条件">計算条件</button></div>'):value(result);
+  }),
   stageField('castleHealth',castle),
   stageField('width',({stage})=>numeric(stage.width)),
-  stageField('difficulty',({stage})=>Number.isFinite(stage.difficulty)?value(decimals.format(stage.difficulty)):state('missing')),
+  stageField('difficulty',({stage,difficultyBadges})=>{
+    if(!Number.isFinite(stage.difficulty))return state('missing');
+    const star=Math.floor(stage.difficulty);
+    return difficultyLabel(difficultyBadges.includes(star)?[star]:[],[stage.difficulty]);
+  }),
   stageField('enemyLimit',({stage})=>numeric(stage.maxEnemies)),
   stageField('continue',({stage})=>stage.width==null?state('missing'):value(stage.noContinue?'不可':'可')),
   stageField('barrier',({stage})=>stage.width==null?state('missing'):stage.bossGuard?value('あり（ボスが残っている間は城を保護）'):state('inactive')),
-  stageField('spawnInterval',({stage,settings},cfg)=>timeRange(stage.spawnInterval,cfg,settings.seconds),timeOptions),
+  stageField('spawnInterval',({stage,settings},cfg)=>timeRange(stage.spawnInterval,cfg,settings.seconds,true),timeOptions),
   stageField('timeLimit',({stage,settings},cfg)=>positive(stage.timeLimit,n=>fmtTime(n,cfg,settings.seconds)),timeOptions),
   stageField('limits',context=>limits(context,context.stage),long),
   stageField('conditions',context=>conditions(context,c=>c.minStage!=null&&context.stage.index>=c.minStage,true),long),
-  stageField('points',({stage})=>stage.pointRules?html(pointRuleHtml(stage.pointRules)):state('inactive'),long),
   stageField('formation',({stage,units})=>stage.formation?(formationChoice(stage.formation)?html(formationUnitsHtml(formationChoice(stage.formation),units)):{...state('missing'),active:true}):state('inactive'),long),
   stageField('cannon',({stage})=>{const choice=formationChoice(stage.formation);return choice?value(cannonName(choice)):state('outside');}),
   stageField('levelSeal',({stage})=>stage.levelSeal?html(levelSealHtml(stage.levelSeal)):state('inactive'),long),
@@ -157,10 +202,12 @@ const fields=[
 const enemyField=(key,get,options)=>field('enemy',key,get,{layout:'column',...options});
 const enemyLink=(row,text,label)=>row.url?'<a href="'+esc(row.url)+'"'+(label?' aria-label="'+esc(label)+'"':'')+'>'+text+'</a>':text;
 fields.push(
-  enemyField('icon',(row,{enemies})=>row.enemy?html(enemyLink(row,enemyImageHtml(enemies,row.enemy,28),row.enemy.name+'の詳細')):state('outside')),
-  enemyField('name',row=>html(enemyLink(row,row.enemy?esc(row.enemy.name):'敵ID '+row.spawn.enemy)+(row.spawn.boss?'<small class="stage-enemy-note">ボス'+(row.spawn.boss===1?'':' / 指定 '+row.spawn.boss)+'</small>':''))),
+  enemyField('icon',(row,{enemies})=>html('<div class="stage-spawn-icon"><span>'+esc(row.spawn.enemy)+'</span>'+
+    (row.enemy?enemyLink(row,enemyImageHtml(enemies,row.enemy,28),row.enemy.name+'の詳細'):'')+
+    (row.spawn.boss?'<small>ボス'+(row.spawn.boss===1?'':' / 指定 '+row.spawn.boss)+'</small>':'')+'</div>')),
+  enemyField('name',row=>row.enemy?html(enemyLink(row,esc(row.enemy.name))):state('missing')),
   enemyField('attributes',(row,{enemies})=>row.enemy?html('<div class="enemy-properties">'+enemyAttributesHtml(enemies,row.enemy)+'</div>'):state('outside')),
-  enemyField('multipliers',({spawn})=>html(pc(spawn.health)+(spawn.attack!==spawn.health?'<small class="stage-enemy-note">攻撃 '+pc(spawn.attack)+'</small>':''))),
+  enemyField('multipliers',({spawn})=>html(pc(spawn.health)+(spawn.attack!==spawn.health?'<small class="stage-enemy-note">攻撃 '+pc(spawn.attack)+'</small>':'')),{wrapHeading:true}),
   enemyField('count',({spawn})=>value(spawn.count===0?'無制限':spawn.count)),
   enemyField('gate',({spawn},{stage})=>value(stage.damageCondition?number(spawn.castle)+'以上':pc(spawn.castle)+'以下')),
   enemyField('first',({spawn},{settings},cfg)=>elapsed(spawn.first,cfg,settings.seconds),timeOptions),

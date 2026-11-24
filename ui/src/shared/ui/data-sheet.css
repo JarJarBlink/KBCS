@@ -12,6 +12,7 @@
 .data-sheet-columns { table-layout:auto; }
 .data-sheet-columns th,.data-sheet-columns td { min-width:3em; }
 .data-sheet-columns th { white-space:nowrap; }
+.data-sheet-columns .data-sheet-wrap-heading { white-space:pre-line; }
 .data-sheet-block .data-sheet { border-style:hidden; }
 .data-sheet-description { display:block; color:var(--color-muted); white-space:pre-line; }
 .data-sheet-state,.data-sheet .data-emphasis-muted { color:var(--color-muted); }
