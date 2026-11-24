@@ -4,8 +4,23 @@ import test from 'node:test';
 import {displayConfiguration,readDisplayJson} from '../src/shared/ui/display-settings.js';
 import {sheetRows,columnTable,displayValue,displayState} from '../src/shared/ui/data-sheet.js';
 import {namedColumns,optionAnnotationIndex,rawInteger} from '../src/features/stages/display-raw.js';
+import {dropChances} from '../src/features/stages/drop-chances.js';
 
 const ledger=readDisplayJson(readFileSync(new URL('../src/features/stages/column-ledger.json',import.meta.url),'utf8'));
+test('報酬の抽選順、取得状態と重みを実効確率に反映する',()=>{
+  const rawRewards=['400','6666','33','0','3','30','11','3','0','100','11','2','-1',''];
+  const drops=[{id:11,sourceColumn:5,weight:30,kind:'normal'},{id:11,sourceColumn:9,weight:100,kind:'normal'}];
+  const map={nativeMode:3,acquisitionId:13};
+  assert.deepEqual(dropChances({drops,rawRewards,rewardMode:0},map).map(row=>row.chance),[30,70]);
+  assert.deepEqual(dropChances({drops,rawRewards,rewardMode:1},map),[{chance:30,limit:'shared'},{chance:70,repeatChance:100}]);
+  assert.equal(dropChances({drops,rawRewards,rewardMode:2},map)[0].limit,'crown');
+  assert.deepEqual(dropChances({drops,rawRewards,rewardMode:1},{nativeMode:3,acquisitionId:-1}).map(row=>row.chance),[30,70]);
+  const weighted=drops.map((row,index)=>({...row,weight:index?70:30,kind:'weight'}));
+  const weightCells=rawRewards.map((cell,index)=>index===9?'70':cell);
+  assert.deepEqual(dropChances({drops:weighted,rawRewards:weightCells,rewardMode:-3},map),[{chance:30,limit:'first'},{chance:70,limit:'first'}]);
+  assert.deepEqual(dropChances({drops:weighted,rawRewards:weightCells,rewardMode:-4},map).map(row=>row.chance),[30,70]);
+  assert.equal(dropChances({drops:drops.slice(1),rawRewards,rewardMode:0},map),null);
+});
 test('v3全列と旧Map_optionの原位置を維持する',()=>{
   const records=Object.values(ledger.scopes).flat(),keys=records.map(record=>record.key);
   assert.equal(new Set(keys).size,116);

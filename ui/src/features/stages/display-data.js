@@ -18,5 +18,6 @@ export async function loadStageDisplayMap(key,indexRequest=loadStageSearchIndex(
   }
   const map=detail.maps.find(value=>value.key===key);
   if(!map)throw Error('マップが見つかりません。');
-  return {database:{...index,musicCatalog:detail.musicCatalog,rewards:{...index.rewards,...detail.rewards}},map,stages:detail.stages,enemies,units};
+  const rewards=detail.rewardCatalogVersion===1?{...index.rewards,...detail.rewards}:index.rewards;
+  return {database:{...index,musicCatalog:detail.musicCatalog,rewards},map,stages:detail.stages,enemies,units};
 }

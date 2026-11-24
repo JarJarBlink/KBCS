@@ -508,12 +508,21 @@ pub(crate) fn import(
         }
     }
     super::extras::import(source, dataset, connection)?;
+    let definitions = crate::inventory::item_definition_rows(&load("Data/Gatyaitembuy.csv")?)?;
+    let mut icons = BTreeMap::new();
+    for (internal, definition) in definitions.iter().enumerate() {
+        if let Some(&id) = definition.get(3).filter(|&&id| id >= 0) {
+            icons.entry(i64::from(id))
+                .or_insert_with(|| crate::inventory::item_icon(internal, definition));
+        }
+    }
     let mut statement =
         connection.prepare("SELECT DISTINCT item_id FROM stage_reward WHERE region=?")?;
     for id in statement.query_map([region], |r| r.get::<_, i64>(0))? {
-        let path = format!("Image/gatyaitemD_{:02}_f.png", id?);
-        if dataset.files.contains_key(&path) {
-            load(&path)?;
+        if let Some(path) = icons.get(&id?)
+            && dataset.files.contains_key(path)
+        {
+            load(path)?;
         }
     }
     crate::stage_materials::import(source, dataset, connection)?;

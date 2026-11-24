@@ -125,14 +125,14 @@ fn source(root: &Path, region: &str) -> Result<()> {
             "id,text\n1,速度<br>検証\n2,攻撃力".into(),
         ),
         ("res/nyankoPictureBook_ja.csv","\"日本編,第1章\",条件<br>確認,@,Lv10で進化,@,@,合計Lv30到達後,必要XPと素材,@".into()),
-        ("res/GatyaitemName.csv","アイテム0\n実1\n種2\n素材3".into()),
+        ("res/GatyaitemName.csv","アイテム0\n別のアイテム\n種2\n素材3\n実1".into()),
         ("res/Map_Name.csv","0,検証レジェンド\n24000,検証マップ\n39000,検証PR".into()),
         ("res/StageName_RN_ja.csv","出現行の検証".into()),
         ("Data/Map_option.csv","ID,冠数\n0,4,0,100,150,200,300,0,0,0,0,0,0,0,0,0,0,0,0,末尾の説明".into()),
         ("Data/Stage_option.csv","0,3,-1,6,0,0,0,0,0".into()),
         ("Data/difficulty_level.tsv","0\t1.2".into()),
         ("Data/DropItem.csv","0,0.75,1,1,1,3,3,3,3,3,3,3,3,60,13,0,13,13".into()),
-        ("Data/Gatyaitembuy.csv","0,0,1,0,1,0,7,0\n0,0,1,1,1,0,7,1\n0,0,1,2,1,0,7,2\n0,0,1,3,1,0,7,3".into()),
+        ("Data/Gatyaitembuy.csv","Rarity,reflectORstorage,Price,stageDropItemID,quantity,SeverID,category,index,srcItemID,mainMenuType,gatyaTicketID,imgID\n0,0,1,0,1,0,7,0\n0,0,1,91,1,0,7,1\n0,0,1,2,1,0,7,2\n0,0,1,3,1,0,7,3\n0,0,1,1,1,0,3,1,-1,0,-1,8".into()),
         ("Data/MapStageDataN_000.csv","1,0\n0\n50,3040,31,90,4,30,1,2,-1,-1".into()),
         ("Data/stageRN000_00.csv","6,0,0,0,0,0\n5800,500000,1,1,10,8,0,0,0,0\n2,0,-7,3,9,300,0,9,2,0,0,-17,1,3,\n2,1,0,1,1,100,0,9,0,100\n0,\n2,999".into()),
         ("res/StageName_RA_ja.csv","第1ステージ,第2ステージ,時刻報酬".into()),
@@ -207,6 +207,7 @@ fn source(root: &Path, region: &str) -> Result<()> {
         "Image/skill010.png",
         "Image/skill999.png",
         "Image/bg_alias.png",
+        "Image/gatyaitemD_08_f.png",
     ] {
         let path = format!("{region}/Local/fixture/{logical}");
         let bytes = include_bytes!("fixtures/pixel.png");
@@ -393,6 +394,8 @@ fn import_is_offline_repeatable_region_safe_and_preserves_old_db_on_failure() ->
     assert_eq!(spawn["raw"][14], "");
     assert_eq!(stage["drops"][0]["chance"], Value::Null);
     assert_eq!(stage["drops"][0]["weight"], 30);
+    assert_eq!(stages["rewards"]["1"]["name"], "実1");
+    assert_eq!(stages["rewards"]["1"]["icon"], "Image/gatyaitemD_08_f.png");
     assert_eq!(stage["metadataRow"], 3);
     assert_eq!(stage["difficulty"], 1.2);
     let score = stages["stages"]

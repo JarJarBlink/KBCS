@@ -7,6 +7,7 @@ use std::{collections::BTreeMap, path::Path, time::Duration};
 pub struct Store(Connection);
 // Gatyaitembuy.csvの内部番号22・報酬ID13はネコカン。
 const CAT_FOOD_ID: i32 = 13;
+pub(crate) const VALKYRIE_REWARD: (i64, i64) = (1002, 27);
 const MAX_ITEM_COUNT: i64 = 9_007_199_254_740_991;
 pub const CONTINUE_CAT_FOOD_COST: i64 = 30;
 #[derive(Clone, Serialize, Deserialize, PartialEq)]
@@ -268,24 +269,47 @@ fn set_record(tx: &Transaction<'_>, key: &str, value: i32) -> Result<()> {
 }
 
 pub fn definitions(database: &crate::store::Database) -> Result<Vec<Vec<i32>>> {
+    item_definition_rows(&database.source("Data/Gatyaitembuy.csv")?.3)
+}
+
+pub(crate) fn item_definition_rows(bytes: &[u8]) -> Result<Vec<Vec<i32>>> {
     // 009a311c: 見出しを除き、コメント列12以降は数値として読まない。
-    crate::model::csv_rows(&database.source("Data/Gatyaitembuy.csv")?.3)?
-        .into_iter()
-        .skip(1)
+    let rows = crate::model::csv_rows(bytes)?;
+    let header = rows
+        .first()
+        .is_some_and(|row| row[0].trim().parse::<i32>().is_err());
+    rows.into_iter()
+        .skip(usize::from(header))
         .map(|row| {
             row.into_iter()
                 .take(12)
-                .map(|cell| cell.parse().context("アイテム定義の不正なセル"))
+                .map(|cell| cell.trim().parse().context("アイテム定義の不正なセル"))
                 .collect()
         })
         .collect()
 }
-pub fn catalog(database: &crate::store::Database) -> Result<Value> {
+pub(crate) fn item_icon(internal: usize, definition: &[i32]) -> String {
+    // 006f3104/006f53b8: 画像は内部行番号。列11が−1以外なら、その画像IDで上書きする。
+    let image_id = definition
+        .get(11)
+        .copied()
+        .filter(|&id| id != -1)
+        .unwrap_or(internal as i32);
+    format!("Image/gatyaitemD_{image_id:02}_f.png")
+}
+
+pub(crate) fn item_catalog(
+    database: &crate::store::Database,
+    definitions: &[Vec<i32>],
+) -> Result<BTreeMap<i32, Value>> {
     let names = crate::model::csv_rows(&database.source("res/GatyaitemName.csv")?.3)?;
     let mut items = BTreeMap::new();
-    for (internal, definition) in definitions(database)?.iter().enumerate() {
-        let id = definition[3];
-        if id < 0 {
+    let mut icons = database.connection.prepare_cached(
+        "SELECT EXISTS(SELECT 1 FROM source_file WHERE path=?1 UNION SELECT 1 FROM asset_reference WHERE path=?1)",
+    )?;
+    for (internal, definition) in definitions.iter().enumerate() {
+        let id = *definition.get(3).context("ステージ報酬IDなし")?;
+        if id < 0 || items.contains_key(&id) {
             continue;
         }
         let name = names
@@ -294,19 +318,20 @@ pub fn catalog(database: &crate::store::Database) -> Result<Value> {
             .map(String::as_str)
             .unwrap_or("")
             .trim();
-        if name.is_empty() {
-            continue;
-        }
-        // 006f3104/006f53b8: 画像は内部行番号。列11が−1以外なら、その画像IDで上書きする。
-        let image_id = definition
-            .get(11)
-            .copied()
-            .filter(|v| *v != -1)
-            .unwrap_or(internal as i32);
-        let path = format!("Image/gatyaitemD_{image_id:02}_f.png");
-        let exists=database.connection.query_row("SELECT EXISTS(SELECT 1 FROM source_file WHERE path=? UNION SELECT 1 FROM asset_reference WHERE path=?)",[&path,&path],|r|r.get::<_,bool>(0))?;
-        items.insert(id,json!({"id":id,"name":crate::model::plain_text(name),"icon":if exists {Some(path)}else{None}}));
+        let name = if name.is_empty() {
+            format!("報酬 {id}")
+        } else {
+            crate::model::plain_text(name)
+        };
+        let path = item_icon(internal, definition);
+        let exists = icons.query_row([&path], |r| r.get::<_, bool>(0))?;
+        items.insert(id, json!({"id":id,"name":name,"icon":exists.then_some(path)}));
     }
+    Ok(items)
+}
+
+pub fn catalog(database: &crate::store::Database) -> Result<Value> {
+    let mut items = item_catalog(database, &definitions(database)?)?;
     let equipment = crate::stages::equipment_catalog(database)?;
     for item in equipment["items"]
         .as_array()
@@ -355,10 +380,11 @@ pub fn catalog(database: &crate::store::Database) -> Result<Value> {
             }
         }
     }
-    let mut valkyrie = make_character(1002, 27, 0)?;
+    let (id, unit) = VALKYRIE_REWARD;
+    let mut valkyrie = make_character(id, unit, 0)?;
     valkyrie["gift"] = json!("gift:1002-special");
     valkyrie["rewardKind"] = json!(0);
-    items.insert(1002, valkyrie);
+    items.insert(id as i32, valkyrie);
     Ok(json!({"items":items.into_values().collect::<Vec<_>>()}))
 }
 fn character(

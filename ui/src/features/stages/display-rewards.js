@@ -1,8 +1,10 @@
 ﻿import {escapeHtml as esc,formatNumber as number} from '../../shared/game/database-view.js';
 import {fieldVisible,fieldLabel,fieldDescription,fieldClass,fieldContent,displayValue as value,displayHtml as html,displayState as state} from '../../shared/ui/data-sheet.js';
 import {rewardItemHtml} from './view.js';
+import {dropChances} from './drop-chances.js';
 
-const percent=n=>Number.isFinite(n)?new Intl.NumberFormat('ja-JP',{maximumFractionDigits:3}).format(n)+'%':'未収録';
+const probabilityFormat=new Intl.NumberFormat('ja-JP',{maximumFractionDigits:3});
+const percent=n=>!Number.isFinite(n)?'未収録':n>0&&n<0.001?'0.001%未満':probabilityFormat.format(n)+'%';
 const item=(context,reward)=>rewardItemHtml(context.database,context.units,reward);
 const status=(context,key)=>context.calculation?.[key+'Error']?'取得できません':'計算中';
 const bonusRows=(context,rows,condition)=>rows.map(reward=>[item(context,reward),esc(condition(reward))]);
@@ -45,14 +47,27 @@ function policySources(context){
 }
 const materialApplicable=({stage,map})=>map.materials?.items.length>0&&Number.isFinite(map.materials.counts[stage.index]);
 const materialItems=({map,calculation})=>map.materials.items.map(material=>({...material,...calculation.materials?.items[material.slot]}));
+const materialItem=(context,material)=>{
+  const id=Object.hasOwn(material,'rewardId')?material.rewardId:material.id;
+  return id==null?esc('未収録（素材枠 '+material.slot+'）'):item(context,{id,count:1});
+};
+const limits={first:'初回のみ',owned:'未入手時のみ',crown:'冠ごとに一度',shared:'全冠で一度'};
+function dropCondition(result){
+  const {chance,repeatChance,limit}=result;
+  if(limit)return percent(chance)+'（'+limits[limit]+'）';
+  if(repeatChance!=null&&percent(chance)!==percent(repeatChance))
+    return '先頭報酬の未取得時 '+percent(chance)+' / 取得後 '+percent(repeatChance);
+  return percent(chance);
+}
 
 export const rewardFields=[
   field('drops',context=>{
     const {stage,detail}=context;
     if(!stage.drops.length)return stage.metadataRow>0||stage.rawRewards?.length?state('inactive'):state('missing');
     if(radarRefundOnly(stage))return value('なし。トレジャーレーダー返還あり。');
-    return rewardGroup(stage.drops.map(reward=>{
-      const condition=reward.chance!=null?percent(reward.chance):
+    const chances=dropChances(stage,context.map);
+    return rewardGroup(stage.drops.map((reward,index)=>{
+      const condition=chances?.[index]?dropCondition(chances[index]):reward.chance!=null?percent(reward.chance):
         reward.kind==='weight'&&Number.isFinite(reward.weight)?(detail?'重み '+number(reward.weight)+' / ':'')+'重み抽選（入手確率未確認）':
           (detail&&Number.isFinite(reward.weight)?'比較値 '+number(reward.weight)+' / ':'')+'条件付き（入手確率未確認）';
       return [item(context,reward),esc(condition)];
@@ -61,13 +76,13 @@ export const rewardFields=[
   field('score',context=>context.stage.scoreRewards.length?rewardGroup(bonusRows(context,context.stage.scoreRewards,reward=>number(reward.score)+'点以上')):state('outside'),'reward'),
   field('clearCounts',context=>context.stage.clearRewards.length?rewardGroup(bonusRows(context,context.stage.clearRewards,reward=>reward.clear+'回目')):state('outside'),'reward'),
   field('materials',context=>materialApplicable(context)?rewardGroup(materialItems(context).map(material=>[
-    item(context,{...material,count:1}),context.calculation?.materials?'1クリアで1個以上 '+percent(material.atLeastOne*100):status(context,'materials'),
+    materialItem(context,material),context.calculation?.materials?'1クリアで1個以上 '+percent(material.atLeastOne*100):status(context,'materials'),
   ])):state('outside'),'reward'),
   field('policy',rewardPolicy),
   field('materialDetails',context=>{
     if(!materialApplicable(context))return state('outside');
     const plan=context.calculation?.materials;if(!plan)return value(status(context,'materials'));
-    const items=materialItems(context).map(material=>'<div>'+item(context,{...material,count:1})+
+    const items=materialItems(context).map(material=>'<div>'+materialItem(context,material)+
       ' / 抽選1回 '+percent(material.chance*100)+' / 期待数 '+esc(material.expected)+'個</div>').join('');
     return html('<div>抽選 '+plan.draws+'回 / '+context.crown+'冠</div>'+items+
       '<div>1回のハズレ '+percent(plan.miss*100)+' / 全抽選で素材なし '+percent(plan.none*100)+'。トレジャーレーダー対象外。</div>');

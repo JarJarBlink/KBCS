@@ -110,6 +110,7 @@ fn catalog_selection(
 ) -> Result<Value> {
     let connection = &database.connection;
     let metadata = database.metadata()?;
+    let item_definitions = crate::inventory::definitions(database)?;
     let extras = extras::Extras::read(connection, region)?;
     let selected_id = if let Some(key) = selected {
         let mut query = connection
@@ -210,7 +211,19 @@ fn catalog_selection(
             continue;
         }
         let first_stage = stages.len();
-        let materials = crate::stage_materials::read(connection, region, id)?;
+        let mut materials = crate::stage_materials::read(connection, region, id)?;
+        if let Some(items) = materials.as_mut().and_then(|value| value["items"].as_array_mut()) {
+            // DropItemの素材番号は内部行番号。戦闘用に保持し、表示・検索では報酬IDを使う。
+            for item in items {
+                let reward_id = item["id"]
+                    .as_u64()
+                    .and_then(|internal| item_definitions.get(internal as usize))
+                    .and_then(|row| row.get(3))
+                    .copied()
+                    .filter(|id| *id >= 0);
+                item["rewardId"] = json!(reward_id);
+            }
+        }
         let mut statement = connection.prepare_cached(
             "SELECT multiplier FROM stage_crown WHERE region=? AND map_id=? ORDER BY crown",
         )?;
@@ -534,16 +547,15 @@ fn catalog_selection(
             if let Some(items) = materials {
                 let rewards = stage["rewards"].as_array_mut().context("報酬配列不正")?;
                 for item in items {
-                    if !rewards.contains(&item["id"]) {
-                        rewards.push(item["id"].clone());
+                    let id = &item["rewardId"];
+                    if !id.is_null() && !rewards.contains(id) {
+                        rewards.push(id.clone());
                     }
                 }
             }
             crate::stage_media::annotate(stage, series);
         }
     }
-    let (_, _, _, bytes) = database.source("res/GatyaitemName.csv")?;
-    let names = csv_rows(&bytes)?;
     let mut reward_ids = BTreeSet::new();
     for stage in &stages {
         for reward in stage["rewards"].as_array().context("報酬配列不正")? {
@@ -551,27 +563,22 @@ fn catalog_selection(
         }
     }
     let mut rewards = BTreeMap::new();
-    let mut icons =
-        connection.prepare_cached("SELECT EXISTS(SELECT 1 FROM source_file WHERE path=?)")?;
+    let mut items = crate::inventory::item_catalog(database, &item_definitions)?;
     for id in reward_ids {
-        let icon = format!("Image/gatyaitemD_{id:02}_f.png");
-        let exists: bool = icons.query_row([&icon], |row| row.get(0))?;
-        let name = names
-            .get(id as usize)
-            .and_then(|row| row.first())
-            .cloned()
-            .unwrap_or_else(|| format!("報酬 {id}"));
+        let item = i32::try_from(id).ok().and_then(|id| items.remove(&id));
         rewards.insert(
             id.to_string(),
-            json!({"id":id,"name":name,"icon":if exists {Some(icon)}else{None}}),
+            item.unwrap_or_else(|| json!({"id":id,"name":format!("報酬 {id}"),"icon":null})),
         );
     }
     // アイテム名の配列へキャラ報酬IDを当てず、原本の対応表で結ぶ。
     let (_, _, _, bytes) = database.source("Data/drop_chara.csv")?;
-    for (_, _, values) in rows(&bytes, None)? {
-        let id = number(&values, 0).to_string();
-        if let Some(reward) = rewards.get_mut(&id) {
-            let unit = number(&values, 2);
+    let characters = rows(&bytes, None)?
+        .into_iter()
+        .map(|(_, _, values)| (number(&values, 0), number(&values, 2)))
+        .chain(std::iter::once(crate::inventory::VALKYRIE_REWARD));
+    for (id, unit) in characters {
+        if let Some(reward) = rewards.get_mut(&id.to_string()) {
             let name: Option<String> = connection
                 .query_row(
                     "SELECT name FROM form WHERE region=? AND unit_id=? AND form_index=0",
@@ -579,26 +586,29 @@ fn catalog_selection(
                     |row| row.get(0),
                 )
                 .optional()?;
-            *reward = json!({"id":number(&values,0),"name":name.unwrap_or_else(||format!("キャラ {unit}")),"unit":unit,"form":0});
+            *reward = json!({"id":id,"name":name.unwrap_or_else(||format!("キャラ {unit}")),"unit":unit,"form":0});
         }
     }
     let (_, _, _, bytes) = database.source("Data/unitbuy.csv")?;
     for (unit, (_, values)) in numeric_rows(&bytes)?.into_iter().enumerate() {
-        let id = number(&values, 23);
-        if id < 10000 {
-            continue;
-        }
-        if let Some(reward) = rewards.get_mut(&id.to_string()) {
-            let name: Option<String> = connection.query_row(
-                "SELECT name FROM form WHERE region=? AND unit_id=? ORDER BY form_index=2 DESC,form_index LIMIT 1",
-                params![region,unit as i64],|row|row.get(0),
-            ).optional()?;
-            *reward = json!({"id":id,"name":format!("第3形態進化権：{}",name.unwrap_or_else(||format!("キャラ {unit}"))),"unit":unit,"form":2,"evolution":true});
+        for (column, form, minimum) in [(23, 2, 10000), (24, 3, 20000)] {
+            let id = number(&values, column);
+            if !(minimum..minimum + 10000).contains(&id) {
+                continue;
+            }
+            if let Some(reward) = rewards.get_mut(&id.to_string()) {
+                let name: Option<String> = connection.query_row(
+                    "SELECT name FROM form WHERE region=? AND unit_id=? ORDER BY form_index=? DESC,form_index LIMIT 1",
+                    params![region,unit as i64,form],|row|row.get(0),
+                ).optional()?;
+                let name = name.unwrap_or_else(|| format!("キャラ {unit}"));
+                *reward = json!({"id":id,"name":format!("第{}形態進化権：{name}",form+1),"unit":unit,"form":form,"evolution":true});
+            }
         }
     }
     rewards::decorate(database, &mut rewards)?;
     Ok(
-        json!({"schemaVersion":2,"gameVersion":metadata.get("version"),"calculationVersion":crate::compatibility::calculation_version(database)?,"revision":metadata.get("revision"),"buildId":metadata.get("build_id"),"imageBase":"/api/asset/","scope":{"bands":maps.iter().filter_map(|m|m["nativeId"].as_i64()).map(|id|id/1000*1000).collect::<BTreeSet<_>>(),"nativeVersion":"15.7.2"},"series":maps.iter().filter_map(|m|m["series"].as_str()).collect::<BTreeSet<_>>().into_iter().map(|s|json!({"id":s,"label":series_label(s)})).collect::<Vec<_>>(),"maps":maps,"stages":stages,"rewards":rewards,"musicCatalog":crate::stage_media::music_catalog(database)?}),
+        json!({"schemaVersion":2,"rewardCatalogVersion":1,"gameVersion":metadata.get("version"),"calculationVersion":crate::compatibility::calculation_version(database)?,"revision":metadata.get("revision"),"buildId":metadata.get("build_id"),"imageBase":"/api/asset/","scope":{"bands":maps.iter().filter_map(|m|m["nativeId"].as_i64()).map(|id|id/1000*1000).collect::<BTreeSet<_>>(),"nativeVersion":"15.7.2"},"series":maps.iter().filter_map(|m|m["series"].as_str()).collect::<BTreeSet<_>>().into_iter().map(|s|json!({"id":s,"label":series_label(s)})).collect::<Vec<_>>(),"maps":maps,"stages":stages,"rewards":rewards,"musicCatalog":crate::stage_media::music_catalog(database)?}),
     )
 }
 
