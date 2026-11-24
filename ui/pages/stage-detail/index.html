@@ -4,8 +4,14 @@
 <div class="db-toolbar"><a href="/pages/stage-search/">ステージ検索へ</a><span id="stage-version" class="db-meta"></span></div>
 <p id="stage-status" role="status">ステージデータを読み込んでいます。</p><button id="stage-retry" type="button" hidden>再読み込み</button>
 <nav id="stage-navigation" aria-label="このマップのステージ"></nav>
-<div id="stage-detail-controls" class="stage-display-controls"><label><input id="stage-display-mode" type="checkbox">詳細表示</label><label><input id="stage-time" type="checkbox">F表示</label><label><input id="stage-enemy-stats" type="checkbox">敵ステータスを表示</label></div>
+<div id="stage-detail-controls" class="stage-display-controls"><span class="stage-detail-mode"><label><input id="stage-display-mode" type="checkbox">詳細表示</label><button id="stage-detail-settings-open" type="button" aria-haspopup="dialog" hidden>詳細表示設定</button></span><label><input id="stage-time" type="checkbox">F表示</label><label><input id="stage-enemy-stats" type="checkbox">敵ステータスを表示</label></div>
 <section id="stage-content" hidden><div id="stage-map-info"></div><div id="stage-output"></div></section>
+<dialog id="stage-detail-settings" class="db-dialog stage-detail-settings" aria-labelledby="stage-detail-settings-heading"><form method="dialog">
+<h2 id="stage-detail-settings-heading">詳細表示設定</h2>
+<p>チェックした項目を詳細表示で非表示にします。</p>
+<div id="stage-detail-settings-fields" class="stage-detail-settings-fields"></div>
+<div class="stage-detail-settings-actions"><button type="submit" value="cancel">取消</button><button type="submit" value="apply">適用</button></div>
+</form></dialog>
 <dialog id="stage-xp-dialog" class="db-dialog stage-xp-dialog" aria-labelledby="stage-xp-heading"><form method="dialog">
 <h2 id="stage-xp-heading">獲得XPの計算条件</h2>
 <label>クリア済み回数 <input id="stage-xp-clears" type="number" min="0" max="2147483647" required></label>

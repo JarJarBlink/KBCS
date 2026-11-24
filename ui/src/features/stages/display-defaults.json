@@ -386,8 +386,14 @@
       "visibility": "sourceOnly",
       "width": "full"
     },
+    "enemy.id": {
+      "label": "敵ID",
+      "order": 5,
+      "visibility": "always",
+      "width": "full"
+    },
     "enemy.icon": {
-      "label": "ID・アイコン",
+      "label": "アイコン",
       "order": 10,
       "visibility": "always",
       "width": "full"
@@ -399,9 +405,15 @@
       "width": "full"
     },
     "enemy.attributes": {
-      "label": "属性・種族",
+      "label": "属性",
       "order": 30,
       "visibility": "always",
+      "width": "full"
+    },
+    "enemy.boss": {
+      "label": "ボス判定",
+      "order": 35,
+      "visibility": "whenActive",
       "width": "full"
     },
     "enemy.multipliers": {
@@ -441,7 +453,7 @@
       "width": "full"
     },
     "enemy.score": {
-      "label": "撃破時の基礎点",
+      "label": "基礎点",
       "order": 100,
       "visibility": "whenActive",
       "width": "full"

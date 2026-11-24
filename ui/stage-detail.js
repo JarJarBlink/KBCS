@@ -1,7 +1,7 @@
 ﻿import {loadStageSearchIndex} from './search-index.js';
 import {loadStageVariant} from './src/shared/game/stages.js';
 import {stageMapUrl,resolveStageRoute} from './src/features/stages/model.js';
-import {loadStageDisplay} from './src/features/stages/display-fields.js';
+import {loadStageDisplay,stageGroups} from './src/features/stages/display-fields.js';
 import {loadStageDisplayMap} from './src/features/stages/display-data.js';
 import {mountStageSheets} from './src/features/stages/display-sheet.js';
 import {activeDisplayPreset} from './src/shared/ui/display-settings.js';
@@ -11,6 +11,10 @@ import {readPageParams,writePageParams} from './native-state.js';
 
 const element=id=>document.getElementById(id),params=readPageParams('stage-detail');
 const settings=readGameSettings(),message=text=>element('stage-message').textContent=text;
+const detailMode=element('stage-display-mode'),detailSettingsButton=element('stage-detail-settings-open');
+const detailDialog=element('stage-detail-settings'),detailFields=element('stage-detail-settings-fields');
+const detailStorageKey='kbcs:stage-detail:hidden-fields';
+let hiddenFields=readHiddenFields();
 const xpDialog=element('stage-xp-dialog'),xpForm=xpDialog.querySelector('form');
 const xpInputs={clears:element('stage-xp-clears'),combo:element('stage-xp-combo'),okame:element('stage-xp-okame')};
 const xpSettings={clears:Math.max(0,Math.min(2147483647,Math.trunc(Number(params.get('clears')))||0)),
@@ -38,7 +42,7 @@ const sheets=mountStageSheets(element('stage-map-info'),element('stage-output'),
   },
   onMessage:message,
 });
-element('stage-display-mode').checked=false;
+detailMode.checked=false;
 element('stage-time').checked=params.has('time')?params.get('time')==='frames':!settings.seconds;
 element('stage-enemy-stats').checked=params.get('enemyStats')==='true';
 xpForm.addEventListener('submit',()=>{
@@ -46,6 +50,33 @@ xpForm.addEventListener('submit',()=>{
   refresh();
 });
 xpDialog.addEventListener('close',()=>xpOrigin?.querySelector('[data-stage-xp-settings]')?.focus({preventScroll:true}));
+
+function readHiddenFields(){
+  try{
+    const stored=JSON.parse(localStorage.getItem(detailStorageKey));
+    if(Array.isArray(stored))return new Set(stored.filter(id=>typeof id==='string'));
+  }catch{}
+  return new Set();
+}
+function resolveDisplay(){return configuration.resolve(activeDisplayPreset(configuration.read().value));}
+detailSettingsButton.addEventListener('click',()=>{
+  detailFields.innerHTML=Object.entries(resolveDisplay()).map(([group,settings])=>{
+    const choices=settings.filter(setting=>setting.visibility!=='hidden').map(({field,label})=>
+      '<label><input type="checkbox" value="'+escapeHtml(field.id)+'"'+(hiddenFields.has(field.id)?' checked':'')+'>'+escapeHtml(label||field.id)+'</label>').join('');
+    return choices?'<fieldset><legend>'+escapeHtml(stageGroups[group])+'</legend>'+choices+'</fieldset>':'';
+  }).join('');
+  detailDialog.showModal();
+});
+detailDialog.querySelector('form').addEventListener('submit',event=>{
+  if(event.submitter?.value!=='apply')return;
+  for(const checkbox of detailFields.querySelectorAll('input')){
+    if(checkbox.checked)hiddenFields.add(checkbox.value);
+    else hiddenFields.delete(checkbox.value);
+  }
+  try{localStorage.setItem(detailStorageKey,JSON.stringify([...hiddenFields]));}
+  catch{message('詳細表示設定を保存できませんでした。');}
+  refresh();
+});
 
 function saveState(){
   const state=new URLSearchParams({crown:String(crown),stage:selected,time:settings.seconds?'seconds':'frames',
@@ -55,9 +86,12 @@ function saveState(){
 function render(){
   const {map,database}=data,visible=selected===''?stages:stages.filter(stage=>String(stage.index)===selected);
   settings.seconds=!element('stage-time').checked;
-  const detail=element('stage-display-mode').checked,stats=element('stage-enemy-stats').checked;
+  const detail=detailMode.checked,stats=element('stage-enemy-stats').checked;
+  detailSettingsButton.hidden=!detail;
   const condition={...xpSettings,studyLevel:settings.studyLevel,treasure:settings.studyTreasureBonus};
-  const display=configuration.resolve(activeDisplayPreset(configuration.read().value));
+  let display=resolveDisplay();
+  if(detail&&hiddenFields.size)
+    display=Object.fromEntries(Object.entries(display).map(([group,fields])=>[group,fields.filter(setting=>!hiddenFields.has(setting.field.id))]));
   for(const button of element('stage-navigation').querySelectorAll('[data-stage-choice]'))button.setAttribute('aria-current',button.dataset.stageChoice===selected?'page':'false');
   const mapIndex=database.maps.findIndex(item=>item.key===map.key);
   for(const [link,offset] of [[element('stage-previous'),-1],[element('stage-next'),1]])if(link)link.href=stageMapUrl(database.maps[mapIndex+offset],crown);
@@ -72,8 +106,11 @@ element('stage-navigation').addEventListener('click',event=>{
 });
 for(const id of ['stage-time','stage-display-mode','stage-enemy-stats'])element(id).addEventListener('change',refresh);
 window.addEventListener('kbcs:simulation-change',event=>{Object.assign(settings,event.detail);refresh();});
-window.addEventListener('storage',event=>{if(event.key==='kbcs:database-display:stages')refresh();});
-window.addEventListener('pageshow',event=>{if(event.persisted){element('stage-display-mode').checked=false;refresh();}});
+window.addEventListener('storage',event=>{
+  if(event.key===detailStorageKey||event.key===null)hiddenFields=readHiddenFields();
+  if(event.key===detailStorageKey||event.key==='kbcs:database-display:stages'||event.key===null)refresh();
+});
+window.addEventListener('pageshow',event=>{if(event.persisted){detailMode.checked=false;refresh();}});
 
 async function load(){
   element('stage-retry').hidden=true;

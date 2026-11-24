@@ -71,14 +71,18 @@ function replaceMarkup(target,html){
   const history=[...target.querySelectorAll('details')].map(node=>[node.querySelector('summary')?.textContent,node.open]);
   const focus=target.contains(document.activeElement)?document.activeElement:null;
   const select=focus?.dataset.stagePattern,crown=focus?.dataset.crown,xp=focus?.matches('[data-stage-xp-settings]');
-  const scrolls=[...target.querySelectorAll('.data-sheet-scroll')].map(node=>node.scrollLeft);
+  const scrollRegions=[...target.querySelectorAll('.data-sheet-scroll')];
+  const scrolls=scrollRegions.map(node=>node.scrollLeft),focusedRegion=scrollRegions.indexOf(focus);
   target.innerHTML=html;
   markup.set(target,html);
   for(const node of target.querySelectorAll('details')){
     const name=node.querySelector('summary')?.textContent,index=history.findIndex(([previous])=>name===previous);
     if(index>=0)node.open=history.splice(index,1)[0][1];
   }
-  [...target.querySelectorAll('.data-sheet-scroll')].forEach((node,index)=>{node.scrollLeft=scrolls[index]??0;});
+  [...target.querySelectorAll('.data-sheet-scroll')].forEach((node,index)=>{
+    node.scrollLeft=scrolls[index]??0;
+    if(index===focusedRegion)node.focus({preventScroll:true});
+  });
   if(crown!=null||select!=null||xp)target.querySelector(xp?'[data-stage-xp-settings]':crown!=null?'[data-crown="'+crown+'"]':'[data-stage-pattern="'+select+'"]')?.focus({preventScroll:true});
 }
 function memo(cache,key,run){

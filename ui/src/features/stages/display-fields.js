@@ -202,12 +202,13 @@ const fields=[
 const enemyField=(key,get,options)=>field('enemy',key,get,{layout:'column',...options});
 const enemyLink=(row,text,label)=>row.url?'<a href="'+esc(row.url)+'"'+(label?' aria-label="'+esc(label)+'"':'')+'>'+text+'</a>':text;
 fields.push(
-  enemyField('icon',(row,{enemies})=>html('<div class="stage-spawn-icon"><span>'+esc(row.spawn.enemy)+'</span>'+
-    (row.enemy?enemyLink(row,enemyImageHtml(enemies,row.enemy,28),row.enemy.name+'の詳細'):'')+
-    (row.spawn.boss?'<small>ボス'+(row.spawn.boss===1?'':' / 指定 '+row.spawn.boss)+'</small>':'')+'</div>')),
+  enemyField('id',({spawn})=>numeric(spawn.enemy)),
+  enemyField('icon',(row,{enemies})=>row.enemy?html(enemyLink(row,enemyImageHtml(enemies,row.enemy,36),row.enemy.name+'の詳細')):state('missing')),
   enemyField('name',row=>row.enemy?html(enemyLink(row,esc(row.enemy.name))):state('missing')),
   enemyField('attributes',(row,{enemies})=>row.enemy?html('<div class="enemy-properties">'+enemyAttributesHtml(enemies,row.enemy)+'</div>'):state('outside')),
-  enemyField('multipliers',({spawn})=>html(pc(spawn.health)+(spawn.attack!==spawn.health?'<small class="stage-enemy-note">攻撃 '+pc(spawn.attack)+'</small>':'')),{wrapHeading:true}),
+  enemyField('boss',({spawn,startsAsCastle})=>spawn.boss?
+    value('ボス / '+(startsAsCastle?'初回フレームに衝撃波':'0F後に衝撃波')):state('outside')),
+  enemyField('multipliers',({spawn})=>value(pc(spawn.health)+(spawn.attack!==spawn.health?'/'+pc(spawn.attack):'')),{wrapHeading:true}),
   enemyField('count',({spawn})=>value(spawn.count===0?'無制限':spawn.count)),
   enemyField('gate',({spawn},{stage})=>value(stage.damageCondition?number(spawn.castle)+'以上':pc(spawn.castle)+'以下')),
   enemyField('first',({spawn},{settings},cfg)=>elapsed(spawn.first,cfg,settings.seconds),timeOptions),
@@ -221,14 +222,21 @@ fields.push(
 
 const filterStats=(field,stats)=>!field.field.stats||stats;
 export function enemyColumns(display,context){
-  return display.enemy.filter(setting=>filterStats(setting,context.stats)).map(setting=>setting.field.id==='enemy.gate'&&setting.label==='城条件'?{...setting,label:context.stage.damageCondition?'累積ダメージ条件':'敵城体力'}:setting);
+  const {stage,stats}=context,splitMultiplier=stage.spawns.some(spawn=>spawn.health!==spawn.attack);
+  return display.enemy.filter(setting=>filterStats(setting,stats)).map(setting=>{
+    const {field,label}=setting;
+    if(field.id==='enemy.gate'&&label==='城条件')return {...setting,label:stage.damageCondition?'累積ダメージ条件':'敵城体力'};
+    if(field.id==='enemy.multipliers'&&label==='倍率\n（体力／攻撃）'&&!splitMultiplier)return {...setting,label:'倍率'};
+    return setting;
+  });
 }
 export function enemyRecords(context){
   const {stage,map,crown,enemies,settings,stats,enemyStatus}=context;
+  const castle=stage.spawns.find(spawn=>spawn.enemy===stage.enemyCastle);
   return stage.spawns.map(original=>{
     const spawn=effectiveSpawn(original,map,crown),enemy=enemies.enemies[spawn.enemy];
     const summary=stats&&enemy&&enemyStatus==='ready'?calculateEnemyStats(enemy,stageEnemySettings(original,map,crown,settings)):null;
-    return {original,spawn,enemy,stats:summary,url:enemy?stageEnemyDetailUrl(enemy,original,map,crown):''};
+    return {original,spawn,enemy,startsAsCastle:original===castle,stats:summary,url:enemy?stageEnemyDetailUrl(enemy,original,map,crown):''};
   });
 }
 
