@@ -1,6 +1,14 @@
 ﻿@import "../../shared/ui/data-sheet.css";
 @import "../../shared/ui/game-database.css";
 .stage-filter-row,.stage-mode { display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
+.stage-search-filter { min-inline-size:0; margin:5px 0; padding:3px 6px; border:1px solid var(--color-border); }
+.stage-search-filter .db-toolbar { margin-block:2px; }
+.stage-search-filter #stage-attributes { margin-block:4px 0; }
+.stage-series-filter { flex:0 1 100%; min-inline-size:0; }
+.stage-series-filter summary,.stage-names summary { cursor:pointer; }
+.stage-series-filter .db-filter-group { margin-block:4px; }
+.stage-attribute-scope { margin-inline-start:4px; }
+#stage-number { inline-size:5.5em; }
 .stage-mode { margin:0; padding:0; border:0; }
 .stage-mode label { position:relative; cursor:pointer; }
 .stage-mode input { position:absolute; opacity:0; width:1px; height:1px; }
@@ -14,13 +22,14 @@
 .stage-ranges label { display:flex; align-items:center; gap:4px; }
 .stage-ranges input { width:65px; }
 #stage-background,#stage-music { width:85px; }
-.stage-search-table .stage-names { white-space:normal; min-width:155px; max-width:250px; }
+.stage-search-table .stage-names { white-space:normal; overflow-wrap:anywhere; min-width:9em; max-width:250px; }
 .stage-search-table .stage-names a { display:block; }
 .stage-enemy-icons { display:flex; flex-wrap:wrap; gap:2px; justify-content:center; min-width:100px; max-width:200px; margin:auto; }
 .stage-search-table .stage-tags { white-space:nowrap; min-width:90px; }
 .stage-search-table .stage-tags span { display:inline-block; margin:1px 3px; }
 .hide-stage-enemies .stage-enemies-column { display:none; }
 .stage-search-wrap { margin-top:5px; }
+.stage-search-wrap:focus-visible { outline:2px solid var(--color-accent); outline-offset:-2px; }
 .stage-heading { display:flex; flex-wrap:wrap; align-items:baseline; gap:7px; margin-block:5px; }
 .stage-heading h1 { margin:0; }
 .stage-sheet { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; margin-block:5px; }
