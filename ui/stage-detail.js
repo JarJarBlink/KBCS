@@ -1,10 +1,10 @@
 ﻿import {stageMediaHtml,initializeStageMedia} from './src/features/stages/native-media.js';
 import {prepareEnemyStatistics,stageEnemySettings} from './native-enemy-statistics.js';
 import {loadStageDatabase,loadStageVariant} from './src/shared/game/stages.js';
-import {loadEnemyDatabase} from './src/shared/game/enemies.js';
+import {loadStageDetailPage} from './stage-detail-data.js';
 import {loadUnitDatabase} from './src/shared/game/units.js';
 import {stageMapOverviewHtml,stageSummaryHtml,stageRulesHtml,stageRewardsHtml,stageSpawnsHtml,stageFormationHtml} from './src/features/stages/view.js';
-import {stageMapUrl,resolveStageRoute} from './src/features/stages/model.js';
+import {stageMapUrl} from './src/features/stages/model.js';
 import {escapeHtml,formatNumber} from './src/shared/game/database-view.js';
 import {readGameSettings} from './src/shared/browser/game-settings.js';
 import {readPageParams,writePageParams,bindDetailNavigation} from './native-state.js';
@@ -125,18 +125,14 @@ element('stage-output').addEventListener('click',async event=>{
 async function load(){
   element('stage-retry').hidden=true;
   try{
-    [database,enemies,units]=await Promise.all([loadStageDatabase(),loadEnemyDatabase(),loadUnitDatabase()]);
-    const route=resolveStageRoute(database,params);map=route.map;
-    const detail=await fetch('/api/stages?'+new URLSearchParams({map:map.key})).then(response=>{if(!response.ok)throw Error('マップ詳細の読込に失敗しました。');return response.json();});
-    if(detail.buildId!==database.buildId||detail.revision!==database.revision)throw Error('DBが更新されています。ページを再読み込みしてください。');
-    map=detail.maps.find(value=>value.key===map.key);
-    bases=detail.stages;
+    const route=await loadStageDetailPage(params,loadStageDatabase,loadUnitDatabase);
+    ({database,enemies,units,map,stages:bases}=route);
     selected=route.selected?String(bases.find(stage=>stage.id===route.selected).index):'';
     crown=Math.max(1,Math.min(map.stars.length,Math.trunc(Number(params.get('crown')))||1));
     document.title=map.name+' | KBCS';element('stage-title').textContent=map.key+' '+map.name;
     element('stage-version').textContent='JP データv'+database.gameVersion;
-    const index=database.maps.findIndex(value=>value.key===map.key);
-    element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[database.maps[index-1],'前'],[database.maps[index+1],'次']].map(([value,label])=>value?'<a href="'+stageMapUrl(value,crown)+'">'+label+'のマップ</a>':'').join('')+'</div><div class="workspace-stage-list"><button type="button" data-stage-choice="">すべて（'+bases.length+'）</button>'+bases.map(stage=>'<button type="button" data-stage-choice="'+stage.index+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</button>').join('')+'</div>';
+    const {previous,next}=route.navigation;
+    element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[previous,'前'],[next,'次']].map(([value,label])=>value?'<a href="'+stageMapUrl(value,crown)+'">'+label+'のマップ</a>':'').join('')+'</div><div class="workspace-stage-list"><button type="button" data-stage-choice="">すべて（'+bases.length+'）</button>'+bases.map(stage=>'<button type="button" data-stage-choice="'+stage.index+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</button>').join('')+'</div>';
     element('stage-status').hidden=true;element('stage-content').hidden=false;render();
   }catch(error){element('stage-status').hidden=false;element('stage-status').textContent=error.message;element('stage-retry').hidden=false;}
 }

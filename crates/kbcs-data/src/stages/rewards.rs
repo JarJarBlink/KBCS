@@ -14,6 +14,9 @@ pub const SOURCES: &[&str] = &[
 
 // 報酬IDから本能玉の定義を選び、原本の名前と重ね描き用矩形を返す。
 pub fn decorate(database: &Database, rewards: &mut BTreeMap<String, Value>) -> Result<()> {
+    if !rewards.keys().any(|id| id.parse::<usize>().is_ok_and(|id| id >= 30000)) {
+        return Ok(());
+    }
     if !database.connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM source_file WHERE path=?1 UNION ALL SELECT 1 FROM asset_reference WHERE path=?1)",
         [SOURCES[0]],
