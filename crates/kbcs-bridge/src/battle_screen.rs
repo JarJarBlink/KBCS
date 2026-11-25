@@ -561,12 +561,16 @@ fn native_screen_witnesses() {
         );
         assert_eq!(value.layout.cannon_max, get("maximum"));
     }
+    let enabled = Config {
+        present: [1; 10],
+        ..config.clone()
+    };
     for case in data["pages"].as_array().unwrap() {
         for native in case["states"].as_array().unwrap() {
             let page = native[0].as_i64().unwrap() as i32;
             let f = native[5].as_i64().unwrap() as i32;
             let value = call(
-                config.clone(),
+                enabled.clone(),
                 State {
                     rows: 1,
                     page,
@@ -588,10 +592,28 @@ fn native_screen_witnesses() {
             }
         }
     }
-    let enabled = Config {
-        present: [1; 10],
+    let one_page = Config {
+        present: [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
         ..config.clone()
     };
+    for control in [0, 4, 8, 9] {
+        let value = call(
+            one_page.clone(),
+            State {
+                rows: 1,
+                page: 1,
+                page_frame: 2,
+                ..base.clone()
+            },
+            Input {
+                control,
+                ..Input::default()
+            },
+        );
+        assert_eq!((value.state.page, value.state.page_frame), (0, 0));
+        assert_eq!(value.layout.modes, [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]);
+    }
+
     for case in data["hits"].as_array().unwrap() {
         let value = call(
             enabled.clone(),
@@ -754,7 +776,7 @@ fn native_screen_witnesses() {
     for case in controls["swipes"].as_array().unwrap() {
         let delta: [i32; 2] = serde_json::from_value(case["delta"].clone()).unwrap();
         let result = call(
-            config.clone(),
+            enabled.clone(),
             State {
                 rows: 1,
                 pointer_down: 1,

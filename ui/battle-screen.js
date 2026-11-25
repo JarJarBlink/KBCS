@@ -189,7 +189,9 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   // 005d0508は後ろのページを先に描き、選択ページを重ねる。
   function slots(){
   const order=view.order;
-  for(const index of order){const [x,y,w,h]=view.slots[index],form=resources.forms[index];
+  for(const index of order){
+   if(view.modes[index]===0)continue;
+   const [x,y,w,h]=view.slots[index],form=resources.forms[index];
    if(!form){sprite('uni',0,x,y,w,h);if(view.modes[index]===2){context.fillStyle='rgba(0,0,0,.392)';context.fillRect(x,y,w,h);}continue;}
    const summon=runtime.hud.summons[index],image=resources.images.get(form.icon);if(summon[0]&&summon[1])context.drawImage(tinted(image,[9,21,110,85],[157,215,255],form.icon),x,y,w,h);else context.drawImage(image,9,21,110,85,x,y,w,h);
    const cost=runtime.costs[index],disabled=state.battle_mode||runtime.deployment.blocked[index]||(summon[0]?!summon[1]:(!(cheats&1)&&cost>state.money)||runtime.wait[index]>0),base=disabled?46:35;
