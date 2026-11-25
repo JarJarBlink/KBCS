@@ -98,6 +98,7 @@ pub struct Session {
     range_cuts: Vec<render::Cut>,
     range_texture: i32,
     castle_slot: i32,
+    orb_icons: [Vec<[i32; 2]>; 10],
     sniper_cuts: [Vec<render::Cut>; 2],
     sniper_textures: [i32; 2],
     top_cuts: [Vec<render::Cut>; 2],
@@ -809,6 +810,7 @@ impl Session {
         }
         // 008cfcf0はマップ・冠・面が固定編成の行と一致する場合に集計値を抑止する。
         let fixed_formation = stage["formation"]["selected"].as_i64() == Some(i64::from(crown) - 1);
+        let mut orb_icons: [Vec<[i32; 2]>; 10] = Default::default();
         let mut members: Vec<_> = document
             .slots
             .iter()
@@ -926,6 +928,9 @@ impl Session {
                         values,
                     };
                     grades[orb_count] = i32::try_from(orb.grade)?;
+                    if let Some(icons) = orb_icons.get_mut(slot) {
+                        icons.push([orb.attribute.map_or(12, |value| value as i32), orbs[orb_count].effect]);
+                    }
                     orb_count += 1;
                 }
             }
@@ -1455,6 +1460,7 @@ impl Session {
             range_cuts,
             range_texture,
             castle_slot: config.environment.castle_slot,
+            orb_icons,
             sniper_cuts,
             sniper_textures,
             top_cuts,
@@ -2006,6 +2012,15 @@ impl Session {
             .unwrap_or([0; 2]);
         let mut value = serde_json::to_value(native(self.core.hud(layout, point))?)?;
         value["warning"] = json!(native(self.core.warning())?);
+        if self.orb_icons.iter().any(|icons| !icons.is_empty()) {
+            let masks = native(self.core.orb_visibility())?;
+            let visible = self.orb_icons.iter().zip(masks).map(|(icons, mask)| {
+                icons.iter().enumerate().filter_map(move |(index, icon)| {
+                    (mask & (1 << index) != 0).then_some(icon)
+                }).collect::<Vec<_>>()
+            }).collect::<Vec<_>>();
+            value["orbIcons"] = json!(visible);
+        }
         Ok(value)
     }
 }

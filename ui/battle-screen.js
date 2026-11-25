@@ -13,7 +13,7 @@ import {createBattleMonitor} from './battle-monitor.js';
 import {createBattleFrameClient} from './battle-frame.js';
 import {initializeSceneGestures,createSceneMotion} from './src/features/stages/scene-controls.js';
 import {sortieFixedMoney} from './sortie-view.js';
-import {prepareBattleInfo,drawBattleInfo} from './battle-info.js';
+import {prepareBattleInfo,drawBattleInfo,drawBattleSlotOrbs} from './battle-info.js';
 import {prepareInspectorAssets,createBattleInspector} from './battle-inspector.js';
 import {createBattleDisplay} from './battle-display.js';
 import {createBattleDetails} from './battle-details.js';
@@ -296,6 +296,10 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
     context.fillStyle='#f00';context.fillRect(gx+2,gy+2,red,10);context.fillStyle='#0ff';context.fillRect(gx+2,gy+2,cyan,10);
    }else if(!summon[0]&&(!restricted||resources.config.fixed_money>=0&&view.modes[index]!==2)){const [labelX,labelY]=view.labels[index];number(Math.trunc(cost/100),base,labelX+94,labelY+62,-3);sprite('img001_ja',disabled?56:45,labelX+94,labelY+62,22,26);}
    if(index<5&&!state.info_mode&&view.modes[index]===1&&!skipCombos&&runtime.comboIntro?.layout.blink<2&&runtime.comboIntro.combo?.members.some(member=>member.id===snapshot.formation.slots[index]?.unitId))sprite('img002_ja',44,x-8,y-8,w+16,h+16);
+   if(view.modes[index]===1){
+    const [labelX,labelY]=view.labels[index];
+    drawBattleSlotOrbs(context,resources.info,runtime.hud.orbIcons?.[index],labelX,labelY);
+   }
   }
   }
   context.save();context.translate(0,slide);
