@@ -13,3 +13,5 @@ AOSP参照:
 
 
 変換後のcmap（Roboto2,797文字、日本語44,776文字）、hmtx、glyph順とGSUB/GPOS/CFFテーブルは元faceと一致した。WOFF2の出力SHAはsources.jsonに記録し、headの時刻は再生成しない。
+
+16.0.3の調査とフォント準備時の診断は[ゲーム画面の文字描画](native-text-rendering.md)を参照。

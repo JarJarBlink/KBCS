@@ -1,5 +1,6 @@
 ﻿import {comboAvailable,partialCalculation,battlePrecisionReasons} from './effect-support.js';
-import {nativeFont,loadNativeFonts} from './native-font.js';
+import {nativeFont} from './native-font.js';
+import {prepareNativeText} from './native-text.js';
 import {readBattleKeys,defaultBattleKeys,battleKeyAction,editableKeyTarget} from './keyboard.js';
 import {createSessionId} from './src/shared/browser/session-id.js';
 import {battleAspects,battleViewportWidth,phoneCanvasSize,phoneHudPoint,battleCameraView,battlePlaybackRate,battleFpsLimits,battlePresentationClock,accumulateBattleTicks} from './battle-view.js';
@@ -30,8 +31,7 @@ export function battleScreenConfiguration(database,snapshot){
  return {config:{worker_level:facility('worker'),wallet_level:facility('wallet'),attack_level:facility('cannonAttack'),charge_level:facility('cannonCharge'),chapter:['EOC','EOCZ'].includes(map.series)?map.number:3,income_treasure:treasure(3),wallet_treasure:treasure(4),charge_treasure:treasure(1),speed_treasure:treasure(17),income_combo:combo(8),wallet_combo:combo(9),charge_combo:combo(7),charge_start_combo:combo(3),items:mask|1,speed,fixed_money:rule?fixed*100:-1,costs:deployment.slots.map(v=>v.cost),present:formation.slots.map(v=>Number(!!v)),blocked:deployment.slots.map(v=>v.reasons)},itemsOn:mask,speedMode:mask&1?speed-1:0,worker:items.rich||rule?7:Math.min(7,combo(4)),money:rule?fixed*100:combo(5)*100};
 }
 export async function prepareBattleScreen(database,snapshot,assets,signal,report,enemies,{phone=false,onFailure}={}){
- await loadNativeFonts();
- const [atlas,options]=await Promise.all([readBattleJson('/images/native-battle/manifest.json',{signal}),readBattleJson('/api/battle-options',{signal})]);
+ const [atlas,options,textDiagnostics]=await Promise.all([readBattleJson('/images/native-battle/manifest.json',{signal}),readBattleJson('/api/battle-options',{signal}),prepareNativeText()]);
  let presentationDifferences=[];
  if(atlas.buildId!==snapshot.buildId||atlas.version!==snapshot.version){
   const sources=Object.values(atlas.atlases).flatMap(value=>Object.entries(value.sources)),paths=[...new Set([...sources.map(([path])=>path),atlas.soundSource.path])];
@@ -63,7 +63,7 @@ export async function prepareBattleScreen(database,snapshot,assets,signal,report
  // 後の曲の取得は開始を待たせない。将来の切替入口は読込完了を確認する。
  const optionalAudio=tracks=>Promise.all(tracks.map(async track=>{try{await loadAudio(track);}catch(error){if(error.name!=='AbortError')audioErrors.set(track.id,error.message);}}));
  if(!phone)void optionalAudio(tracks.slice(1));
- return {phone,database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,presentationDifferences,
+ return {phone,database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,presentationDifferences,textDiagnostics,
   preloadMusic:ids=>optionalAudio([...new Set([...tracks.map(track=>track.id),...ids])].filter(id=>id>=0).map(id=>({id}))),
   mediaVersion,report,onFailure,dispose:()=>{signal.removeEventListener('abort',dispose);dispose();},...values};
 }
@@ -412,7 +412,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   else if(action==='camera'){camera={...camera,center:snapshot.stage.width,zoom:1};++cameraVersion;}
   else if(action==='large')setLargeBattle(true);
   else if(action==='fullscreen')display.request();
-  else if(action==='report'&&monitor){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  else if(action==='report'&&monitor){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,textRendering:resources.textDiagnostics,...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   else if(action==='return'||button.dataset.battleControl==='return'){stop();onReturn();return;}
   else if(!action)control=Number(button.dataset.battleControl);
  }
