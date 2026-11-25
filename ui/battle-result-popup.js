@@ -12,6 +12,8 @@ function lines(markup){
   else if(token==='</flash>')flash=false;
   else if(token)rows.at(-1).push({text:token,color,flash});
  }
+ // 00885170は末尾の改行で次の行を確保しない。
+ if(markup.endsWith('<br>'))rows.pop();
  return rows;
 }
 export function createResultPopup(reportError){
