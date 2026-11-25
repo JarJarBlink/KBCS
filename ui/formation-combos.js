@@ -3,7 +3,8 @@ import {escapeHtml as esc} from './src/shared/game/database-view.js';
 import {normalizeUnitQuery} from './src/features/units/model.js';
 import {createFormationMember,resolveFormationMember} from './formation-model.js';
 import {createNativeSprites} from './native-sprites.js';
-import {nativeFont,loadNativeFonts} from './native-font.js';
+import {nativeFont} from './native-font.js';
+import {prepareNativeText} from './native-text.js';
 
 
 const plain=value=>String(value??'').replace(/<br>/g,'\n').replace(/<[^>]*>/g,'');
@@ -17,7 +18,7 @@ export function applyComboPlan(database,slots,plan){
  return plan.slots.map(id=>id<0?null:structuredClone(existing.get(id)||createFormationMember(database.units.find(unit=>unit.id===id))));
 }
 export async function createFormationCombos(database,getDocument,onApply,request){
- const [manifest,layout,inventory]=await Promise.all([request('/images/native-combo/manifest.json'),request('/api/combo-layout?width=1188'),request('/api/inventory'),loadNativeFonts()]);
+ const [manifest,layout,inventory]=await Promise.all([request('/images/native-combo/manifest.json'),request('/api/combo-layout?width=1188'),request('/api/inventory'),prepareNativeText()]);
  const W=1188,margin=(W-960)/2,{sprite,panel,slice}=createNativeSprites(manifest),units=new Map(database.units.map(unit=>[unit.id,unit]));
  const combos=[...database.combos].sort((a,b)=>a.members.length-b.members.length),definitions=combos.map(combo=>({units:Array.from({length:5},(_,i)=>combo.members[i]?.id??-1),forms:Array.from({length:5},(_,i)=>combo.members[i]?.form??0)}));
  const dialog=document.createElement('dialog');dialog.className='native-combo-dialog';dialog.setAttribute('aria-label','にゃんコンボ図鑑');document.body.append(dialog);
