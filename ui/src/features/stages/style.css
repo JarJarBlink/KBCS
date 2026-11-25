@@ -26,6 +26,8 @@
 #stage-background,#stage-music { width:85px; }
 .stage-search-table .stage-names { white-space:normal; overflow-wrap:anywhere; min-width:9em; max-width:250px; }
 .stage-search-table .stage-names a { display:block; }
+.stage-sort-marker { margin-inline-start:3px; color:var(--color-muted); }
+.stage-search-table [aria-sort] .stage-sort-marker { color:var(--color-accent); }
 .stage-enemy-icons { display:flex; flex-wrap:wrap; gap:2px; justify-content:center; min-width:100px; max-width:200px; margin:auto; }
 .stage-search-table .stage-tags { white-space:nowrap; min-width:90px; }
 .stage-search-table .stage-tags span { display:inline-block; margin:1px 3px; }
@@ -60,11 +62,16 @@
 .stage-media-background small,.stage-media-castle small { display:block; text-align:center; }
 .stage-media-castle { display:flex; flex-direction:column; align-items:center; justify-content:center; }
 .stage-media-castle > img { display:block; max-width:45px; height:48px; object-fit:contain; }
-.stage-tracks { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr)); gap:4px; }
-.stage-track { min-width:0; max-inline-size:24rem; padding:3px 4px; border:1px solid var(--color-border); }
+.stage-tracks { container:stage-tracks / inline-size; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr)); }
+.stage-track { min-width:0; padding:3px 4px; }
+.stage-track + .stage-track { border-inline-start:1px solid var(--color-border); }
+@container stage-tracks (width < 26rem) {
+  .stage-track + .stage-track { border-inline-start:0; border-block-start:1px solid var(--color-border); }
+  .stage-track-empty { min-block-size:1.5em; }
+}
 .stage-track-title { overflow-wrap:anywhere; font-weight:600; }
 .stage-track-title small { font-weight:400; color:var(--color-muted); white-space:nowrap; }
-.stage-track-controls { display:grid; grid-template-columns:auto minmax(1.5em,1fr) auto; align-items:center; gap:4px; }
+.stage-track-controls { display:grid; grid-template-columns:auto minmax(1.5em,1fr) auto; align-items:center; gap:4px; max-inline-size:24rem; }
 .stage-track-controls button { width:25px; min-height:24px; padding:0; }
 .stage-track-controls input { width:100%; min-width:0; height:22px; margin:0; }
 .stage-track-controls output { white-space:nowrap; }
@@ -129,6 +136,7 @@
 .stage-media-configurable > div > strong { display:block; padding:2px 4px; background:var(--color-surface); color:var(--color-muted); border-block-end:1px solid var(--color-border); }
 .stage-media-configurable > div { padding:0; overflow-wrap:anywhere; }
 .stage-media-value { padding:3px 4px; }
+.stage-music .stage-media-value:has(> .stage-tracks) { padding:0; }
 @container stage-media (width < 444px) {
   .stage-media-configurable > .stage-music { flex-basis:100%; border-inline-start:0; }
   .stage-media-configurable > .stage-music:not(:first-child) { border-block-start:1px solid var(--color-border); }

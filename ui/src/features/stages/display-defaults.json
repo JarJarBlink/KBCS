@@ -443,25 +443,25 @@
     "enemy.layers": {
       "label": "描画レイヤー",
       "order": 90,
-      "visibility": "detailOnly",
+      "visibility": "always",
       "width": "full"
     },
     "enemy.score": {
       "label": "基礎点",
       "order": 100,
-      "visibility": "whenActive",
+      "visibility": "always",
       "width": "full"
     },
     "enemy.deaths": {
       "label": "味方死亡数条件",
       "order": 110,
-      "visibility": "whenActive",
+      "visibility": "always",
       "width": "full"
     },
     "enemy.preserveWait": {
       "label": "城条件と待機保持",
       "order": 120,
-      "visibility": "whenActive",
+      "visibility": "always",
       "width": "full"
     },
     "enemy.hp": {

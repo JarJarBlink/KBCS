@@ -111,7 +111,8 @@ export function stageMediaParts(database,stage,enemies){
     background:available?'<button type="button" data-background-open data-capture-include aria-label="'+esc(stage.name)+'の背景を拡大"><canvas width="384" height="256" role="img" aria-label="背景 '+stage.background+'"></canvas></button><small>背景 '+stage.background+'</small>':'未収録',
     castle:(castle&&available?'<button type="button" data-background-open data-scene-focus="1" data-capture-include aria-label="敵城を拡大">'+castle+'</button>':castle||'未収録')+
       '<small>'+(actor?'敵ID '+actor.id:stage.castle==null?'':['ec','wc','sc','rc'][stage.castleSet??3]+String(stage.castle).padStart(3,'0'))+'</small>',
-    bgm:music.length?'<div class="stage-tracks">'+music.join('')+'</div>':'未収録',
+    bgm:music.length?'<div class="stage-tracks">'+music.join('')+
+      (music.length===1?'<div class="stage-track stage-track-empty" aria-hidden="true"></div>':'')+'</div>':'未収録',
   };
   return {parts,active:{background:available,castle:!!castle,bgm:!!tracks.length}};
 }

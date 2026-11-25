@@ -16,6 +16,9 @@ if(selectionMode){document.title='既存ステージを選択 | KBCS';const tab=
 const textFilters=['query','enemy','reward','background','music','listing'];
 const choiceFilters=['series','attributes','gimmicks'];
 const attributeScopes=[['stage-exclude-attributes','excludeAttributes'],['stage-attributes-only','attributesOnly']];
+let byStage=params.get('view')==='stage';
+const savedSort=params.get('sort');
+const initialSort=savedSort==='map'?'mapName':savedSort==='name'?(byStage?'stageName':'mapName'):savedSort;
 function readFilters(values=new URLSearchParams()){
   const excludeAttributes=values.get('excludeAttributes')==='true';
   return {
@@ -30,10 +33,10 @@ function readFilters(values=new URLSearchParams()){
 }
 const state={
   ...readFilters(reloaded?undefined:params),
-  sort:['id','name','map','count',...stageRanges.map(([key])=>key)].includes(params.get('sort'))?params.get('sort'):'id',direction:params.get('direction')==='desc'?'desc':'asc',
+  sort:['id','mapName','stageName','count',...stageRanges.map(([key])=>key)].includes(initialSort)?initialSort:'id',
+  direction:params.get('direction')==='desc'?'desc':'asc',
 };
 let database,enemyDatabase,refreshRewardSelection,rows=[],page=reloaded?1:Math.max(1,Math.trunc(Number(params.get('page')))||1);
-let byStage=params.get('view')==='stage';
 const pagination=[element('stage-pagination-top'),element('stage-pagination')].map(root=>createPagination(root,value=>{page=value;render();saveState();}));
 const labels=new Map(stageGimmicks),commonColumns=[['enemies','出現する敵'],['energy','統率力'],['difficulty','難易度'],['flags','ギミック']];
 const formatRange=(value,format)=>{
@@ -59,17 +62,26 @@ function stageNamesHtml(stages,stageUrl){
   const visible=stages.slice(0,3).map(link).join('');
   return stages.length<=3?visible:visible+'<details><summary>ほか '+(stages.length-3)+'件</summary>'+stages.slice(3).map(link).join('')+'</details>';
 }
+function columnHeading([key,label]){
+  if(key==='enemies')return '<th scope="col" class="stage-enemies-column">'+label+'</th>';
+  if(key==='flags')return '<th scope="col">'+label+'</th>';
+  const active=key===state.sort,descending=active&&state.direction==='desc';
+  const ariaSort=active?' aria-sort="'+(descending?'descending':'ascending')+'"':'';
+  const next=active&&!descending?'降順':'昇順';
+  return '<th scope="col"'+ariaSort+'><button type="button" data-sort="'+key+'" title="'+label+'を'+next+'に並べ替え">'+
+    label+'<span class="stage-sort-marker" aria-hidden="true">'+(active?(descending?'▼':'▲'):'↕')+'</span></button></th>';
+}
 function render(){
   const size=Number(element('stage-page-size').value),pages=Math.max(1,Math.ceil(rows.length/size));page=Math.min(page,pages);
   for(const item of pagination)item.update(page,pages);
   const mapCount=byStage?new Set(rows.map(entry=>entry.map.key)).size:rows.length;
   const stageCount=byStage?rows.length:rows.reduce((count,entry)=>count+entry.stages.length,0);
   element('stage-count').textContent=mapCount.toLocaleString('ja-JP')+'マップ / '+stageCount.toLocaleString('ja-JP')+'ステージ';element('stage-empty').hidden=!!rows.length;
-  const displayed=[['id','ID'],[byStage?'map':'name','マップ名'],[byStage?'name':'stages','ステージ名'],...(byStage?[]:[['count','ステージ数']]),...commonColumns];
+  const displayed=[['id','ID'],['mapName','マップ名'],['stageName','ステージ名'],...(byStage?[]:[['count','ステージ数']]),...commonColumns];
   const showEnemies=element('stage-show-enemies').checked;
   const route=selectionMode?'/stage-sortie/':'/stage-detail/';
   const crown=state.crown||1,stageUrl=stage=>stageDetailUrl(stage,crown).replace('/stage-detail/',route);
-  element('stage-table').querySelector('thead').innerHTML='<tr>'+displayed.map(([key,label])=>'<th scope="col"'+(key==='enemies'?' class="stage-enemies-column"':'')+(key===state.sort?' aria-sort="'+(state.direction==='asc'?'ascending':'descending')+'"':'')+'>'+(['stages','enemies','flags'].includes(key)?label:'<button type="button" data-sort="'+key+'">'+label+(state.sort===key?(state.direction==='asc'?' ▲':' ▼'):'')+'</button>')+'</th>').join('')+'</tr>';
+  element('stage-table').querySelector('thead').innerHTML='<tr>'+displayed.map(columnHeading).join('')+'</tr>';
   element('stage-table').querySelector('tbody').innerHTML=rows.slice((page-1)*size,page*size).map(entry=>{
     const {map,stage,stages,stageLinks}=entry,{enemies,flags,energy,difficulty}=stage||entry;
     const mapUrl=stageMapUrl(map,crown).replace('/stage-detail/',route);
@@ -136,7 +148,6 @@ element('stage-result-view').value=byStage?'stage':'map';
 element('stage-result-view').addEventListener('change',event=>{
   byStage=event.target.value==='stage';
   if(byStage&&state.sort==='count')state.sort='id';
-  if(!byStage&&state.sort==='map')state.sort='name';
   if(database)update();
 });
 element('stage-show-enemies').checked=params.get('showEnemies')==='true';element('stage-table').classList.toggle('hide-stage-enemies',!element('stage-show-enemies').checked);
@@ -161,6 +172,16 @@ element('stage-reset').addEventListener('click',()=>{
   update();
   element('stage-query').focus({preventScroll:true});
 });
-element('stage-table').addEventListener('click',event=>{const button=event.target.closest('[data-sort]');if(!button)return;state.direction=state.sort===button.dataset.sort&&state.direction==='asc'?'desc':'asc';state.sort=button.dataset.sort;update();});
+element('stage-table').addEventListener('click',event=>{
+  const button=event.target.closest('[data-sort]');
+  if(!button)return;
+  const sort=button.dataset.sort;
+  state.direction=state.sort===sort&&state.direction==='asc'?'desc':'asc';
+  state.sort=sort;
+  update();
+  const table=event.currentTarget;
+  table.parentElement.scrollTop=0;
+  table.querySelector('[data-sort="'+sort+'"]')?.focus({preventScroll:true});
+});
 async function load(){element('stage-retry').hidden=true;try{[database,enemyDatabase]=await Promise.all([loadStageSearchIndex(),loadEnemyDatabase()]);initialize();}catch(error){element('stage-status').textContent=error.message;element('stage-status').hidden=false;element('stage-retry').hidden=false;}}
 element('stage-retry').addEventListener('click',load);load();

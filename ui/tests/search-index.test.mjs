@@ -59,3 +59,21 @@ test('面番号と複数種別を組み合わせ、属性の除外は出現候�
   assert.deepEqual(ids({attributes:['red'],excludeAttributes:true}),[common.id]);
   assert.deepEqual(ids({attributes:['red'],enemy:'1'}),[]);
 });
+
+test('ステージ検索の並び替えは表示単位に応じた値を使う',()=>{
+  const map=(key,nativeId,name,count)=>({key,nativeId,name,series:'S',stars:[100],limits:[],stages:Array(count).fill(null)});
+  const maps=[map('S010',1010,'マップ10',2),map('S002',1002,'マップ2',2),map('S020',1020,'マップ20',1)];
+  const stage=(map,index,name,energy,difficulty)=>({id:map+'-'+index,map,index,name,energy,difficulty,flags:[],enemies:[]});
+  const stages=[stage('S010',1,'面30',200,9),stage('S002',0,'面2',20,3),
+    stage('S010',0,'面10',5,2),stage('S002',1,'面4',90,5),stage('S020',0,'面1',null,null)];
+  const database={maps,stages,series:[],rewards:{}},enemies={enemies:[]};
+  const filters={query:'',enemy:'',reward:'',background:'',music:'',attributes:[],gimmicks:[],ranges:{}};
+  const state=(sort,direction='asc')=>({...filters,sort,direction});
+  const grouped=(sort,direction)=>selectStageMaps(database,enemies,state(sort,direction));
+  assert.deepEqual(selectStageRows(database,enemies,state('id','desc')).map(row=>row.stage.id),['S020-0','S010-1','S010-0','S002-1','S002-0']);
+  assert.deepEqual(grouped('mapName').map(row=>row.map.key),['S002','S010','S020']);
+  assert.deepEqual(grouped('stageName').map(row=>row.stageLinks[0].name),['面1','面2','面10']);
+  assert.deepEqual(grouped('stageName','desc').map(row=>row.stageLinks[0].name),['面30','面4','面1']);
+  assert.deepEqual(grouped('energy','desc').map(row=>row.map.key),['S010','S002','S020']);
+  assert.deepEqual(grouped('difficulty').map(row=>row.map.key),['S010','S002','S020']);
+});
