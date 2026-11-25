@@ -139,6 +139,9 @@
 .stage-media-configurable > div { padding:0; overflow-wrap:anywhere; }
 .stage-media-value { padding:3px 4px; }
 .stage-music .stage-media-value:has(> .stage-tracks) { padding:0; }
+.stage-media-configurable .stage-tracks { grid-template-columns:minmax(0,1fr); }
+.stage-media-configurable .stage-track + .stage-track { border-inline-start:0; border-block-start:1px solid var(--color-border); }
+.stage-media-configurable .stage-track-empty { min-block-size:1.5em; }
 .stage-media-configurable .stage-track-title small { white-space:normal; }
 .stage-media-configurable .stage-track-controls { grid-template-columns:auto minmax(0,1fr) auto; max-inline-size:none; }
 @container stage-media (width < 444px) {
