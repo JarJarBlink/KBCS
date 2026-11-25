@@ -47,7 +47,8 @@ export function createBattleFrameClient({compress=true}={}){
    const response=await fetch(payload.session?'/api/battle-session/frame':'/api/battle-frame',{method:'POST',headers:{'Content-Type':'application/json'},body,signal});
    if(!response.ok){const value=await response.json();throw Error(value.error||'戦闘フレームを取得できません');}
    const buffer=await response.arrayBuffer(),received=performance.now(),value=await unpackBattleFrame(buffer),finished=performance.now();
-   const timing={apiMs:finished-started,serverMs:value.serverMs,encodeMs:value.encodeMs,decodeMs:finished-received,transferMs:Math.max(0,received-started-value.serverMs),payloadBytes:buffer.byteLength};
+   const wireBytes=Number(response.headers.get('Content-Length'))||buffer.byteLength;
+   const timing={apiMs:finished-started,serverMs:value.serverMs,encodeMs:value.encodeMs,decodeMs:finished-received,transferMs:Math.max(0,received-started-value.serverMs),payloadBytes:wireBytes};
    samples[count++%samples.length]=timing.apiMs;
    return {value,timing};
   },
