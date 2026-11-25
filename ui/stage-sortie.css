@@ -10,17 +10,26 @@
 .sortie-enemies{display:flex;flex-wrap:wrap;gap:4px}
 .sortie-enemy{display:inline-flex;min-width:38px;min-height:38px;align-items:center;justify-content:center;font-size:var(--font-size-small);padding:2px 5px;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-control);text-decoration:none}
 a.sortie-enemy:hover{border-color:var(--color-accent)}
-.workspace-right #sortie-details{padding:0;border:0;font-size:12px}
-#sortie-details h2{border-bottom:1px solid var(--color-border);padding:8px 0;margin:0 0 8px}
-#sortie-details .sortie-summary{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-#sortie-details dd{text-align:right;overflow-wrap:anywhere}
-#sortie-details .stage-sheet{table-layout:fixed}
-#sortie-details .stage-sheet th,#sortie-details .stage-sheet td{display:block;width:auto;overflow-wrap:anywhere}
-#sortie-details .stage-sheet td{border-top:0}
-#sortie-details pre{white-space:pre-wrap;overflow-wrap:anywhere}
-#sortie-details .stage-media{grid-template-columns:minmax(0,1fr) 60px}
-#sortie-details .stage-music{grid-column:1/-1;border-left:0;border-top:1px solid var(--color-border)}
-#sortie-details .stage-media-castle>img{max-width:100%;height:64px}
+#sortie-details{padding:0;border:0;font-size:.5625rem;line-height:1.3;--control-height:18px;--input-height:18px;--font-size-input:.5625rem;--font-size-small:.5625rem}
+#sortie-details .data-sheet{font-size:inherit}
+#sortie-details .data-sheet-label{width:23%}
+#sortie-details .data-sheet :is(th,td){padding:2px 3px}
+#sortie-details .data-sheet .data-sheet-block{padding:0}
+#sortie-details .stage-sheet-heading :is(h1,h2){font-size:.625rem}
+#sortie-details .stage-entry{margin-block:5px 0}
+#sortie-details .stage-crown-control{gap:2px}
+#sortie-details .stage-crown-control button{min-width:0;min-height:16px;padding:0 2px}
+#sortie-details .stage-crown-control img{width:13px;height:auto}
+#sortie-details :is(button,select){font-size:inherit;max-width:100%}
+#sortie-details .data-sheet-scroll{max-width:100%}
+#sortie-details .stage-spawn-portrait{width:20px;height:20px}
+#sortie-details .stage-spawn-portrait img{width:100%;height:auto}
+#sortie-details .stage-media-background canvas{max-width:100%;height:auto}
+#sortie-details .stage-media-castle img{height:34px}
+#sortie-details .stage-track-controls button{width:18px;min-height:18px}
+#sortie-details .stage-track-controls input{height:16px}
+#sortie-details select{min-inline-size:0}
+#sortie-details-message:empty{display:none}
 
 .workspace-battle #sortie-stage-navigation,.workspace-battle #sortie-details,.workspace-battle .workspace-panel-content>button{display:none}
 .workspace-battle .page-main{padding:0;overflow:hidden;display:flex;flex-direction:column}

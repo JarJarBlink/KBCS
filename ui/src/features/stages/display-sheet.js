@@ -9,11 +9,11 @@ import {calculateNative} from '/native-calculation.js';
 import {catalog} from '/simulation-profile.js';
 import {saveElementImage} from '../../shared/browser/capture.js';
 
-const headingHtml=({map,stage,crown})=>{
+const headingHtml=({map,stage,crown,compact})=>{
   const crowns=map.stars.length<2?'':'<div class="stage-crown-control" role="group" aria-label="冠を選択">'+map.stars.map((_,i)=>
     '<button type="button" data-crown="'+(i+1)+'" data-capture-include aria-label="'+(i+1)+'冠" aria-pressed="'+(i+1===crown)+'"><img src="/icons/stages/crown-'+(i<crown?'on':'off')+'.png" alt="" width="25" height="24"><span>'+(i+1)+'</span></button>').join('')+'</div>';
-  return '<tr><th colspan="4"><div class="stage-sheet-heading"><h2>'+esc(stageHeading(stage))+'</h2>'+crowns+
-    '<button type="button" data-stage-capture="'+esc(stage.id)+'">画像保存</button></div></th></tr>';
+  const capture=compact?'':'<button type="button" data-stage-capture="'+esc(stage.id)+'">画像保存</button>';
+  return '<tr><th colspan="4"><div class="stage-sheet-heading"><h2>'+esc(stageHeading(stage))+'</h2>'+crowns+capture+'</div></th></tr>';
 };
 const stageHeading=stage=>(stage.index+1)+'. '+stage.name+(stage.abyss?'（アビス）':'');
 function mediaHtml(context,source=false){
@@ -129,10 +129,10 @@ function nativeJobs(context,visible,cache){
 }
 
 // 同じstageのメディアDOMは差し替えず、再生位置と編集中の表示状態を保つ。
-export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{},onXpSettings=()=>{},onMessage=()=>{}}={}){
+export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{},onXpSettings=()=>{},onMessage=()=>{},compact=false}={}){
   let current,revision=0;
   const cache=new Map(),enemyCache=new Map(),sheets=new Map();
-  const media=initializeStageMedia(root,id=>current?.visible.find(stage=>stage.id===id),{preloadAudio:true});
+  const media=initializeStageMedia(root,id=>current?.visible.find(stage=>stage.id===id),{preloadAudio:!compact});
   function draw(stage,context){
     let section=sheets.get(stage.id);
     if(!section){
@@ -151,7 +151,7 @@ export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{}
     for(const name of segments.slice(1))replaceMarkup(table.querySelector('[data-sheet-part="'+name+'"]'),parts[name]);
   }
   async function render(input){
-    const token=++revision,context=mapDisplayContext(input);
+    const token=++revision,context=mapDisplayContext({...input,compact});
     const {database,visible,stats,settings,map,crown}=context;
     const shown=visible.concat(visible.filter(stage=>hasAbyssDetail(map,stage))
       .map(stage=>({...stage,id:abyssStageId(stage),baseStageId:stage.id,abyss:true})));
