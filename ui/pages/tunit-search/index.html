@@ -6,7 +6,7 @@
   <h1 class="visually-hidden">敵検索</h1>
   <div class="db-toolbar"><a href="/pages/unit-search/">キャラ検索</a><span id="enemy-version" class="db-meta"></span></div>
   <p id="enemy-status" class="status" role="status">敵データを読み込んでいます。</p><button id="enemy-retry" type="button" hidden>再読み込み</button>
-  <form id="enemy-filters" hidden>
+  <form id="enemy-filters" inert>
     <div class="db-toolbar"><input id="enemy-query" type="search" aria-label="敵名・ID" placeholder="敵名・ID（例：わんこ、0、0-10）"><button type="button" id="enemy-reset">クリア</button></div>
     <div class="unit-match-toolbar">
       <fieldset id="enemy-attribute-mode" class="unit-match-mode"><legend>属性・種族</legend><label class="db-chip"><input type="radio" name="attributeMode" value="any" checked><span>OR</span></label><label class="db-chip"><input type="radio" name="attributeMode" value="all"><span>AND</span></label></fieldset>
@@ -22,7 +22,7 @@
       <div class="db-toolbar"><label>未来編クリスタル %<input id="enemy-alien" type="number" min="0" max="600" value="600"></label><label>宇宙編クリスタル %<input id="enemy-starred" type="number" min="0" max="1500" value="1500"></label></div><p class="db-meta">倍率の初期値は100%。お宝・施設は共通設定を使います。数値条件は表示中の値を使います。</p></fieldset>
     </details>
   </form>
-  <div id="enemy-results" hidden>
+  <div id="enemy-results" inert>
     <div class="unit-list-meta"><span id="enemy-count" role="status"></span><label>表示<select id="enemy-page-size"><option value="25">25件</option><option value="50" selected>50件</option><option value="100">100件</option></select></label><label><input id="enemy-show-properties" type="checkbox" checked>特性</label></div>
     <div class="db-table-wrap" id="enemy-table-wrap"><table class="db-table db-search-table" id="enemy-table"><thead></thead><tbody></tbody></table></div>
     <p id="enemy-empty" hidden>条件に一致する敵がいません。</p>

@@ -124,6 +124,10 @@ element('stage-output').addEventListener('click',async event=>{
 });
 async function load(){
   element('stage-retry').hidden=true;
+  element('stage-content').hidden=false;
+  element('stage-content').setAttribute('aria-busy','true');
+  element('stage-status').hidden=false;
+  element('stage-status').textContent='ステージデータを読み込んでいます。';
   try{
     const route=await loadStageDetailPage(params,loadStageDatabase,loadUnitDatabase);
     ({database,enemies,units,map,stages:bases}=route);
@@ -135,6 +139,6 @@ async function load(){
     element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[previous,'前'],[next,'次']].map(([value,label])=>value?'<a href="'+stageMapUrl(value,crown)+'">'+label+'のマップ</a>':'').join('')+'</div><div class="workspace-stage-list"><button type="button" data-stage-choice="">すべて（'+bases.length+'）</button>'+bases.map(stage=>'<button type="button" data-stage-choice="'+stage.index+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</button>').join('')+'</div>';
     element('stage-status').hidden=true;element('stage-content').hidden=false;await render();
   }catch(error){element('stage-status').hidden=false;element('stage-status').textContent=error.message;element('stage-retry').hidden=false;}
-  finally{document.dispatchEvent(new Event('kbcs:stage-page-ready'));}
+  finally{element('stage-content').setAttribute('aria-busy','false');}
 }
 element('stage-retry').addEventListener('click',load);load();

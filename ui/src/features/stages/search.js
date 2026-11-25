@@ -28,11 +28,14 @@ function saveState(){
   if(state.crown)query.set('crown',state.crown);
   writePageParams("stage-search",query);
 }
+function renderHeading(){
+  element('stage-table').querySelector('thead').innerHTML='<tr>'+columns.map(([key,label])=>'<th'+(key==='enemies'?' class="stage-enemies-column"':'')+(key===state.sort?' aria-sort="'+(state.direction==='asc'?'ascending':'descending')+'"':'')+'>'+(['enemies','flags'].includes(key)?label:'<button type="button" data-sort="'+key+'">'+label+(state.sort===key?(state.direction==='asc'?' ▲':' ▼'):'')+'</button>')+'</th>').join('')+'</tr>';
+}
 function render(){
   const size=Number(element('stage-page-size').value),pages=Math.max(1,Math.ceil(rows.length/size));page=Math.min(page,pages);
   for(const item of pagination)item.update(page,pages);
   element('stage-count').textContent=rows.length.toLocaleString('ja-JP')+'マップ / '+rows.reduce((count,entry)=>count+entry.stages.length,0)+'ステージ';element('stage-empty').hidden=!!rows.length;
-  element('stage-table').querySelector('thead').innerHTML='<tr>'+columns.map(([key,label])=>'<th'+(key==='enemies'?' class="stage-enemies-column"':'')+(key===state.sort?' aria-sort="'+(state.direction==='asc'?'ascending':'descending')+'"':'')+'>'+(['enemies','flags'].includes(key)?label:'<button type="button" data-sort="'+key+'">'+label+(state.sort===key?(state.direction==='asc'?' ▲':' ▼'):'')+'</button>')+'</th>').join('')+'</tr>';
+  renderHeading();
   element('stage-table').querySelector('tbody').innerHTML=rows.slice((page-1)*size,page*size).map(entry=>{
     const {map,stages,enemies,flags}=entry,url=stageMapUrl(map,state.crown||1).replace('/stage-detail/',selectionMode?'/stage-sortie/':'/stage-detail/');
     const icons=enemies.slice(0,12).map(id=>{const enemy=enemyDatabase.enemies[id];return enemy?'<a href="'+escapeHtml(enemyDetailUrl(enemy))+'" title="'+escapeHtml(enemy.name)+'（ID '+id+'）" aria-label="'+escapeHtml(enemy.name)+'の詳細">'+enemyImageHtml(enemyDatabase,enemy,24)+'</a>':'<span title="敵ID '+id+'">#'+id+'</span>';}).join('');
@@ -66,7 +69,7 @@ function initialize(){
   if(state.gimmicks.length||state.reward||state.background||state.music||state.excludeEnemies||state.attributesOnly||Object.values(state.ranges).some(values=>values.some(value=>value!=='')))element('stage-filters').querySelector('details').open=true;
   initializeRewardPicker(element('stage-reward-picker'),database);
   bindIconHints(element('stage-filters'),element('stage-icon-hint'));
-  element('stage-version').textContent='JP データv'+database.gameVersion;element('stage-status').hidden=true;element('stage-filters').hidden=false;element('stage-results').hidden=false;
+  element('stage-version').textContent='JP データv'+database.gameVersion;element('stage-status').hidden=true;element('stage-filters').inert=false;element('stage-results').inert=false;
   rows=selectStageMaps(database,enemyDatabase,state);render();saveState();
 }
 initializeGameSettings(element('stage-version').parentElement,()=>defaults,values=>{Object.assign(defaults,values);element('stage-page-size').value=values.pageSize;if(database){page=1;render();saveState();}});
@@ -80,5 +83,6 @@ element('stage-filters').addEventListener('change',()=>{if(database)saveState();
 element('stage-filters').addEventListener('keyup',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches('input[type=search],input[type=text],input[type=number]')&&database)saveState();});
 element('stage-reset').addEventListener('click',()=>{clearPageParams('stage-search');location.href='/pages/stage-search/'+(selectionMode?'?play=1':'');});
 element('stage-table').addEventListener('click',event=>{const button=event.target.closest('[data-sort]');if(!button)return;state.direction=state.sort===button.dataset.sort&&state.direction==='asc'?'desc':'asc';state.sort=button.dataset.sort;update();});
-async function load(){element('stage-retry').hidden=true;try{[database,enemyDatabase]=await Promise.all([loadStageDatabase(),loadEnemyDatabase()]);initialize();}catch(error){element('stage-status').textContent=error.message;element('stage-status').hidden=false;element('stage-retry').hidden=false;}finally{document.dispatchEvent(new Event('kbcs:stage-page-ready'));}}
+async function load(){element('stage-retry').hidden=true;try{[database,enemyDatabase]=await Promise.all([loadStageDatabase(),loadEnemyDatabase()]);initialize();}catch(error){element('stage-status').textContent=error.message;element('stage-status').hidden=false;element('stage-retry').hidden=false;}}
+renderHeading();
 element('stage-retry').addEventListener('click',load);load();

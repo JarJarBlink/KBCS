@@ -22,11 +22,14 @@ function saveState() {
   for(const [key,bounds] of Object.entries(state.ranges))for(const [index,name] of ['Min','Max'].entries())if(bounds[index]!=='')query.set(key+name,bounds[index]);
   writePageParams("enemy-search",query);
 }
+function renderHeading(){
+  element('enemy-table').querySelector('thead').innerHTML='<tr>'+columns.map(([key,label])=>'<th'+(key==='attributes'?' class="enemy-attributes-column"':key==='abilities'?' class="unit-properties-column"':'')+(key===state.sort?' aria-sort="'+(state.direction==='asc'?'ascending':'descending')+'"':'')+'>'+(['icon','attributes','abilities'].includes(key)?label:'<button type="button" data-sort="'+key+'">'+label+(key===state.sort?(state.direction==='asc'?' ▲':' ▼'):'')+'</button>')+'</th>').join('')+'</tr>';
+}
 function renderRows() {
   const size=Number(element('enemy-page-size').value),pages=Math.max(1,Math.ceil(rows.length/size));page=Math.min(page,pages);
   element('enemy-count').textContent=rows.length+'体';element('enemy-empty').hidden=!!rows.length;
   pagination.update(page,pages);
-  element('enemy-table').querySelector('thead').innerHTML='<tr>'+columns.map(([key,label])=>'<th'+(key==='attributes'?' class="enemy-attributes-column"':key==='abilities'?' class="unit-properties-column"':'')+(key===state.sort?' aria-sort="'+(state.direction==='asc'?'ascending':'descending')+'"':'')+'>'+(['icon','attributes','abilities'].includes(key)?label:'<button type="button" data-sort="'+key+'">'+label+(key===state.sort?(state.direction==='asc'?' ▲':' ▼'):'')+'</button>')+'</th>').join('')+'</tr>';
+  renderHeading();
   element('enemy-table').querySelector('tbody').innerHTML=rows.slice((page-1)*size,page*size).map(({enemy,stats})=>{
     const url=escapeHtml(enemyDetailUrl(enemy,state));
     return '<tr><td>'+enemy.id+'</td><td class="db-icon"><a href="'+url+'" aria-label="'+escapeHtml(enemy.name)+'の詳細">'+enemyImageHtml(database,enemy)+'</a></td><td class="db-name"><a href="'+url+'">'+escapeHtml(enemy.name)+'</a></td><td class="enemy-attributes-column"><div class="enemy-properties">'+enemyAttributesHtml(database,enemy)+'</div></td><td class="unit-properties-column"><div class="enemy-properties">'+enemyAbilitiesHtml(database,enemy,state,stats,true)+'</div></td>'+columns.slice(5).map(([key])=>'<td>'+(['attackCycle','foreswing'].includes(key)?formatTime(stats[key],state.seconds):formatNumber(stats[key]))+'</td>').join('')+'</tr>';
@@ -54,7 +57,7 @@ function initialize() {
   element('enemy-negate').checked=state.negate;
   for(const [id,key] of [['attribute-mode','attributeMode'],['ability-mode','abilityMode']])for(const input of element('enemy-'+id).querySelectorAll('input'))input.checked=input.value===state[key];
   for(const [key,bounds] of Object.entries(state.ranges))for(const [index,direction] of ['min','max'].entries())element('enemy-'+key+'-'+direction).value=bounds[index];
-  element('enemy-version').textContent='JP データv'+database.gameVersion;element('enemy-status').hidden=true;element('enemy-filters').hidden=false;element('enemy-results').hidden=false;
+  element('enemy-version').textContent='JP データv'+database.gameVersion;element('enemy-status').hidden=true;element('enemy-filters').inert=false;element('enemy-results').inert=false;
   bindIconHints(element('enemy-filters'),element('enemy-filter-hint'));update();
 }
 initializeGameSettings(element('enemy-query').parentElement,()=>state,values=>{
@@ -73,6 +76,7 @@ element('enemy-show-properties').addEventListener('change',event=>element('enemy
 element('enemy-table').addEventListener('click',event=>{const button=event.target.closest('[data-sort]');if(!button)return;state.direction=state.sort===button.dataset.sort&&state.direction==='asc'?'desc':'asc';state.sort=button.dataset.sort;update();});
 document.addEventListener('error',event=>{if(event.target.matches?.('[data-enemy-image]')){event.target.hidden=true;event.target.parentElement.title='画像未収録';}},true);
 async function load(){element('enemy-retry').hidden=true;try{database=await loadEnemyDatabase();initialize();}catch(error){element('enemy-status').textContent=error.message;element('enemy-retry').hidden=false;}}
+renderHeading();
 element('enemy-retry').addEventListener('click',load);load();
 
 bindDetailNavigation('enemy-detail','/pages/tunit-detail/',()=>writeEnemySettings(new URLSearchParams(),state));
