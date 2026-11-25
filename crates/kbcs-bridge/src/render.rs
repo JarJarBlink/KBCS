@@ -324,7 +324,7 @@ pub fn battle_layout(input: &SceneInput, slot_slide: i32) -> Result<Layout, u32>
 }
 
 #[test]
-fn battle_zoom_and_scroll_limits_use_the_native_camera_width() {
+fn battle_zoom_and_scroll_limits_cover_the_visible_stage_width() {
     let mut input = SceneInput {
         width: 5000.,
         center: 0.,
@@ -336,11 +336,16 @@ fn battle_zoom_and_scroll_limits_use_the_native_camera_width() {
         battle_rows: 2,
     };
     let wide = layout(&input).unwrap();
-    assert_eq!(wide.zoom, 0.49);
-    assert_eq!(wide.center, 480. / wide.zoom);
+    assert_eq!(wide.zoom, 0.72);
+    let half = 711. / wide.zoom;
+    assert_eq!(wide.center, half);
+    input.center = 1e6;
+    let right = layout(&input).unwrap();
+    assert_eq!(right.center, 2000. - half);
+    input.center = 0.;
     input.viewport_width = 960;
     let standard = layout(&input).unwrap();
-    assert_eq!((standard.zoom, standard.center), (wide.zoom, wide.center));
+    assert_eq!((standard.zoom, standard.center), (0.49, 480. / 0.49));
     input.zoom = 2.;
     assert_eq!(layout(&input).unwrap().zoom, 0.8803);
     input.focus = 4;
