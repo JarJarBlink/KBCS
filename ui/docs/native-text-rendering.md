@@ -13,6 +13,6 @@
 | 編成の枠名、にゃんコンボ図鑑 | `formation-view.js` のSVGと `getComputedTextLength`。 `formation-combos.js` はCanvas計測とSVG描画を併用。 |
 | DB、設定、読上げラベル | 現行のDOM/CSS。アイテム数や価格などのアトラス由来の文字は画像として描く。 |
 
-正式な文字画像出力に置き換えるには、AndroidのBitmap・FontMetricsと各画面の描画条件を照合するG1、CPUバックエンドをWindows GNU LLVM・macOS arm64/x86_64でコンパイル・リンク・起動するG2が必要。今回はWindowsホストでの参照ツールのビルドとブラウザ検査まで。SkiaとFreeType/HarfBuzzの実測比較、Rust側のラスタライズ、ゲーム画面の置き換えは保留。
+Pixel 8で通知の30pxテキストを実測した。混在文字の画像はAndroidが228×35、現行Canvasが223×39、baselineは28/31。ウェイト700とbaselineを揃えると画素差は減った。同梱の静的Notoと実機のCFF2可変Notoではフォントテーブルも異なる。画面別の最終配置・合成の照合（G1）と、CPUバックエンドをWindows GNU LLVM・macOS arm64/x86_64でコンパイル・リンク・起動する検証（G2）が残る。Rust側のラスタライズとゲーム画面の差し替えはその検証後に行う。
 
 [16.0.3のDEX・ネイティブ調査と端末計測](../../research/docs/native-text-1603.md) · [配布フォントの由来](fonts.md)
