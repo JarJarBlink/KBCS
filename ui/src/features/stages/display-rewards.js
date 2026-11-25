@@ -51,7 +51,7 @@ const materialItem=(context,material)=>{
   const id=Object.hasOwn(material,'rewardId')?material.rewardId:material.id;
   return id==null?esc('未収録（素材枠 '+material.slot+'）'):item(context,{id,count:1});
 };
-const limits={first:'初回のみ',owned:'未入手時のみ',crown:'冠ごとに一度',shared:'全冠で一度'};
+const limits={first:'初回のみ',owned:'1回のみ',crown:'冠ごとに1回のみ',shared:'全冠で1回のみ'};
 function dropCondition(result){
   const {chance,repeatChance,limit}=result;
   if(limit)return percent(chance)+'（'+limits[limit]+'）';
@@ -67,14 +67,21 @@ export const rewardFields=[
     if(radarRefundOnly(stage))return value('なし。トレジャーレーダー返還あり。');
     const chances=dropChances(stage,context.map);
     return rewardGroup(stage.drops.map((reward,index)=>{
-      const condition=chances?.[index]?dropCondition(chances[index]):reward.chance!=null?percent(reward.chance):
+      const chance=chances?.[index],entry=context.database.rewards[reward.id];
+      // 006e34b0は固定キャラの受取済みと進化済みのフラグを、抽選方式とは別に照合する。
+      const once=entry?.evolution||(entry?.unit!=null&&reward.id>=1000&&reward.id<1100);
+      const condition=chance?dropCondition({...chance,limit:chance.limit??(once?'owned':null)}):reward.chance!=null?percent(reward.chance):
         reward.kind==='weight'&&Number.isFinite(reward.weight)?(detail?'重み '+number(reward.weight)+' / ':'')+'重み抽選（入手確率未確認）':
           (detail&&Number.isFinite(reward.weight)?'比較値 '+number(reward.weight)+' / ':'')+'条件付き（入手確率未確認）';
-      return [item(context,reward),esc(condition)];
+      return [item(context,reward),esc(condition+(!chance&&once?'（1回のみ）':''))];
     }));
   },'reward'),
   field('score',context=>context.stage.scoreRewards.length?rewardGroup(bonusRows(context,context.stage.scoreRewards,reward=>number(reward.score)+'点以上')):state('outside'),'reward'),
-  field('clearCounts',context=>context.stage.clearRewards.length?rewardGroup(bonusRows(context,context.stage.clearRewards,reward=>reward.clear+'回目')):state('outside'),'reward'),
+  field('clearCounts',context=>{
+    const {stage}=context;
+    if(!stage.clearRewards.length)return state('outside');
+    return rewardGroup(bonusRows(context,stage.clearRewards,reward=>reward.clear+'回目'+(stage.abyss?'（1回のみ）':'')));
+  },'reward'),
   field('materials',context=>materialApplicable(context)?rewardGroup(materialItems(context).map(material=>[
     materialItem(context,material),context.calculation?.materials?'1クリアで1個以上 '+percent(material.atLeastOne*100):status(context,'materials'),
   ])):state('outside'),'reward'),

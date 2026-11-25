@@ -13,6 +13,8 @@ export function selectStageRewards(database,kind='',query=''){
 const matches=(selected,values,all)=>!selected.length||(all?selected.every(value=>values.includes(value)):selected.some(value=>values.includes(value)));
 export function stageMapUrl(map,crown=1){return '/pages/stage-detail/?'+new URLSearchParams({map:typeof map==='string'?map:map.key,...(crown>1?{crown:String(crown)}:{})});}
 export function stageDetailUrl(stage,crown=1){const url=new URL(stageMapUrl(stage.map||stage.id.replace(/-\d+$/,''),crown),'https://kbc.invalid');url.searchParams.set('stage',stage.index??Number(stage.id.match(/-(\d+)$/)?.[1]));return url.pathname+url.search;}
+export const hasAbyssDetail=(map,stage)=>map.abyss===true&&stage.clearRewards?.length>0;
+export const abyssStageId=stage=>stage.id+'-abyss';
 export function resolveStageRoute(database,params){
   const legacy=database.stages.find(stage=>stage.id===params.get('id'));
   const key=params.get('map')||legacy?.map||(!params.has('id')?'N000':null),map=database.maps.find(map=>map.key===key);

@@ -98,16 +98,22 @@ export function createStagePainter(canvas,onRestore,supplied,{transparent=false,
 export function stageMediaParts(database,stage,enemies){
   const actor=enemies.enemies[stage.enemyCastle],path=actor?.icon||castlePath(stage),available=stage.background!=null&&stage.width>0;
   const castle=path?'<img src="/api/asset/'+esc(path)+'" alt="'+esc(actor?.name||'敵城')+'" loading="lazy">':'';
+  const tracks=stage.musicTracks??[],switchAt=tracks[1]?.threshold;
+  const music=tracks.map(track=>{
+    const item=database.musicCatalog?.tracks?.[track.id],name='BGM '+track.id+(item?.name?' '+item.name:'');
+    const trigger=track.threshold!=null?'城体力 '+track.threshold+'%以下':switchAt!=null?'城体力 100%〜'+(switchAt+1)+'%':'開始時';
+    return '<div class="stage-track"><div class="stage-track-title">'+esc(name)+' <small>（'+esc(trigger)+(item?'':' / 音源未収録')+'）</small></div>'+
+      (item?'<div class="stage-track-controls"><button type="button" data-track-play aria-label="'+esc(name)+'を再生">▶</button>'+
+        '<input type="range" data-track-seek min="0" max="100" step="0.1" value="0" disabled aria-label="再生位置"><output data-track-time>0:00 / —</output></div>'+
+        '<audio preload="none" hidden data-source="/api/stage-audio/'+track.id+'"></audio>':'')+'</div>';
+  });
   const parts={
     background:available?'<button type="button" data-background-open data-capture-include aria-label="'+esc(stage.name)+'の背景を拡大"><canvas width="384" height="256" role="img" aria-label="背景 '+stage.background+'"></canvas></button><small>背景 '+stage.background+'</small>':'未収録',
     castle:(castle&&available?'<button type="button" data-background-open data-scene-focus="1" data-capture-include aria-label="敵城を拡大">'+castle+'</button>':castle||'未収録')+
       '<small>'+(actor?'敵ID '+actor.id:stage.castle==null?'':['ec','wc','sc','rc'][stage.castleSet??3]+String(stage.castle).padStart(3,'0'))+'</small>',
-    bgm:(stage.musicTracks||[]).map(track=>{
-    const item=database.musicCatalog?.tracks?.[track.id],name='BGM '+track.id+(item?.name?' '+item.name:'');
-    return '<div class="stage-track"><button type="button" data-track-play aria-label="'+esc(name)+'を再生"'+(item?'':' disabled')+'>▶</button><span>'+esc(name)+'<small>'+(track.threshold==null?'開始時':'敵城'+track.threshold+'%以下')+(item?'':' / 音源未収録')+'</small></span>'+(item?'<input type="range" data-track-seek min="0" max="100" step="0.1" value="0" disabled aria-label="再生位置"><output data-track-time>0:00 / —</output><audio preload="none" hidden data-source="/api/stage-audio/'+track.id+'"></audio>':'')+'</div>';
-    }).join('')||'未収録',
+    bgm:music.length?'<div class="stage-tracks">'+music.join('')+'</div>':'未収録',
   };
-  return {parts,active:{background:available,castle:!!castle,bgm:!!stage.musicTracks?.length}};
+  return {parts,active:{background:available,castle:!!castle,bgm:!!tracks.length}};
 }
 export function stageMediaHtml(database,stage,enemies){
   const {parts}=stageMediaParts(database,stage,enemies);

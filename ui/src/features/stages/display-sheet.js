@@ -2,6 +2,7 @@
 import {sheetRows,sheetTable,sheetRow,sheetColumns,columnTable,fieldContent,fieldLabel,fieldClass,fieldDescription,fieldVisible} from '../../shared/ui/data-sheet.js';
 import {mapDisplayContext,enemyColumns,enemyRecords} from './display-fields.js';
 import {rewardRows} from './display-rewards.js';
+import {hasAbyssDetail,abyssStageId} from './model.js';
 import {stageMediaParts,initializeStageMedia} from './native-media.js';
 import {prepareEnemyStatistics,stageEnemySettings} from '/native-enemy-statistics.js';
 import {calculateNative} from '/native-calculation.js';
@@ -11,9 +12,10 @@ import {saveElementImage} from '../../shared/browser/capture.js';
 const headingHtml=({map,stage,crown})=>{
   const crowns=map.stars.length<2?'':'<div class="stage-crown-control" role="group" aria-label="冠を選択">'+map.stars.map((_,i)=>
     '<button type="button" data-crown="'+(i+1)+'" data-capture-include aria-label="'+(i+1)+'冠" aria-pressed="'+(i+1===crown)+'"><img src="/icons/stages/crown-'+(i<crown?'on':'off')+'.png" alt="" width="25" height="24"><span>'+(i+1)+'</span></button>').join('')+'</div>';
-  return '<tr><th colspan="4"><div class="stage-sheet-heading"><h2>'+(stage.index+1)+'. '+esc(stage.name)+'</h2>'+crowns+
+  return '<tr><th colspan="4"><div class="stage-sheet-heading"><h2>'+esc(stageHeading(stage))+'</h2>'+crowns+
     '<button type="button" data-stage-capture="'+esc(stage.id)+'">画像保存</button></div></th></tr>';
 };
+const stageHeading=stage=>(stage.index+1)+'. '+stage.name+(stage.abyss?'（アビス）':'');
 function mediaHtml(context,source=false){
   const settings=context.display.media.filter(setting=>fieldVisible(setting,{active:true},context.detail,source));
   if(!settings.length)return '';
@@ -21,7 +23,7 @@ function mediaHtml(context,source=false){
   const classes={background:'stage-media-background',castle:'stage-media-castle',bgm:'stage-music'};
   const fields=settings.map(setting=>{
     const key=setting.field.id.split('.').at(-1),value=setting.field.get(media,setting);
-    return fieldVisible(setting,value,context.detail,source)?'<div class="'+classes[key]+' '+fieldClass(setting)+'"><strong>'+fieldLabel(setting)+'</strong>'+fieldContent(value)+fieldDescription(setting)+'</div>':'';
+    return fieldVisible(setting,value,context.detail,source)?'<div class="'+classes[key]+' '+fieldClass(setting)+'"><strong>'+fieldLabel(setting)+'</strong><div class="stage-media-value">'+fieldContent(value)+fieldDescription(setting)+'</div></div>':'';
   }).join('');
   return fields?'<div class="stage-media stage-media-configurable" data-media-stage="'+esc(context.stage.id)+'" data-media-variant="'+esc(context.stage.patternSource??'')+'">'+fields+'</div>':'';
 }
@@ -38,13 +40,15 @@ export function stageMapSheet(context){
     sourceBlock(sheetRows([...display.map,...raw],context,options),sheetRows(raw,context,{detail})?sheetTable('マップ設定の元データ',sheetRows(raw,context,{detail})):''),{heading});
 }
 export function stageSheetParts(context){
-  const {display,stage,detail,sortieResource}=context;
+  const {display,stage,map,detail,sortieResource}=context;
   const fields=display.stage.map(setting=>setting.field.id==='stage.energy'&&setting.label==='統率力'&&sortieResource!=='energy'?
     {...setting,label:'出撃コスト'}:setting);
   const options={detail,source:true};
   const source=display.source.filter(setting=>setting.field.id!=='source.mapColumns');
   const sourceRows=detail?sheetRows([...fields,...source],context,options):'';
-  const sourceMedia=mediaHtml(context,true),sourceRewards=detail?rewardRows(display.reward,context,true):'';
+  const rewardSettings=hasAbyssDetail(map,stage)&&!stage.abyss?
+    display.reward.filter(setting=>setting.field.id!=='reward.clearCounts'):display.reward;
+  const sourceMedia=mediaHtml(context,true),sourceRewards=detail?rewardRows(rewardSettings,context,true):'';
   const records=stage.spawns.length?enemyRecords(context):[];
   const columns=enemyColumns(display,context);
   const extra=(sourceMedia||'')+(sourceRewards?sheetTable('報酬の元データ',sourceRewards):'')+
@@ -58,7 +62,7 @@ export function stageSheetParts(context){
     heading:headingHtml(context),
     basic:sheetRows(fields,context,{detail}),
     media:block?sheetRow(block):'',
-    reward:rewardRows(display.reward,context),
+    reward:rewardRows(rewardSettings,context),
     source:normalSource+sourceBlock(sourceRows,extra),
     enemy:enemyTable?sheetRow(enemyTable):'',
   };
@@ -133,15 +137,15 @@ export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{}
     let section=sheets.get(stage.id);
     if(!section){
       section=document.createElement('section');
-      section.className='stage-entry stage-display-entry';
+      section.className='stage-entry stage-display-entry'+(stage.abyss?' stage-abyss-entry':'');
       section.id='stage-sheet-'+stage.id;
       section.innerHTML='<table class="data-sheet"><thead></thead>'+segments.slice(1).map(key=>'<tbody data-sheet-part="'+key+'"></tbody>').join('')+'</table>';
       sheets.set(stage.id,section);
     }
     if(!root.contains(section))root.append(section);
-    const parts=stageSheetParts({...context,stage,calculation:context.calculations.get(stage.id)});
+    const parts=stageSheetParts({...context,stage,calculation:context.calculations.get(stage.baseStageId??stage.id)});
     const table=section.firstElementChild;
-    table.setAttribute('aria-label',stage.name);
+    table.setAttribute('aria-label',stageHeading(stage));
     if(!table.querySelector('colgroup'))table.insertAdjacentHTML('afterbegin',sheetColumns);
     replaceMarkup(table.tHead,parts.heading);
     for(const name of segments.slice(1))replaceMarkup(table.querySelector('[data-sheet-part="'+name+'"]'),parts[name]);
@@ -149,8 +153,10 @@ export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{}
   async function render(input){
     const token=++revision,context=mapDisplayContext(input);
     const {database,visible,stats,settings,map,crown}=context;
-    current=context;
-    const live=new Set(visible.map(stage=>stage.id));
+    const shown=visible.concat(visible.filter(stage=>hasAbyssDetail(map,stage))
+      .map(stage=>({...stage,id:abyssStageId(stage),baseStageId:stage.id,abyss:true})));
+    current={...context,visible:shown};
+    const live=new Set(shown.map(stage=>stage.id));
     for(const [id,section] of sheets)if(!live.has(id)){section.remove();sheets.delete(id);}
     replaceMarkup(mapTarget,stageMapSheet(context));
     const entries=visible.flatMap(stage=>stage.spawns.filter(spawn=>stats||spawn.enemy===stage.enemyCastle)
@@ -159,13 +165,18 @@ export function mountStageSheets(mapTarget,root,{onCrown=()=>{},onPattern=()=>{}
     const enemy=entries.length?memo(enemyCache,enemyKey,()=>prepareEnemyStatistics(entries)):{status:'ready',promise:Promise.resolve()};
     const {jobs,calculation}=nativeJobs(context,visible,cache);
     context.calculations=calculation;
+    const drawStages=()=>shown.forEach((stage,index)=>{
+      draw(stage,context);
+      const section=sheets.get(stage.id);
+      if(root.children[index]!==section)root.insertBefore(section,root.children[index]??null);
+    });
     const paint=()=>{
       if(token!==revision)return;
       for(const item of jobs)item.apply();
       context.enemyStatus=enemy.status;
-      try{for(const stage of visible)draw(stage,context);}
+      try{drawStages();}
       catch(error){if(enemy.status!=='ready')throw error;
-        enemyCache.delete(enemyKey);context.enemyStatus='error';for(const stage of visible)draw(stage,context);}
+        enemyCache.delete(enemyKey);context.enemyStatus='error';drawStages();}
       media.refresh();
     };
     paint();

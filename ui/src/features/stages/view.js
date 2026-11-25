@@ -2,15 +2,15 @@
 import {imageHtml} from '../../shared/game/unit-view.js';
 
 import {rarityNames} from '../../shared/game/unit-stats.js';
-import {applicableLimits,stageDetailUrl} from './model.js';
+import {applicableLimits,stageDetailUrl,stageMapUrl} from './model.js';
 
 const decimal=new Intl.NumberFormat('ja-JP',{maximumFractionDigits:3});
 const percent=value=>decimal.format(value)+'%';
 const row=(label,value)=>'<tr><th scope="row">'+label+'</th><td>'+value+'</td></tr>';
 const table=body=>'<table class="stage-sheet"><tbody>'+body+'</tbody></table>';
-function unitLink(units,id,formIndex){
+function unitLink(units,id,formIndex,size=[32,25]){
   const unit=units.units.find(unit=>unit.id===id),form=unit?.forms.find(form=>form.index===formIndex)||unit?.forms[0];
-  return unit?'<a href="/pages/unit-detail/?id='+id+'&form='+(form?.code||'f')+'">'+imageHtml(units,form,32,25)+escapeHtml(form.name)+'</a>':'ID '+id;
+  return form?'<a href="/pages/unit-detail/?id='+id+'&form='+(form.code||'f')+'">'+imageHtml(units,form,...size)+escapeHtml(form.name)+'</a>':'ID '+id;
 }
 export function limitHtml(limit,units){
   const parts=[];
@@ -21,12 +21,30 @@ export function limitHtml(limit,units){
   if(limit.group)parts.push(escapeHtml(limit.group.label)+'（'+(limit.group.type===2?'使用不可':'使用可能')+'）：'+limit.group.units.map(id=>unitLink(units,id)).join(' / '));
   return parts.join(' / ')||'指定なし';
 }
-export function conditionHtml(condition,database){
-  const raw='<details><summary>条件ID '+condition.code+' の判定内訳</summary><pre>'+escapeHtml(JSON.stringify(condition.group??{code:condition.code,minStage:condition.minStage},null,2))+'</pre></details>';
-  if(condition.message)return escapeHtml(condition.message)+raw;
-  const codes=condition.group?.condition||[condition.code];
-  const values=codes.map(code=>{const value=Math.abs(code),type=Math.floor(value/100000),map=database.maps.find(map=>map.nativeId===value%100000);return map?'<a href="/pages/stage-search/?q='+map.key+'">'+escapeHtml(map.name)+'</a> '+(code<0?'未達成':'クリア')+(condition.group?.stage!=null?'（ステージ'+(condition.group.stage+1)+'）':'')+(type!==1&&type!==3?' <span class="db-meta">条件区分'+type+'</span>':''):'条件ID '+code;});
-  return values.join(' / ')+(condition.group?.count?'（'+condition.group.count+'条件以上）':'')+raw;
+function clearConditionLink(database,map,stageIndex,negative=false){
+  if(!map)return '';
+  const stage=Number.isInteger(stageIndex)?database.stages.find(stage=>stage.map===map.key&&stage.index===stageIndex):null;
+  if(stageIndex!=null&&!stage)return '';
+  const target=stage?map.name+' / '+stage.name:map.name;
+  return '<a href="'+escapeHtml(stage?stageDetailUrl(stage):stageMapUrl(map))+'">'+escapeHtml(target+(negative?' 未クリア':'クリア'))+'</a>';
+}
+export function conditionHtml(condition,database,{detail=false}={}){
+  const {code,group}=condition;
+  // 原本の条件ID 1〜9は日本編・未来編・宇宙編の1〜3章。
+  const chapter=code>=1&&code<=9?['EOC','ITF','COTC'][Math.floor((code-1)/3)]+((code-1)%3+1):null;
+  const chapterLink=chapter?clearConditionLink(database,database.maps.find(map=>map.key===chapter)):'';
+  const targets=(group?.condition??[code]).map(id=>{
+    const value=Math.abs(id);
+    return value>=100000&&value<200000?clearConditionLink(database,database.maps.find(map=>map.nativeId===value-100000),group?.stage,id<0):'';
+  });
+  const links=targets.filter(Boolean).join(' / ');
+  const message=condition.message?.trim().replace(/\s*\n\s*/g,'').replace(/^挑戦するには(.+?)を(全て)?クリアする必要があります。?$/,'$1 $2クリア');
+  const linkedSummary=targets.length<=3&&targets.every(Boolean)?links+(group?.count?'（'+escapeHtml(group.count)+'条件以上）':''):'';
+  const summary=chapterLink||linkedSummary||escapeHtml(message||
+    (group?.count?'対象のうち'+group.count+'条件以上を達成':'条件ID '+code));
+  const raw=detail?'<details><summary>条件ID '+escapeHtml(code)+' の判定内訳</summary>'+(!linkedSummary&&links?'<div>'+links+'</div>':'')+
+    '<pre>'+escapeHtml(JSON.stringify(group??{code,minStage:condition.minStage},null,2))+'</pre></details>':'';
+  return summary+raw;
 }
 function ruleValueHtml(rule,seconds){
   if(rule.support==='unsupported')return '<pre>'+escapeHtml(JSON.stringify(rule.raw,null,2))+'</pre>';
@@ -84,8 +102,8 @@ export function exLinksHtml(database,stage){
 
 export function rewardItemHtml(database,units,reward){
   const item=database.rewards[reward.id],name=item?.name||'報酬 '+reward.id;
-  const image=item?.layers?.length?orbHtml(database,item):item?.unit!=null?unitLink(units,item.unit,item.form):item?.icon?'<img src="'+escapeHtml(database.imageBase+item.icon)+'" alt="" loading="lazy">':'';
-  return '<span class="stage-reward" title="報酬ID '+reward.id+'">'+image+(item?.unit!=null?'':escapeHtml(name))+' ×'+formatNumber(reward.count)+(item?.evolution?'<span>進化権</span>':'')+'</span>';
+  const image=item?.layers?.length?orbHtml(database,item):item?.unit!=null?unitLink(units,item.unit,item.form,[48,38]):item?.icon?'<img src="'+escapeHtml(database.imageBase+item.icon)+'" alt="" loading="lazy">':'';
+  return '<span class="stage-reward'+(item?.unit!=null?' stage-reward-character':'')+'" title="報酬ID '+reward.id+'">'+image+(item?.unit!=null?'':escapeHtml(name))+'<span>×'+formatNumber(reward.count)+'</span>'+(item?.evolution?'<span>進化権</span>':'')+'</span>';
 }
 const orbHtml=(database,item)=>'<span class="unit-orb-image" role="img" aria-label="'+escapeHtml(item.name)+'" style="width:32px;height:32px">'+item.layers.map(layer=>{const [x,y,width,height]=layer.rect,scale=32/width;return '<span class="unit-property-image" style="width:32px;height:'+height*scale+'px"><img src="'+escapeHtml(database.imageBase+layer.path)+'" alt="" loading="lazy" style="width:'+layer.width*scale+'px;height:'+layer.height*scale+'px;left:'+(-x*scale)+'px;top:'+(-y*scale)+'px"></span>';}).join('')+'</span>';
 

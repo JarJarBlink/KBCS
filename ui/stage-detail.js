@@ -131,6 +131,7 @@ async function load(){
     const warnings=configuration.read().warnings;if(warnings.length)message(warnings.join(' / '));
     element('stage-content').hidden=false;
     const displayed=render();element('stage-status').hidden=true;await displayed;
+    if(location.hash.startsWith('#stage-sheet-'))element(location.hash.slice(1))?.scrollIntoView();
   }catch(error){element('stage-content').hidden=true;element('stage-status').hidden=false;element('stage-status').textContent=error.message;element('stage-retry').hidden=false;}
 }
 element('stage-retry').addEventListener('click',load);load();

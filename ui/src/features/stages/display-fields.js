@@ -2,7 +2,7 @@
 import {enemyImageHtml,enemyAttributesHtml} from '../../shared/game/enemy-view.js';
 import {displayConfiguration,readDisplayJson} from '../../shared/ui/display-settings.js';
 import {displayValue as value,displayHtml as html,displayState as state} from '../../shared/ui/data-sheet.js';
-import {applicableLimits,effectiveSpawn,stageDetailUrl} from './model.js';
+import {applicableLimits,effectiveSpawn,stageDetailUrl,hasAbyssDetail,abyssStageId} from './model.js';
 import {limitHtml,conditionHtml,specialRulesHtml,pointRuleHtml,levelSealHtml,exLinksHtml,formationChoice,formationUnitsHtml,cannonName} from './view.js';
 import {namedColumns,optionAnnotationIndex,rawInteger,mapColumnsHtml,stageColumnsHtml} from './display-raw.js';
 import {calculateEnemyStats,stageEnemySettings,stageEnemyDetailUrl} from '/native-enemy-statistics.js';
@@ -69,7 +69,7 @@ function limits(context,stage,other=false){
 function conditions(context,filter,withScope=false){
   return box(context.map.conditions.filter(filter).map(condition=>{
     const scope=withScope?condition.kind+'：ステージ '+(condition.minStage+1)+' 以降：':'';
-    return '<div class="stage-description">'+esc(scope)+conditionHtml(condition,context.database)+'</div>';
+    return '<div class="stage-description">'+esc(scope)+conditionHtml(condition,context.database,{detail:context.detail})+'</div>';
   }));
 }
 function mapPoints({stages,crown}){
@@ -140,7 +140,15 @@ const fields=[
   mapField('notes',({map})=>map.notes?.length?html(map.notes.map(protectedText).join('')):state('inactive'),long),
   mapField('price',context=>option(context,'productionPriceMultiplierPercent',n=>n===0?state('inactive','倍率指定なし'):n>0?value(pc(n),n!==100):state('unknown',String(n)))),
   mapField('resource',context=>option(context,'usesEnergyForSortie',n=>n===0?value('統率力非消費側に登録（実際の支払資源は系列による）'):n===1?value('通常経路',false):state('unknown',String(n))),long),
-  mapField('abyss',({map})=>map.abyss===true?value('あり'):map.abyss===false?state('inactive'):state('missing')),
+  mapField('abyss',({map,stages,visible,crown})=>{
+    const entries=stages.filter(stage=>hasAbyssDetail(map,stage));
+    if(!entries.length)return map.abyss===false?state('inactive'):state('missing');
+    return html(entries.map(stage=>{
+      const fragment='#stage-sheet-'+abyssStageId(stage);
+      const href=visible?.includes(stage)?fragment:stageDetailUrl(stage,crown)+fragment;
+      return '<a href="'+esc(href)+'">'+esc(stage.name)+'</a>';
+    }).join(' / '));
+  },long),
   mapField('ad',context=>optionFlag(context,'doubleXpAdEligibilityFlag','広告対象','対象外')),
   mapField('showAll',context=>optionFlag(context,'showAllStagesFlag','一覧に全件表示','通常の一覧表示')),
   mapField('entryTracking',context=>optionFlag(context,'challengeEntryTrackingFlag','入場履歴登録対象','対象外')),
@@ -163,7 +171,8 @@ const fields=[
   stageField('xp',({stage,calculation,showXpSettings})=>{
     if(stage.xp==null)return state('missing');
     const result=calculation?.xp?number(calculation.xp[4]):calculation?.xpError?'取得できません':'計算中';
-    return showXpSettings?html('<div class="stage-xp-value"><span>'+esc(result)+'</span><button type="button" data-stage-xp-settings aria-haspopup="dialog" aria-label="獲得XPの計算条件">計算条件</button></div>'):value(result);
+    const pair=number(stage.xp)+' / '+result;
+    return showXpSettings?html('<div class="stage-xp-value"><span>'+esc(pair)+'</span><button type="button" data-stage-xp-settings aria-haspopup="dialog" aria-label="獲得XPの計算条件">計算条件</button></div>'):value(pair);
   }),
   stageField('castleHealth',castle),
   stageField('width',({stage})=>numeric(stage.width)),
@@ -206,7 +215,7 @@ function spawnIcon(row,{enemies}){
   if(!enemy&&!spawn.boss)return state('missing');
   const image=enemy?enemyImageHtml(enemies,enemy,36):'—';
   const icon=spawn.boss?'<span class="stage-spawn-portrait">'+image+'<span class="stage-boss-mark">Boss</span></span>':image;
-  return html(enemyLink(row,icon,enemy?enemy.name+'の詳細'+(spawn.boss?'（ボス）':''):''));
+  return html('<span class="stage-spawn-icon">'+enemyLink(row,icon,enemy?enemy.name+'の詳細'+(spawn.boss?'（ボス）':''):'')+'</span>');
 }
 fields.push(
   enemyField('id',({spawn})=>numeric(spawn.enemy)),
