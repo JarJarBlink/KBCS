@@ -1273,11 +1273,19 @@ impl Service {
                 status: 200,
                 mime,
                 bytes: if mime.starts_with("text/html") {
-                    // blocking scriptを本文より先に読み、moduleの依存取得中もホームを隠す。
+                    // 初回の起動画面とページ遷移を、本文を描画する前に設定する。
                     String::from_utf8_lossy(file.contents())
                         .replacen(
                             "<head>",
-                            "<head><script src=\"/startup-boot.js\"></script>",
+                            concat!(
+                                r#"<head><script src="/startup-boot.js"></script>"#,
+                                r#"<script src="/page-transition.js"></script>"#,
+                            ),
+                            1,
+                        )
+                        .replacen(
+                            r#"<script type="module" src="/src/app/main.js">"#,
+                            r#"<script type="module" src="/src/app/main.js" blocking="render">"#,
                             1,
                         )
                         .into_bytes()
@@ -1399,6 +1407,8 @@ fn native_calculation_service_contract() {
     let html = String::from_utf8(home.bytes).unwrap();
     assert!(html.find("/startup-boot.js").unwrap() < html.find("type=\"module\"").unwrap());
     assert!(html.find("/startup-boot.js").unwrap() < html.find("<body").unwrap());
+    let workspace_script = r#"<script type="module" src="/src/app/main.js" blocking="render">"#;
+    assert!(html.find("/page-transition.js").unwrap() < html.find(workspace_script).unwrap());
     let popup: Vec<Value> = (0..5).map(|frame| json!({"viewport":1422,"count":1,"widths":[200,0,0,0,0,0,0,0],"scaleFrame":frame,"cut":[0,0,100,100],"padding":[6,6]})).collect();
     let single = service.handle(
         "POST",

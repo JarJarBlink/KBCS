@@ -9,6 +9,29 @@
 #asset-source { width:min(520px,65vw); }
 #source-text { max-height:240px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
 
+/* 共通ナビを固定し、本文の旧・新スナップショットだけを同じ速度で動かす。 */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation:auto; }
+}
+:root[data-kbcs-page-direction]::view-transition-old(root) { display:none; }
+:root[data-kbcs-page-direction]::view-transition-new(root) { animation:none; }
+:root[data-kbcs-page-direction]::view-transition-group(root) { animation:none; }
+:root[data-kbcs-page-direction]::view-transition-group(kbcs-page) {
+  --kbcs-slide-distance:100%;
+  animation:none; overflow:clip;
+}
+:root[data-kbcs-page-direction="back"]::view-transition-group(kbcs-page) { --kbcs-slide-distance:-100%; }
+::view-transition-old(kbcs-page), ::view-transition-new(kbcs-page) {
+  animation-duration:260ms;
+  animation-timing-function:cubic-bezier(.25,.7,.25,1);
+  animation-fill-mode:both;
+  mix-blend-mode:normal;
+}
+::view-transition-old(kbcs-page) { animation-name:kbcs-page-out; }
+::view-transition-new(kbcs-page) { animation-name:kbcs-page-in; }
+@keyframes kbcs-page-out { to { transform:translateX(calc(0% - var(--kbcs-slide-distance))); } }
+@keyframes kbcs-page-in { from { transform:translateX(var(--kbcs-slide-distance)); } }
+
 /* PC用の枠。色・罫線・表の構造は元Webの変数と部品を使う。 */
 body:has(.workspace) { height:100dvh; min-height:0; overflow:hidden; background:var(--color-bg); }
 .site-shell.workspace { --radius:0px; --font-size-body:.75rem; --font-size-small:.625rem; --font-size-input:.75rem; --control-height:26px; --input-height:26px; display:grid; grid-template-rows:36px minmax(0,1fr); width:calc(100vw / var(--site-scale,1)); height:calc(100dvh / var(--site-scale,1)); margin:0; padding:0; background:var(--color-bg); font-size:var(--font-size-body); }
