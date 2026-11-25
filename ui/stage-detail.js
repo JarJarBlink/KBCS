@@ -133,7 +133,8 @@ async function load(){
     element('stage-version').textContent='JP データv'+database.gameVersion;
     const {previous,next}=route.navigation;
     element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[previous,'前'],[next,'次']].map(([value,label])=>value?'<a href="'+stageMapUrl(value,crown)+'">'+label+'のマップ</a>':'').join('')+'</div><div class="workspace-stage-list"><button type="button" data-stage-choice="">すべて（'+bases.length+'）</button>'+bases.map(stage=>'<button type="button" data-stage-choice="'+stage.index+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</button>').join('')+'</div>';
-    element('stage-status').hidden=true;element('stage-content').hidden=false;render();
+    element('stage-status').hidden=true;element('stage-content').hidden=false;await render();
   }catch(error){element('stage-status').hidden=false;element('stage-status').textContent=error.message;element('stage-retry').hidden=false;}
+  finally{document.dispatchEvent(new Event('kbcs:stage-page-ready'));}
 }
 element('stage-retry').addEventListener('click',load);load();

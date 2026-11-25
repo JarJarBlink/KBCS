@@ -9,28 +9,51 @@
 #asset-source { width:min(520px,65vw); }
 #source-text { max-height:240px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
 
-/* 共通ナビを固定し、本文の旧・新スナップショットだけを同じ速度で動かす。 */
+/* 中央は画像と本文を横に送り、左右の枠は固定する。 */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition { navigation:auto; }
 }
-:root[data-kbcs-page-direction]::view-transition-old(root) { display:none; }
-:root[data-kbcs-page-direction]::view-transition-new(root) { animation:none; }
+:root { --kbcs-slide-distance:100%; --kbcs-slide-time:180ms; }
+:root[data-kbcs-page-direction="back"] { --kbcs-slide-distance:-100%; }
+:root[data-kbcs-page-direction]::view-transition-old(root) { display:none; animation:none; }
+:root[data-kbcs-page-direction]::view-transition-new(root),
 :root[data-kbcs-page-direction]::view-transition-group(root) { animation:none; }
-:root[data-kbcs-page-direction]::view-transition-group(kbcs-page) {
-  --kbcs-slide-distance:100%;
-  animation:none; overflow:clip;
-}
-:root[data-kbcs-page-direction="back"]::view-transition-group(kbcs-page) { --kbcs-slide-distance:-100%; }
-::view-transition-old(kbcs-page), ::view-transition-new(kbcs-page) {
-  animation-duration:260ms;
+::view-transition-group(kbcs-page),
+::view-transition-group(kbcs-left), ::view-transition-group(kbcs-right) { animation:none; overflow:clip; }
+::view-transition-old(kbcs-page), ::view-transition-new(kbcs-page),
+::view-transition-old(kbcs-left), ::view-transition-new(kbcs-left),
+::view-transition-old(kbcs-right), ::view-transition-new(kbcs-right),
+.workspace-editor[data-kbcs-slide] > * {
+  animation-duration:var(--kbcs-slide-time);
   animation-timing-function:cubic-bezier(.25,.7,.25,1);
   animation-fill-mode:both;
   mix-blend-mode:normal;
 }
-::view-transition-old(kbcs-page) { animation-name:kbcs-page-out; }
-::view-transition-new(kbcs-page) { animation-name:kbcs-page-in; }
+::view-transition-old(kbcs-page), ::view-transition-new(kbcs-page) { animation-delay:var(--kbcs-slide-elapsed,0ms); }
+::view-transition-old(kbcs-page),
+.workspace-editor[data-kbcs-slide="leave"] > :not(.workspace-page-loader),
+.workspace-editor[data-kbcs-slide="enter"] > .workspace-page-loader { animation-name:kbcs-page-out; }
+::view-transition-new(kbcs-page),
+.workspace-editor[data-kbcs-slide="leave"] > .workspace-page-loader,
+.workspace-editor[data-kbcs-slide="enter"] > :not(.workspace-page-loader) { animation-name:kbcs-page-in; }
 @keyframes kbcs-page-out { to { transform:translateX(calc(0% - var(--kbcs-slide-distance))); } }
 @keyframes kbcs-page-in { from { transform:translateX(var(--kbcs-slide-distance)); } }
+
+::view-transition-old(kbcs-left), ::view-transition-old(kbcs-right) { display:none; animation-name:none; }
+::view-transition-new(kbcs-left), ::view-transition-new(kbcs-right) { animation-name:none; }
+:root[data-kbcs-left-changed]::view-transition-old(kbcs-left),
+:root[data-kbcs-right-changed]::view-transition-old(kbcs-right) { display:block; animation-name:kbcs-panel-up; }
+:root[data-kbcs-left-changed]::view-transition-new(kbcs-left),
+:root[data-kbcs-right-changed]::view-transition-new(kbcs-right) { animation-name:kbcs-panel-in; }
+@keyframes kbcs-panel-up { to { transform:translateY(-100%); } }
+@keyframes kbcs-panel-in { from { transform:translateY(100%); } }
+
+.workspace-editor[data-kbcs-slide] { position:relative; overflow:clip; }
+.workspace-editor[data-kbcs-slide="loading"] > :not(.workspace-page-loader),
+.workspace-panel-content[data-kbcs-panel-waiting] { visibility:hidden; }
+.workspace-page-loader { position:absolute; inset:0; display:grid; place-items:center; background:#0b1c3f; color:#f4f6fa; }
+.workspace-page-loader img { width:100%; height:100%; object-fit:contain; }
+.workspace-page-loader span { position:absolute; top:76%; font-size:.875rem; }
 
 /* PC用の枠。色・罫線・表の構造は元Webの変数と部品を使う。 */
 body:has(.workspace) { height:100dvh; min-height:0; overflow:hidden; background:var(--color-bg); }

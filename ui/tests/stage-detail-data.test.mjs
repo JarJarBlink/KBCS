@@ -30,5 +30,5 @@ assert.deepEqual(calls,['/api/stages?map=N001','stage-index','unit-index']);
 
 calls.length=0;
 response=detail;
-assert.equal((await loadStageDetailPage(new URLSearchParams('id=1001-0'),loadIndex,loadUnits)).selected,stage.id);
+assert.equal((await loadStageDetailPage(new URLSearchParams('id=1001-0'),loadIndex,loadUnits)).map.key,map.key);
 assert.deepEqual(calls,['stage-index','/api/stages?map=N001']);

@@ -160,6 +160,7 @@ async function load(){
     renderStage();node('status').hidden=true;node('content').hidden=false;
     await refreshFormationList(saved.formation);
   }catch(error){node('status').textContent=error.message;}
+  finally{document.dispatchEvent(new Event('kbcs:stage-page-ready'));}
 }
 let refreshTime=0;
 function refreshSavedFormation(){if(!map||!units||controller||formationSaving||reorder?.active||Date.now()-refreshTime<300)return;refreshTime=Date.now();refreshFormationList().catch(error=>status(error.message,true));}
