@@ -33,6 +33,7 @@ a.sortie-enemy:hover{border-color:var(--color-accent)}
 
 .workspace-battle #sortie-stage-navigation,.workspace-battle #sortie-details,.workspace-battle .workspace-panel-content>button{display:none}
 .workspace-battle .page-main{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.phone-surface #sortie-content[aria-busy="true"]{display:none}
 .workspace-battle #sortie-content{flex:1;min-height:0;display:flex;flex-direction:column}
 .workspace-battle #sortie-message{display:none}
 .battle-screen{display:flex;flex:1;min-height:0;flex-direction:column;background:#000}

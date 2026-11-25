@@ -1,8 +1,9 @@
 ﻿import {loadStageSearchIndex} from './search-index.js';
 import {loadStageVariant} from './src/shared/game/stages.js';
-import {stageMapUrl,resolveStageRoute} from './src/features/stages/model.js';
+import {stageMapUrl} from './src/features/stages/model.js';
 import {loadStageDisplay,stageGroups} from './src/features/stages/display-fields.js';
-import {loadStageDisplayMap} from './src/features/stages/display-data.js';
+import {loadStageDetailPage} from './stage-detail-data.js';
+import {loadUnitSearchIndex} from './native-unit-search.js';
 import {mountStageSheets} from './src/features/stages/display-sheet.js';
 import {activeDisplayPreset} from './src/shared/ui/display-settings.js';
 import {escapeHtml} from './src/shared/game/database-view.js';
@@ -93,8 +94,9 @@ function render(){
   if(detail&&hiddenFields.size)
     display=Object.fromEntries(Object.entries(display).map(([group,fields])=>[group,fields.filter(setting=>!hiddenFields.has(setting.field.id))]));
   for(const button of element('stage-navigation').querySelectorAll('[data-stage-choice]'))button.setAttribute('aria-current',button.dataset.stageChoice===selected?'page':'false');
-  const mapIndex=database.maps.findIndex(item=>item.key===map.key);
-  for(const [link,offset] of [[element('stage-previous'),-1],[element('stage-next'),1]])if(link)link.href=stageMapUrl(database.maps[mapIndex+offset],crown);
+  for(const [id,key] of [['stage-previous',data.navigation.previous],['stage-next',data.navigation.next]]){
+    const link=element(id);if(link)link.href=stageMapUrl(key,crown);
+  }
   saveState();
   return sheets.render({...data,visible,stages,crown,settings:{...settings},condition,display,detail,stats,ledger,showXpSettings:true});
 }
@@ -114,24 +116,28 @@ window.addEventListener('pageshow',event=>{if(event.persisted){detailMode.checke
 
 async function load(){
   element('stage-retry').hidden=true;
+  element('stage-content').hidden=false;
+  element('stage-content').setAttribute('aria-busy','true');
+  element('stage-status').hidden=false;
+  element('stage-status').textContent='ステージデータを読み込んでいます。';
   try{
-    const indexRequest=loadStageSearchIndex(),routeRequest=indexRequest.then(index=>resolveStageRoute(index,params));
-    const detailRequest=(params.get('map')?Promise.resolve(params.get('map')):routeRequest.then(route=>route.map.key)).then(key=>loadStageDisplayMap(key,indexRequest));
-    const [loaded,route,definition]=await Promise.all([detailRequest,routeRequest,loadStageDisplay()]);
+    const [loaded,definition]=await Promise.all([loadStageDetailPage(params,loadStageSearchIndex,loadUnitSearchIndex),loadStageDisplay()]);
     data=loaded;({configuration,ledger}=definition);
     const {map,database}=data;stages=data.stages;
-    selected=route.selected?String(stages.find(stage=>stage.id===route.selected).index):'';
+    selected=loaded.selected?String(stages.find(stage=>stage.id===loaded.selected).index):'';
     crown=Math.max(1,Math.min(map.stars.length,Math.trunc(Number(params.get('crown')))||1));
     document.title=map.name+' | KBCS';
     element('stage-version').textContent='JP データv'+database.gameVersion;
-    const index=database.maps.findIndex(value=>value.key===map.key);
-    element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[database.maps[index-1],'前','previous'],[database.maps[index+1],'次','next']]
+    const {previous,next}=data.navigation;
+    element('stage-navigation').innerHTML='<div class="db-toolbar">'+[[previous,'前','previous'],[next,'次','next']]
       .map(([value,label,id])=>value?'<a id="stage-'+id+'" href="'+stageMapUrl(value,crown)+'">'+label+'のマップ</a>':'').join('')+'</div><div class="workspace-stage-list"><button type="button" data-stage-choice="">すべて（'+stages.length+'）</button>'+
       stages.map(stage=>'<button type="button" data-stage-choice="'+stage.index+'">'+(stage.index+1)+'. '+escapeHtml(stage.name)+'</button>').join('')+'</div>';
     const warnings=configuration.read().warnings;if(warnings.length)message(warnings.join(' / '));
     element('stage-content').hidden=false;
-    const displayed=render();element('stage-status').hidden=true;await displayed;
+    const displayed=render();element('stage-status').hidden=true;
+    await displayed;
     if(location.hash.startsWith('#stage-sheet-'))element(location.hash.slice(1))?.scrollIntoView();
   }catch(error){element('stage-content').hidden=true;element('stage-status').hidden=false;element('stage-status').textContent=error.message;element('stage-retry').hidden=false;}
+  finally{element('stage-content').setAttribute('aria-busy','false');}
 }
 element('stage-retry').addEventListener('click',load);load();

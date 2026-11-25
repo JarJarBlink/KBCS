@@ -71,17 +71,20 @@ function columnHeading([key,label]){
   return '<th scope="col"'+ariaSort+'><button type="button" data-sort="'+key+'" title="'+label+'を'+next+'に並べ替え">'+
     label+'<span class="stage-sort-marker" aria-hidden="true">'+(active?(descending?'▼':'▲'):'↕')+'</span></button></th>';
 }
+function renderHeading(){
+  const displayed=[['id','ID'],['mapName','マップ名'],['stageName','ステージ名'],...(byStage?[]:[['count','ステージ数']]),...commonColumns];
+  element('stage-table').querySelector('thead').innerHTML='<tr>'+displayed.map(columnHeading).join('')+'</tr>';
+}
 function render(){
   const size=Number(element('stage-page-size').value),pages=Math.max(1,Math.ceil(rows.length/size));page=Math.min(page,pages);
   for(const item of pagination)item.update(page,pages);
   const mapCount=byStage?new Set(rows.map(entry=>entry.map.key)).size:rows.length;
   const stageCount=byStage?rows.length:rows.reduce((count,entry)=>count+entry.stages.length,0);
   element('stage-count').textContent=mapCount.toLocaleString('ja-JP')+'マップ / '+stageCount.toLocaleString('ja-JP')+'ステージ';element('stage-empty').hidden=!!rows.length;
-  const displayed=[['id','ID'],['mapName','マップ名'],['stageName','ステージ名'],...(byStage?[]:[['count','ステージ数']]),...commonColumns];
   const showEnemies=element('stage-show-enemies').checked;
   const route=selectionMode?'/stage-sortie/':'/stage-detail/';
   const crown=state.crown||1,stageUrl=stage=>stageDetailUrl(stage,crown).replace('/stage-detail/',route);
-  element('stage-table').querySelector('thead').innerHTML='<tr>'+displayed.map(columnHeading).join('')+'</tr>';
+  renderHeading();
   element('stage-table').querySelector('tbody').innerHTML=rows.slice((page-1)*size,page*size).map(entry=>{
     const {map,stage,stages,stageLinks}=entry,{enemies,flags,energy,difficulty}=stage||entry;
     const mapUrl=stageMapUrl(map,crown).replace('/stage-detail/',route);
@@ -137,7 +140,7 @@ function initialize(){
   writeControls();
   refreshRewardSelection=initializeRewardPicker(element('stage-reward-picker'),database);
   bindIconHints(element('stage-filters'),element('stage-icon-hint'));
-  element('stage-version').textContent='JP データv'+database.gameVersion;element('stage-status').hidden=true;element('stage-filters').hidden=false;element('stage-results').hidden=false;
+  element('stage-version').textContent='JP データv'+database.gameVersion;element('stage-status').hidden=true;element('stage-filters').inert=false;element('stage-results').inert=false;
   if(byStage&&state.sort==='count')state.sort='id';
   readControls();rows=filterRows();render();saveState();
 }
@@ -184,4 +187,5 @@ element('stage-table').addEventListener('click',event=>{
   table.querySelector('[data-sort="'+sort+'"]')?.focus({preventScroll:true});
 });
 async function load(){element('stage-retry').hidden=true;try{[database,enemyDatabase]=await Promise.all([loadStageSearchIndex(),loadEnemyDatabase()]);initialize();}catch(error){element('stage-status').textContent=error.message;element('stage-status').hidden=false;element('stage-retry').hidden=false;}}
+renderHeading();
 element('stage-retry').addEventListener('click',load);load();

@@ -252,8 +252,10 @@ async function load(){
     });
     node('items').innerHTML=sortieItemsHtml(battleArtwork,items,speed);node('launch').innerHTML=sortieLaunchHtml(battleArtwork);
     renderStage();node('status').hidden=true;node('content').hidden=false;
+    node('options').inert=false;
     await refreshFormationList(saved.formation);
   }catch(error){node('status').textContent=error.message;}
+  finally{node('content').setAttribute('aria-busy','false');}
 }
 let refreshTime=0;
 function refreshSavedFormation(){if(!map||!units||controller||battle||phoneMirror||formationSaving||reorder?.active||Date.now()-refreshTime<300)return;refreshTime=Date.now();refreshFormationList().catch(error=>status(error.message,true));}

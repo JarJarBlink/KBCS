@@ -112,9 +112,9 @@ fn catalog_selection(
     let metadata = database.metadata()?;
     let item_definitions = crate::inventory::definitions(database)?;
     let extras = extras::Extras::read(connection, region)?;
-    let selected_id = if let Some(key) = selected {
+    let (selected_id, navigation) = if let Some(key) = selected {
         let mut query = connection
-            .prepare_cached("SELECT id,series,map_index FROM stage_map WHERE region=?")?;
+            .prepare_cached("SELECT id,series,map_index FROM stage_map WHERE region=? ORDER BY id")?;
         let ids = query
             .query_map([region], |r| {
                 Ok((
@@ -124,14 +124,16 @@ fn catalog_selection(
                 ))
             })?
             .collect::<rusqlite::Result<Vec<_>>>()?;
-        Some(
-            ids.into_iter()
-                .find(|(_, series, index)| map_key(series, *index) == key)
-                .context("マップが見つかりません")?
-                .0,
+        let position = ids.iter()
+            .position(|(_, series, index)| map_key(series, *index) == key)
+            .context("マップが見つかりません")?;
+        let key_at = |position| ids.get(position).map(|(_, series, index): &(i64, String, i64)| map_key(series, *index));
+        (
+            Some(ids[position].0),
+            Some(json!({"previous":position.checked_sub(1).and_then(key_at),"next":key_at(position+1)})),
         )
     } else {
-        None
+        (None, None)
     };
     let mut definition_summaries = BTreeMap::new();
     let mut summary_statement=connection.prepare_cached("SELECT d.path,d.width,d.background,json_group_array(s.enemy_raw-2) FILTER(WHERE s.enemy_raw IS NOT NULL),coalesce(max(s.after_castle!=0),0),coalesce(max(s.kills!=0),0),coalesce(max(s.attack_percent!=0 AND s.attack_percent!=s.hp_percent),0),d.no_continue,d.boss_guard,d.time_raw,d.castle_raw FROM stage_definition d LEFT JOIN stage_definition_spawn s ON d.region=s.region AND d.path=s.definition_path WHERE d.region=?1 AND (?2 IS NULL OR d.path IN (SELECT definition_path FROM stage_entry WHERE region=?1 AND map_id=?2 AND (?3 IS NULL OR stage_index=?3) UNION SELECT definition_path FROM stage_variant WHERE region=?1 AND map_id=?2 AND (?3 IS NULL OR stage_index=?3))) GROUP BY d.path")?;
@@ -589,27 +591,31 @@ fn catalog_selection(
             *reward = json!({"id":id,"name":name.unwrap_or_else(||format!("キャラ {unit}")),"unit":unit,"form":0});
         }
     }
-    let (_, _, _, bytes) = database.source("Data/unitbuy.csv")?;
-    for (unit, (_, values)) in numeric_rows(&bytes)?.into_iter().enumerate() {
-        for (column, form, minimum) in [(23, 2, 10000), (24, 3, 20000)] {
-            let id = number(&values, column);
-            if !(minimum..minimum + 10000).contains(&id) {
-                continue;
-            }
-            if let Some(reward) = rewards.get_mut(&id.to_string()) {
-                let name: Option<String> = connection.query_row(
-                    "SELECT name FROM form WHERE region=? AND unit_id=? ORDER BY form_index=? DESC,form_index LIMIT 1",
-                    params![region,unit as i64,form],|row|row.get(0),
-                ).optional()?;
-                let name = name.unwrap_or_else(|| format!("キャラ {unit}"));
-                *reward = json!({"id":id,"name":format!("第{}形態進化権：{name}",form+1),"unit":unit,"form":form,"evolution":true});
+    if rewards.keys().any(|id| id.parse::<i64>().is_ok_and(|id| (10000..30000).contains(&id))) {
+        let (_, _, _, bytes) = database.source("Data/unitbuy.csv")?;
+        for (unit, (_, values)) in numeric_rows(&bytes)?.into_iter().enumerate() {
+            for (column, form, minimum) in [(23, 2, 10000), (24, 3, 20000)] {
+                let id = number(&values, column);
+                if !(minimum..minimum + 10000).contains(&id) {
+                    continue;
+                }
+                if let Some(reward) = rewards.get_mut(&id.to_string()) {
+                    let name: Option<String> = connection.query_row(
+                        "SELECT name FROM form WHERE region=? AND unit_id=? ORDER BY form_index=? DESC,form_index LIMIT 1",
+                        params![region,unit as i64,form],|row|row.get(0),
+                    ).optional()?;
+                    let name = name.unwrap_or_else(|| format!("キャラ {unit}"));
+                    *reward = json!({"id":id,"name":format!("第{}形態進化権：{name}",form+1),"unit":unit,"form":form,"evolution":true});
+                }
             }
         }
     }
     rewards::decorate(database, &mut rewards)?;
-    Ok(
-        json!({"schemaVersion":2,"rewardCatalogVersion":1,"gameVersion":metadata.get("version"),"calculationVersion":crate::compatibility::calculation_version(database)?,"revision":metadata.get("revision"),"buildId":metadata.get("build_id"),"imageBase":"/api/asset/","scope":{"bands":maps.iter().filter_map(|m|m["nativeId"].as_i64()).map(|id|id/1000*1000).collect::<BTreeSet<_>>(),"nativeVersion":"15.7.2"},"series":maps.iter().filter_map(|m|m["series"].as_str()).collect::<BTreeSet<_>>().into_iter().map(|s|json!({"id":s,"label":series_label(s)})).collect::<Vec<_>>(),"maps":maps,"stages":stages,"rewards":rewards,"musicCatalog":crate::stage_media::music_catalog(database)?}),
-    )
+    let mut result = json!({"schemaVersion":2,"rewardCatalogVersion":1,"gameVersion":metadata.get("version"),"calculationVersion":crate::compatibility::calculation_version(database)?,"revision":metadata.get("revision"),"buildId":metadata.get("build_id"),"imageBase":"/api/asset/","scope":{"bands":maps.iter().filter_map(|m|m["nativeId"].as_i64()).map(|id|id/1000*1000).collect::<BTreeSet<_>>(),"nativeVersion":"15.7.2"},"series":maps.iter().filter_map(|m|m["series"].as_str()).collect::<BTreeSet<_>>().into_iter().map(|s|json!({"id":s,"label":series_label(s)})).collect::<Vec<_>>(),"maps":maps,"stages":stages,"rewards":rewards,"musicCatalog":crate::stage_media::music_catalog(database)?});
+    if let Some(navigation) = navigation {
+        result["navigation"] = navigation;
+    }
+    Ok(result)
 }
 
 // 候補の数値は元の戦闘定義から取得し、選択した面の報酬・統率力と合成する。

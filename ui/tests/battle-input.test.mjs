@@ -66,7 +66,10 @@ globalThis.fetch=async(path,options)=>{
 try{
  const popup=createResultPopup(error=>errors.push(error)),atlas={atlases:{img005_1:{image:'popup',rects:[[0,0,100,100],[],[],[],[],[],[],[],[6,6]]}}};
  const messages=Array.from({length:12},(_,index)=>'reward '+index);
+ messages[0]='material 1 material 2<br>';
+ messages[1]='material 1 material 2<br>material 3 material 4<br>';
  await popup.prepare(messages,1422,atlas);assert.deepEqual(calls.map(v=>v.length),[50,10]);
+ assert.deepEqual(calls[0].slice(0,10).map(row=>row.count),[1,1,1,1,1,2,2,2,2,2]);
  await popup.prepare(messages,1422,atlas);assert.equal(calls.length,2);
  const translations=[],context={save(){},restore(){},translate:(...args)=>translations.push(args),drawImage:(...args)=>draws.push(args)};
  const ready={index:11,scaleFrame:4,phase:1,flash:0},images=new Map([['popup',{}]]);

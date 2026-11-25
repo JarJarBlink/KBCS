@@ -5,7 +5,11 @@
 <p id="stage-status" role="status">ステージデータを読み込んでいます。</p><button id="stage-retry" type="button" hidden>再読み込み</button>
 <nav id="stage-navigation" aria-label="このマップのステージ"></nav>
 <div id="stage-detail-controls" class="stage-display-controls"><span class="stage-detail-mode"><label><input id="stage-display-mode" type="checkbox">詳細表示</label><button id="stage-detail-settings-open" type="button" aria-haspopup="dialog" hidden>詳細表示設定</button></span><label><input id="stage-time" type="checkbox">F表示</label><label><input id="stage-enemy-stats" type="checkbox">敵ステータスを表示</label></div>
-<section id="stage-content" hidden><div id="stage-map-info"></div><div id="stage-output"></div></section>
+<section id="stage-content" aria-busy="true"><div id="stage-map-info"><table class="data-sheet db-table" aria-label="マップ情報">
+<colgroup><col class="data-sheet-label"><col><col class="data-sheet-label"><col></colgroup>
+<thead><tr><th colspan="4"><div class="stage-sheet-heading"><h1>マップ情報</h1></div></th></tr></thead>
+<tbody><tr><th scope="row">ステージ数</th><td></td><th scope="row">マップ難易度</th><td></td></tr>
+<tr><th scope="row">冠倍率</th><td colspan="3"></td></tr></tbody></table></div><div id="stage-output"></div></section>
 <dialog id="stage-detail-settings" class="db-dialog stage-detail-settings" aria-labelledby="stage-detail-settings-heading"><form method="dialog">
 <h2 id="stage-detail-settings-heading">詳細表示設定</h2>
 <p>チェックした項目を詳細表示で非表示にします。</p>
