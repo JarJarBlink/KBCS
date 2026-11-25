@@ -36,6 +36,8 @@
 
 JP 15.7.4のステージ報酬にある0〜999番台の86 IDは、すべて対応する原本定義が一意。報酬ID 207「軍資金」の画像は採用元に収録されていないため、名前と数量だけを表示する。
 
+`Extras::map` はマップヘッダーと `PlayStageLimit.csv` の条件IDを、同じ `MapConditions.json` の原本グループへ接続する。マップと面の条件に同じHTML表示を使い、表示時に根拠のある対象へリンクする。
+
 0.1.16 / importer10：motions::importが共有済みstemの全モデル・cut・maanim・Number PNGと共通魂を保存する。manifestはキャラ/形態と原本ファイル一覧を構築する。制作PCの絶対パスを含むimgcutでもstemで画像を結ぶ回帰を、既存2取り込み試験へ追加した。公式snapshotを変更せず原本追加の再生成で公開する。
 
 0.1.17 / importer12：effects::import/catalog/manifestはその他モデルの素材所有・画像対応・原本保持を扱う。skillのパーツid、敵専用/共有maanim、最長stem、同名PNG優先/実在ヘッダー名のfallbackを既存取り込み試験へ追加。未知の対応は未確認として残す。
