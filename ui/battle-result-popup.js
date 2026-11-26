@@ -1,4 +1,5 @@
 ﻿import {nativeFont} from './native-font.js';
+import {createNotificationTextRasterizer} from './native-text.js';
 import {readBattleJson} from './battle-support.js';
 
 // 005e53dcの原本文面を、00884eccと同じ文字runへ分ける。HTMLとして実行しない。
@@ -16,18 +17,14 @@ function lines(markup){
  if(markup.endsWith('<br>'))rows.pop();
  return rows;
 }
-export function createResultPopup(reportError){
- const measure=document.createElement('canvas').getContext('2d');measure.font=nativeFont(30);
- function texture(run,flashColor){
-  const metrics=measure.measureText(run.text),w=Math.ceil(metrics.width),ascent=Math.ceil(metrics.fontBoundingBoxAscent),h=Math.ceil(metrics.fontBoundingBoxAscent+metrics.fontBoundingBoxDescent);
-  const canvas=document.createElement('canvas');canvas.width=Math.max(1,w);canvas.height=Math.max(1,h);const ink=canvas.getContext('2d');ink.font=measure.font;ink.textBaseline='alphabetic';ink.fillStyle=run.flash?flashColor:run.color;ink.fillText(run.text,0,ascent);return {canvas,w,h};
- }
+export function createResultPopup(reportError,{pixel8TextPreview=false}={}){
+ const rasterize=createNotificationTextRasterizer(pixel8TextPreview);
  let key='',prepared,closed=false;
  return {
   prepare(messages,width,atlas){
    const next=JSON.stringify([messages,width]);if(next===key)return;key=next;prepared=null;
    const entries=messages.map(message=>{
-    const rows=lines(message),textures=['rgb(255,255,0)','rgb(255,0,255)'].map(color=>rows.map(row=>row.map(run=>texture(run,color)))),widths=textures[0].map(row=>row.reduce((sum,run)=>sum+run.w,0));
+    const rows=lines(message),textures=['rgb(255,255,0)','rgb(255,0,255)'].map(color=>rows.map(row=>row.map(run=>rasterize(run.text,run.flash?color:run.color)))),widths=textures[0].map(row=>row.reduce((sum,run)=>sum+run.w,0));
     return {rows,widths,textures};
    });
    // 通知ごとの要求を並列に増やさず、Serviceの64件/16KiB以内でまとめる。

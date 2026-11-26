@@ -55,27 +55,70 @@
 | Roboto | 2048 | 2,797 | wght 100/400/900、wdth 75/100/100、ital 0/0/1（min/default/max） |
 | Noto Sans CJK JP TTC face 0 | 1000 | 44,776 | 静的、weight 400 |
 
-ブラウザの日本語太字は現行CSSで合成される。Android実機が当該文字列に選ぶ書体ファイルとウェイト、言語・文字種ごとの代替書体と絵文字の構成は未取得。
+KBCSの日本語太字はブラウザで合成される。Pixel 8の選択結果と原本フォントとの差は下記の実測を参照。言語・文字種ごとの代替書体と絵文字の全構成は未調査。
+
+## Pixel 8での計測
+
+Android 15、API 35、ビルド `BP1A.250505.005.B1`、locale/Paint localeはja-JP。端末に入っていたJP 16.0.3（versionCode 1600030）はbase APKとARM64 splitのSHAが上表と一致した。[計測ツール](../verify/NativeText1603.java)は別パッケージのAndroid Instrumentationで実行し、原本から確認したPaint・StaticLayout・Bitmap条件で20ケースを生成した。 `app_process` で直接起動した場合はTypefaceの既定書体が未初期化で、同じ条件を取得できなかった。
+
+- 30px、 `default_bold`、 `ALIGN_NORMAL`、wrap 0、strokeなしを通知の比較条件とした。Pixel 8の1行は高さ35px、baseline Y=28。20ケースともARGB_8888、sRGB、premultipliedで、rowBytesは幅×4、densityは420だった。
+- 固定wrap 39.75/40/40.25では1回目のlayout幅40/41/41、Bitmap幅44/45/45、高さ105。空文字は全面透明の5×35、2行は65×70だった。幅80指定の「かな」は85×35で、center/oppositeの行Xは12/25。結合濁点の「か」+濁点と合成済みの「が」は同じraw画素だった。
+- 混在文字の `TextRunShaper` はRobotoとNoto Sans CJKのTTC face 0を選び、通常はweightOverride=400、太字は700を報告。RobotoファイルのSHAはKBCSの変換元と同じ。日本語はSHA-256 `3e7e5afaac2c6d872592d76abedac03a51c6f0fc42d11e311ff2816a6c368afe`、Noto 2.004-H1のCFF2可変faceでwght 400/400/900（min/default/max）。同梱WOFF2の静的faceとはアウトライン形式、hmtx、GSUB、GPOSが異なる。Shaperは単行に対する同じPaintでの書体選択を示す。
+
+KBCS 0.1.63をWindowsのEdge 158.0.4370.33で実行し、 `battle-result-popup.js` が白で生成した文字runのCanvasを取得した。現行はweight 400でbaseline Y=31。比較では両画像の非透明画素の和集合を元に、透明度の絶対差の平均（0〜255）を計算した。baseline合わせはKBCS側を整数3px上へ移動。700の列は実験用にCanvasフォント指定だけを変更したもの。
+
+| 入力 | Pixel 8 | 現行KBCS | 元のα MAE | baseline揃え | baseline揃え＋700 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `Lv.50＋10　かな` | 228×35 | 223×39 | 139.8 | 87.9 | 47.9 |
+| `Lv.50+10` | 124×35 | 120×39 | 131.0 | 64.3 | 39.1 |
+| `かなカナ漢字` | 185×35 | 180×39 | 140.8 | 63.9 | 35.2 |
+| `AV fi W` | 101×35 | 96×39 | 132.4 | 101.8 | 32.6 |
+
+混在文字の非透明mask IoUは0.412→0.639→0.809。ウェイトとbaselineを合わせても、4例とも寸法と画素に差が残った。アプリ内の最終描画矩形・色合成・GPUサンプリングと他端末の比較は未実施。
+
+### 実機で選ばれた日本語フォントの公開元
+
+AOSPの `android-15.0.0_r34` はPixel 8の実測ビルドに対応する。 `notosanscjk/Android.bp` は公開ファイル `NotoSansCJK-wght-400-900.otf.ttc` を端末の `NotoSansCJK-Regular.ttc` として配置する。公開ファイルの実体を取得し、実機ファイルと上記SHA-256で一致した。日本語faceは0で、配布元の `NOTICE` はSIL Open Font License 1.1を収録する。[AOSPのフォント](https://android.googlesource.com/platform/external/noto-fonts/+/refs/tags/android-15.0.0_r34/notosanscjk/NotoSansCJK-wght-400-900.otf.ttc) · [ビルド定義](https://android.googlesource.com/platform/external/noto-fonts/+/refs/tags/android-15.0.0_r34/notosanscjk/Android.bp) · [NOTICE](https://android.googlesource.com/platform/external/noto-fonts/+/refs/tags/android-15.0.0_r34/notosanscjk/NOTICE)
+
+試験用にface 0をWOFF2へ変換した。CFF2・cmap・fvar・avar・hmtx・HVAR・GPOS・GSUBの各テーブルが変換前と一致し、WOFF2は13,413,440バイト。Pixel 8通知プレビュー（30px、weight 700、baseline 28）の日本語フォントだけを、同梱静的NotoからAOSP可変Notoへ切り替えて計測した。
+
+| 入力 | α MAE（静的Noto → 可変Noto） | 可変Notoの画像幅 / 実機幅 |
+| --- | ---: | ---: |
+| `かなカナ漢字` | 35.2 → 13.1 | 184 / 185 |
+| `Lv.50＋10　かな` | 47.9 → 44.2 | 229 / 228 |
+| `か`＋結合濁点 | 32.0 → 13.8 | 34 / 35 |
+| `Lv.50+10` | 39.1 → 39.1 | 126 / 124 |
+
+日本語のmask IoUは0.825から0.979へ改善した。欧文だけのサンプルは二つのKBCS条件間で画素が一致した。公開元のファイルと変換物はローカルの計測領域に保存した。
 
 ## 端末で参照を収集する
 
-[NativeText1603.java](../verify/NativeText1603.java) は端末のAndroidフレームワークで代表ケースを生成する計測用コード。Bitmapと同寸のPNG、strideを含むrawバイト、FontMetrics、各行の開始/終了・描画位置・baseline、端末とPaintの設定を記録する。下記はリポジトリのルートから実行するPowerShell例。 `JAVA_HOME` と `ANDROID_HOME` は既存のJDK/SDKの場所。
+Android 15以降、Android SDK 35、JDK、Python、バイナリリダイレクト対応のPowerShell 7.4以降を使う。計測APKは [manifest](../verify/native-text/AndroidManifest.xml) の公開権限なしの一時パッケージ。通常のアプリ初期化でTypefaceを得て、結果はアプリ専用領域に保存する。リポジトリのルートから実行する。
 
 ```powershell
 $probe = Join-Path $env:TEMP 'kbcs-native-text-probe'
-New-Item -ItemType Directory -Force "$probe/classes" | Out-Null
-$androidJar = "$env:ANDROID_HOME/platforms/android-35/android.jar"
-& "$env:JAVA_HOME/bin/javac.exe" --release 11 -classpath $androidJar -d "$probe/classes" research/verify/NativeText1603.java
-& "$env:ANDROID_HOME/build-tools/35.0.0/d8.bat" --release --min-api 26 --lib $androidJar --output $probe "$probe/classes/NativeText1603.class"
+New-Item -ItemType Directory -Force "$probe/classes","$probe/dex" | Out-Null
+$jar = "$env:ANDROID_HOME/platforms/android-35/android.jar"
+$tools = "$env:ANDROID_HOME/build-tools/35.0.0"
 $adb = "$env:ANDROID_HOME/platform-tools/adb.exe"
-& $adb push "$probe/classes.dex" /data/local/tmp/kbcs-text-probe.dex
-$sample = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('Lv.50＋10　かな'))
-& $adb shell "CLASSPATH=/data/local/tmp/kbcs-text-probe.dex app_process /system/bin NativeText1603 default_bold 30 0 1 false '$sample' /data/local/tmp/kbcs-text-case" | Tee-Object "$probe/metrics.txt"
-& $adb pull /data/local/tmp/kbcs-text-case.png "$probe/case.png"
-& $adb pull /data/local/tmp/kbcs-text-case.pixels "$probe/case.pixels"
-Get-FileHash "$probe/case.pixels" -Algorithm SHA256
+& "$env:JAVA_HOME/bin/javac.exe" --release 11 -classpath $jar -d "$probe/classes" research/verify/NativeText1603.java
+& "$tools/d8.bat" --release --min-api 35 --lib $jar --output "$probe/dex" "$probe/classes/dev/kbcs/textprobe/NativeText1603.class"
+& "$tools/aapt.exe" package -f -M (Resolve-Path 'research/verify/native-text/AndroidManifest.xml').Path -I $jar -F "$probe/unsigned.apk"
+py -c 'from zipfile import ZipFile; import sys; ZipFile(sys.argv[1],"a").write(sys.argv[2],"classes.dex")' "$probe/unsigned.apk" "$probe/dex/classes.dex"
+& "$tools/zipalign.exe" -f 4 "$probe/unsigned.apk" "$probe/aligned.apk"
+$key = "$probe/measurement-key.jks"
+if (-not (Test-Path $key)) {
+    & "$env:JAVA_HOME/bin/keytool.exe" -genkeypair -keyalg RSA -alias probe -keystore $key -storepass textprobe -keypass textprobe -dname 'CN=KBCS local text measurement' -validity 30
+}
+& "$tools/apksigner.bat" sign --ks $key --ks-pass pass:textprobe --key-pass pass:textprobe --out "$probe/probe.apk" "$probe/aligned.apk"
+& $adb -d install "$probe/probe.apk"
+$text = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('Lv.50＋10　かな'))
+$cases = ConvertTo-Json -InputObject @(@{id='mixed'; font='default_bold'; size=30; wrap=0; align=1; stroke=$false; text=$text}) -Compress
+& $adb -d shell "am instrument -w -r -e cases '$cases' dev.kbcs.textprobe/.NativeText1603"
+foreach($ext in 'metrics.txt','pixels','png') {
+    & $adb -d exec-out run-as dev.kbcs.textprobe cat "files/mixed.$ext" > "$probe/mixed.$ext"
+}
+Get-Content -Encoding utf8 "$probe/mixed.metrics.txt"
+Get-FileHash "$probe/mixed.pixels" -Algorithm SHA256
+& $adb -d uninstall dev.kbcs.textprobe
 ```
-
-各ケースに上記のAPK/SO SHA、端末のOSビルド、 locale、使用フォント構成・ファイルのSHAを添える。まず空文字、複数行、タブ・空白、半角と全角の混在、結合濁点を比較する。幅の丸めは固定wrap 39.75/40/40.25で、1回目のlayout幅40/41/41と最終Bitmap幅44/45/45を期待値とする。高さ・baseline・画素は端末出力を採る。引数の揃え0/1/2とstrokeの真偽も別々に比較する。
-
-SDK 35でJavaコンパイルとDEX生成まで実施。今回の環境には接続されたAndroid端末や起動可能なAndroidイメージがなかったため、端末上の起動、画素、フォント一致、ゲーム内合成は未測定。 `app_process` のlocale・描画設定が実アプリと同じかも比較条件に含める。
