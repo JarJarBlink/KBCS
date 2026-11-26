@@ -135,7 +135,10 @@ function renderStage(){
   node('limit-summary').textContent=hasLimit||map.rules.length||stage.formation?'出撃制限・特殊条件あり':'';
   refreshStageDetails();
   node('database-link').href='/pages/stage-detail/?'+new URLSearchParams({map:map.key,stage:stage.index,crown});
-  history.replaceState(null,'','/pages/stage-sortie/?'+new URLSearchParams({map:map.key,stage:stage.index,crown,...(phone?{phone:'1'}:{})}));drawFormation();refreshDeployment();ready();
+  const nextRoute=new URLSearchParams({map:map.key,stage:stage.index,crown});
+  if(phone)nextRoute.set('phone','1');
+  else if(route.get('text-preview')==='pixel8')nextRoute.set('text-preview','pixel8');
+  history.replaceState(null,'','/pages/stage-sortie/?'+nextRoute);drawFormation();refreshDeployment();ready();
 }
 function report(label,current,total){node('loading-status').textContent=label+' '+current+' / '+total;node('progress').max=Math.max(1,total);node('progress').value=current;}
 let recording;
