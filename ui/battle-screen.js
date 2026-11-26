@@ -135,7 +135,8 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(playbackPaused||runtime.result.mode)audio.pause();else if(audio.paused&&!audio.ended&&state.bgm_level){audioStarted=true;audio.play().catch(()=>{});}
  }
  const sounds=createBattleSounds(resources.audioErrors,resources.atlas.sounds,{preloadedOnly:phone,version:resources.mediaVersion}),tints=new Map();
- const results=createBattleResults(controls,{summary:!phone});
+ const pixel8TextPreview=!phone&&new URLSearchParams(globalThis.location?.search).get('text-preview')==='pixel8';
+ const results=createBattleResults(controls,{summary:!phone,pixel8TextPreview});
  let leftInset=0,rightInset=0;
  if(!phone)sounds.preload([8,9,10,11,15,19,20,21,22,23,24,25,26,27,28,29,36,37,42,44,45,50,57,59,60,61,65,70,71,72,73,74,83,84,85,86,90,105,106,110,111,112,124,137,138,139,159,162,167,168,169,188,189,194]);
  function tinted(image,cut,color,key){
@@ -416,7 +417,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   else if(action==='camera'){camera={...camera,center:snapshot.stage.width,zoom:1};++cameraVersion;}
   else if(action==='large')setLargeBattle(true);
   else if(action==='fullscreen')display.request();
-  else if(action==='report'&&monitor){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,textRendering:resources.textDiagnostics,...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  else if(action==='report'&&monitor){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,textRendering:{...resources.textDiagnostics,notificationRenderer:pixel8TextPreview?'pixel8-canvas-preview':'browser-legacy'},...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   else if(action==='return'||button.dataset.battleControl==='return'){stop();onReturn();return;}
   else if(!action)control=Number(button.dataset.battleControl);
  }

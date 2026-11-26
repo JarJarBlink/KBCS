@@ -16,3 +16,7 @@
 Pixel 8で通知の30pxテキストを実測した。混在文字の画像はAndroidが228×35、現行Canvasが223×39、baselineは28/31。ウェイト700とbaselineを揃えると画素差は減った。同梱の静的Notoと実機のCFF2可変Notoではフォントテーブルも異なる。画面別の最終配置・合成の照合（G1）と、CPUバックエンドをWindows GNU LLVM・macOS arm64/x86_64でコンパイル・リンク・起動する検証（G2）が残る。Rust側のラスタライズとゲーム画面の差し替えはその検証後に行う。
 
 [16.0.3のDEX・ネイティブ調査と端末計測](../../research/docs/native-text-1603.md) · [配布フォントの由来](fonts.md)
+
+## 通知文字の試作
+
+PCの出撃準備URLに `text-preview=pixel8` を付けると、報酬・通知の文字runに `createNotificationTextRasterizer(true)` を使う。30px・ウェイト700、高さ35px、baseline Y=28。幅はCanvasの字送りをfloat32で扱い、1pxを加えて整数化した後に4pxを加える。Androidの `Layout.getDesiredWidth` との字送りの差は残る。文字画像の幅と高さは既存の通知配置へ渡し、点滅色と描画順を保つ。診断JSONの `textRendering.notificationRenderer` は試作時に `pixel8-canvas-preview` を記録する。
