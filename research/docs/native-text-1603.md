@@ -76,6 +76,21 @@ KBCS 0.1.63をWindowsのEdge 158.0.4370.33で実行し、 `battle-result-popup.j
 
 混在文字の非透明mask IoUは0.412→0.639→0.809。ウェイトとbaselineを合わせても、4例とも寸法と画素に差が残った。アプリ内の最終描画矩形・色合成・GPUサンプリングと他端末の比較は未実施。
 
+### 実機で選ばれた日本語フォントの公開元
+
+AOSPの `android-15.0.0_r34` はPixel 8の実測ビルドに対応する。 `notosanscjk/Android.bp` は公開ファイル `NotoSansCJK-wght-400-900.otf.ttc` を端末の `NotoSansCJK-Regular.ttc` として配置する。公開ファイルの実体を取得し、実機ファイルと上記SHA-256で一致した。日本語faceは0で、配布元の `NOTICE` はSIL Open Font License 1.1を収録する。[AOSPのフォント](https://android.googlesource.com/platform/external/noto-fonts/+/refs/tags/android-15.0.0_r34/notosanscjk/NotoSansCJK-wght-400-900.otf.ttc) · [ビルド定義](https://android.googlesource.com/platform/external/noto-fonts/+/refs/tags/android-15.0.0_r34/notosanscjk/Android.bp) · [NOTICE](https://android.googlesource.com/platform/external/noto-fonts/+/refs/tags/android-15.0.0_r34/notosanscjk/NOTICE)
+
+試験用にface 0をWOFF2へ変換した。CFF2・cmap・fvar・avar・hmtx・HVAR・GPOS・GSUBの各テーブルが変換前と一致し、WOFF2は13,413,440バイト。Pixel 8通知プレビュー（30px、weight 700、baseline 28）の日本語フォントだけを、同梱静的NotoからAOSP可変Notoへ切り替えて計測した。
+
+| 入力 | α MAE（静的Noto → 可変Noto） | 可変Notoの画像幅 / 実機幅 |
+| --- | ---: | ---: |
+| `かなカナ漢字` | 35.2 → 13.1 | 184 / 185 |
+| `Lv.50＋10　かな` | 47.9 → 44.2 | 229 / 228 |
+| `か`＋結合濁点 | 32.0 → 13.8 | 34 / 35 |
+| `Lv.50+10` | 39.1 → 39.1 | 126 / 124 |
+
+日本語のmask IoUは0.825から0.979へ改善した。欧文だけのサンプルは二つのKBCS条件間で画素が一致した。公開元のファイルと変換物はローカルの計測領域に保存した。
+
 ## 端末で参照を収集する
 
 Android 15以降、Android SDK 35、JDK、Python、バイナリリダイレクト対応のPowerShell 7.4以降を使う。計測APKは [manifest](../verify/native-text/AndroidManifest.xml) の公開権限なしの一時パッケージ。通常のアプリ初期化でTypefaceを得て、結果はアプリ専用領域に保存する。リポジトリのルートから実行する。
