@@ -856,6 +856,13 @@ impl Battle {
         let code = unsafe { kbcs_core_battle_warning(self.0.as_ptr(), out.as_mut_ptr()) };
         if code == 0 { Ok(out) } else { Err(code) }
     }
+    pub fn orb_visibility(&self) -> Result<[i32; 10], u32> {
+        let mut out = [0; 10];
+        match unsafe { kbcs_core_battle_orb_visibility(self.0.as_ptr(), out.as_mut_ptr()) } {
+            0 => Ok(out),
+            code => Err(code),
+        }
+    }
     pub fn hud(&self, layout: &render::Layout, point: [i32; 2]) -> Result<Hud, u32> {
         let mut out = Hud::default();
         let code =
@@ -1150,6 +1157,7 @@ unsafe extern "C" {
         written: *mut i32,
     ) -> u32;
     fn kbcs_core_battle_warning(battle: *const RawBattle, out: *mut i32) -> u32;
+    fn kbcs_core_battle_orb_visibility(battle: *const RawBattle, out: *mut i32) -> u32;
     fn kbcs_core_battle_hud(
         battle: *const RawBattle,
         layout: *const render::Layout,

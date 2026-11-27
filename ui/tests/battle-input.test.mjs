@@ -46,7 +46,7 @@ assert.equal(battleCameraView({...live,intro:23},{},camera,1422),null);
 assert.equal(battleCameraView({...live,paused:1},{},camera,1422),null);
 assert.equal(battleCameraView(live,{endCameraActive:true},camera,1422),null);
 assert.deepEqual(battleCameraView(live,{endCameraActive:false,cameraMaximum:.9633},camera,1422),
- {...camera,viewport_width:1422,cameraWidth:960,maximum:.9633});
+ {...camera,viewport_width:1422,maximum:.9633});
 const snapshot={formation:{slots:Array(10).fill(null),profile:{facilities:Object.fromEntries(['worker','wallet','cannonAttack','cannonCharge'].map(key=>[key,{level:1,plus:0}])),treasures:Object.fromEntries(catalog.treasures.map(v=>[v.id,100]))}},map:{series:'EOC',number:1,rules:[]},items:{speedup:true},deployment:{slots:Array.from({length:10},()=>({cost:0,reasons:0}))}};
 for(const speed of [2,3]){
  const {config,speedMode}=battleScreenConfiguration({combos:[]},{...snapshot,speed});
@@ -66,7 +66,10 @@ globalThis.fetch=async(path,options)=>{
 try{
  const popup=createResultPopup(error=>errors.push(error)),atlas={atlases:{img005_1:{image:'popup',rects:[[0,0,100,100],[],[],[],[],[],[],[],[6,6]]}}};
  const messages=Array.from({length:12},(_,index)=>'reward '+index);
+ messages[0]='material 1 material 2<br>';
+ messages[1]='material 1 material 2<br>material 3 material 4<br>';
  await popup.prepare(messages,1422,atlas);assert.deepEqual(calls.map(v=>v.length),[50,10]);
+ assert.deepEqual(calls[0].slice(0,10).map(row=>row.count),[1,1,1,1,1,2,2,2,2,2]);
  await popup.prepare(messages,1422,atlas);assert.equal(calls.length,2);
  const translations=[],context={save(){},restore(){},translate:(...args)=>translations.push(args),drawImage:(...args)=>draws.push(args)};
  const ready={index:11,scaleFrame:4,phase:1,flash:0},images=new Map([['popup',{}]]);

@@ -1,5 +1,6 @@
 ﻿use crate::{
     import::read_asset,
+    inventory::{item_definition_rows, item_icon},
     model::csv_rows,
     source::{Dataset, Source},
 };
@@ -14,7 +15,7 @@ pub(crate) fn import(source: &Source, dataset: &Dataset, connection: &Connection
         return Ok(());
     }
     let region = &dataset.current.header.source_region;
-    let items = csv_rows(&read_asset(
+    let items = item_definition_rows(&read_asset(
         source,
         dataset,
         connection,
@@ -22,16 +23,9 @@ pub(crate) fn import(source: &Source, dataset: &Dataset, connection: &Connection
     )?)?;
     let mut ids = BTreeMap::new();
     // 現版006f53b8の列6/7と006f308cの種別7・スロット検索を使用する。
-    for (id, row) in items
-        .iter()
-        .filter(|row| {
-            row.first()
-                .is_some_and(|value| value.parse::<i64>().is_ok())
-        })
-        .enumerate()
-    {
-        if row.get(6).is_some_and(|value| value == "7") {
-            let slot: i64 = row.get(7).context("素材スロット欠測")?.parse()?;
+    for (id, row) in items.iter().enumerate() {
+        if row.get(6) == Some(&7) {
+            let slot = i64::from(*row.get(7).context("素材スロット欠測")?);
             ensure!(
                 ids.insert(slot, id as i64).is_none(),
                 "素材スロット重複: {slot}"
@@ -112,7 +106,7 @@ pub(crate) fn import(source: &Source, dataset: &Dataset, connection: &Connection
                 params![region, id, slot, item, weight],
             )?;
             if let Some(item) = item.filter(|_| weight > 0) {
-                let icon = format!("Image/gatyaitemD_{item:02}_f.png");
+                let icon = item_icon(item as usize, &items[item as usize]);
                 if dataset.files.contains_key(&icon) {
                     read_asset(source, dataset, connection, &icon)?;
                 }

@@ -1004,3 +1004,41 @@ fn inspector_keeps_both_damage_sources_and_discards_barrier_absorption() {
             }));
     }
 }
+
+#[test]
+fn production_orb_is_visible_only_for_the_ready_eligible_deployment() {
+    let mut c = config();
+    c.screen.present[0] = 1;
+    c.rules.production_periods = [2; 6];
+    let mut p = profile(&[0; 119], 0, 2);
+    p.spawn.form = 2;
+    p.definition.cells[110] = -1;
+    p.recharge = 10;
+    p.recharge_plain = 10;
+    let orbs = [Orb { effect: 5, mask: 0, values: [0; 4] }, Orb { effect: 5, mask: 0, values: [0; 4] }];
+    p.orbs[..orbs.len()].copy_from_slice(&orbs);
+    p.orb_count = orbs.len() as i32;
+    equipment(&orbs, &[0, 1], &mut p.definition).unwrap();
+    let mut battle = Battle::new(&c, &[p], &[]).unwrap();
+    let press = battle_screen::Input {
+        control: 1000,
+        ..Default::default()
+    };
+
+    assert_eq!(battle.orb_visibility().unwrap()[0], 0);
+    battle.advance(&press).unwrap();
+    tick(&mut battle, 5);
+    assert_eq!(battle.production().unwrap().0.produced[0], 1);
+    assert_eq!(battle.orb_visibility().unwrap()[0], 0);
+
+    let wait = battle.production().unwrap().0.wait[0];
+    tick(&mut battle, wait);
+    assert_eq!(battle.orb_visibility().unwrap()[0], 1);
+
+    battle.advance(&press).unwrap();
+    tick(&mut battle, 5);
+    assert_eq!(battle.production().unwrap().0.produced[0], 2);
+    let wait = battle.production().unwrap().0.wait[0];
+    tick(&mut battle, wait);
+    assert_eq!(battle.orb_visibility().unwrap()[0], 0);
+}

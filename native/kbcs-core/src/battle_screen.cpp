@@ -8,6 +8,7 @@ using I = int64_t;
 int width(const KbcsBattleScreenConfig &c){return c.viewport_width?c.viewport_width:960;}
 int press(int counter){const int sizes[6]={0,0,6,-10,0,0};return sizes[counter];}
 void toggle_speed(const KbcsBattleScreenConfig &c,KbcsBattleScreenState &s){if(!(c.items&1))return;s.speed_mode=(s.speed_mode+1)%(c.speed==3?3:2);if(s.speed_mode)s.items_on|=1;else s.items_on&=~1;}
+bool has_second_page(const KbcsBattleScreenConfig &c){return std::find(c.present+5,c.present+10,1)!=c.present+10;}
 void change_page(KbcsBattleScreenState &s,int direction){if(s.rows!=1)return;if(!s.page_frame){s.page_frame=1;s.page_direction=direction;s.page_step=1;}else if(s.page_direction!=direction){s.page_step=-1;}s.holding=-1;s.hold_frames=0;s.hold_wait=0;s.gesture=1;}
 int wallet(const KbcsBattleScreenConfig &c,int worker) {
  if(c.fixed_money>=0)return c.fixed_money;
@@ -45,9 +46,11 @@ void layout(const KbcsBattleScreenConfig &c,const KbcsBattleScreenState &s,KbcsB
  const bool flash=s.hud_frame%6>=3;o.cannon_base=s.cannon?8:flash?7:-1;o.cannon_label=s.cannon?-1:flash?10:9;o.cannon_bands=s.cannon?o.cannon_gauge/13:flash?0:10;
  // 005d2408。昇級可能時だけ砲の準備表示と同じ時計で部品6/24を切り替える。
  o.wallet_base=s.worker==7?6:s.money<o.upgrade_cost?5:flash?24:6;
+ const bool single_page=s.rows==1&&!has_second_page(c);
  for(int i=0;i<10;++i) {
   int x=xs[i]+shift,y=544,mode=1;
   if(s.rows==2) {x=xs[i%5]+shift;if(i<5)y-=95;}
+  else if(single_page&&i>=5)mode=0;
   else if(s.page_frame) {
    const int wave[6]={0,20,40,80,40,20};
    const int sign=s.page_direction==0?-1:1,offset=wave[s.page_frame]*sign;
@@ -135,14 +138,14 @@ extern "C" uint32_t kbcs_core_battle_screen_advance_custom(const KbcsBattleScree
  if(stepping&&(s.paused||s.intro<24||in.phase||in.ticks<1))return 1;
  if(c.worker_level<0||c.worker_level>29||c.wallet_level<0||c.wallet_level>29||c.attack_level<0||c.attack_level>29||c.charge_level<0||c.charge_level>29||c.chapter<0||c.chapter>3||c.income_treasure<0||c.income_treasure>10000||c.wallet_treasure<0||c.wallet_treasure>10000000||c.charge_treasure<0||c.charge_treasure>10000||c.speed_treasure<0||c.speed_treasure>10000||c.income_combo<0||c.income_combo>1000||c.wallet_combo<0||c.wallet_combo>1000||c.charge_combo<0||c.charge_combo>100||c.charge_start_combo<0||c.charge_start_combo>100||c.items<0||c.items>63||c.speed<2||c.speed>3||c.fixed_money< -1||c.fixed_money>1000000000||s.frame<0||s.frame>100000000||s.intro<0||s.intro>24||s.rows<1||s.rows>2||s.page<0||s.page>1||s.page_frame<0||s.page_frame>5||s.page_direction<0||s.page_direction>1||s.paused<0||s.paused>1||s.money<0||s.money>1000000000||s.worker<0||s.worker>7||s.cannon<0||s.cannon>100000||s.holding< -1||s.holding>9||s.pointer_down<0||s.pointer_down>1||s.items_on<0||s.items_on>63||(s.items_on&~c.items)||s.hold_frames<0||s.hold_frames>100000||s.hold_wait<0||s.hold_wait>3||s.guard<0||s.guard>5||s.pending_control< -1||s.pending_control>308||in.ticks<0||in.ticks>30||in.phase<0||in.phase>4||in.control<0||in.control>10||c.viewport_width<0||c.viewport_width>3840||s.speed_mode<0||s.speed_mode>2||s.wallet_flash<0||s.wallet_flash>14||s.description_item< -1||s.description_item>5||s.description_wait<0||s.description_wait>5||s.ui_frame<0||s.ui_frame>100000000||s.gesture<0||s.gesture>1||s.page_step< -1||s.page_step>1||s.bgm_level<0||s.bgm_level>3||s.se_level<0||s.se_level>3||s.vibration_on<0||s.vibration_on>1||s.info_mode<0||s.info_mode>1||s.info_slot<0||s.info_slot>9||s.saved_rows<0||s.saved_rows>2||s.hud_frame<0||s.hud_frame>100000000)return 1;
  for(int i=0;i<10;++i)if(c.costs[i]<0||c.costs[i]>10000000||c.present[i]<0||c.present[i]>1||c.blocked[i]<0||c.description_lines[i]<0||c.description_lines[i]>3)return 1;
+ const bool second_page=has_second_page(c);
+ if(!second_page)s.page=s.page_frame=0;
  s.request_slot=-1;s.request_cannon=0;s.request_action=0;
  const auto sound=[&](int id){return hook?hook(user,KBCS_BATTLE_SCREEN_SOUND+id,&s):0;};
  if(in.control==1){if(s.info_mode){s.info_mode=0;s.rows=s.saved_rows?s.saved_rows:2;}s.paused=0;}
  if(in.control==2){s.paused=1;s.pointer_down=0;s.holding=-1;s.hold_frames=0;s.hold_wait=0;}
  if(in.control==3){s.rows=3-s.rows;s.page_frame=0;s.pointer_down=0;s.holding=-1;s.hold_frames=0;s.hold_wait=0;}
- if(in.control==4)change_page(s,1);
- if(in.control==8)change_page(s,0);
- if(in.control==9)change_page(s,1);
+ if(second_page&&(in.control==4||in.control==8||in.control==9))change_page(s,in.control!=8);
  if(in.control==5)toggle_speed(c,s);
  if(in.control==6&&(c.items&8))s.items_on^=8;
  if(in.control==7&&(c.items&32))s.items_on^=32;
@@ -228,7 +231,7 @@ extern "C" uint32_t kbcs_core_battle_screen_advance_custom(const KbcsBattleScree
   }
   if(s.pointer_down&&!s.paused&&target>=200&&target<=205){s.description_item=target-200;s.description_wait=5;}
   // 009f4228: 縦変位25px以上、上225度超315度未満/下45〜135度。
-  if(s.pointer_down&&!s.paused&&s.rows==1&&!s.gesture&&s.hold_frames<14&&s.description_wait==0){
+  if(second_page&&s.pointer_down&&!s.paused&&s.rows==1&&!s.gesture&&s.hold_frames<14&&s.description_wait==0){
    const int dx=s.pointer_x-s.start_x,dy=s.pointer_y-s.start_y;
    double angle=std::atan2(double(dy),double(dx))*180/3.141592653589793;if(angle<0)angle+=360;
    const int direction=int(angle);

@@ -63,19 +63,24 @@ fn encode_frame(
             bytes.extend_from_slice(&value.to_le_bytes());
         }
     }
-    if compressed && bytes.len() > 8192 {
-        let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
-        encoder.write_all(&bytes[32..])?;
-        let payload = encoder.finish()?;
-        if payload.len() + 32 < bytes.len() {
-            bytes.truncate(32);
-            bytes[..4].copy_from_slice(b"KBG1");
-            bytes.extend_from_slice(&payload);
-        }
+    if compressed
+        && bytes.len() > 8 * 1024
+        && let Some(payload) = gzip_if_smaller(&bytes[32..])?
+    {
+        bytes.truncate(32);
+        bytes[..4].copy_from_slice(b"KBG1");
+        bytes.extend_from_slice(&payload);
     }
     bytes[16..24].copy_from_slice(&(started.elapsed().as_secs_f64() * 1000.).to_le_bytes());
     bytes[24..32].copy_from_slice(&(encoding.elapsed().as_secs_f64() * 1000.).to_le_bytes());
     Ok(bytes)
+}
+
+pub fn gzip_if_smaller(bytes: &[u8]) -> Result<Option<Vec<u8>>> {
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+    encoder.write_all(bytes)?;
+    let payload = encoder.finish()?;
+    Ok((payload.len() < bytes.len()).then_some(payload))
 }
 
 #[test]
@@ -134,9 +139,24 @@ fn wire_preserves_offsets_and_float_bits() {
     assert_eq!(expanded, plain[32..]);
     let mut quad = repeated[0].clone();
     quad.count = 4;
-    let mobile = encode_mobile(&serde_json::json!({}), &[quad], Instant::now()).unwrap();
+    let mobile = encode_mobile(
+        &serde_json::json!({}),
+        std::slice::from_ref(&quad),
+        Instant::now(),
+    )
+    .unwrap();
     let offset = 40;
     assert_eq!(&mobile[..4], b"KBP1");
     assert_eq!(mobile.len(), offset + 128);
     assert_eq!(&mobile[offset + 88..offset + 92], &(-7i32).to_le_bytes());
+    let commands = vec![quad; 150];
+    let plain = encode_mobile(&serde_json::json!({}), &commands, Instant::now()).unwrap();
+    let packed = gzip_if_smaller(&plain).unwrap().unwrap();
+    expanded.clear();
+    std::io::Read::read_to_end(
+        &mut flate2::read::GzDecoder::new(&packed[..]),
+        &mut expanded,
+    )
+    .unwrap();
+    assert_eq!(expanded, plain);
 }

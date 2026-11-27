@@ -21,7 +21,7 @@ export function initializeWorkspace(){
   navigation.querySelector('[data-page-forward]').addEventListener('click',()=>history.forward());
   navigation.querySelector('[data-page-reload]').addEventListener('click',()=>location.reload());
   const page=location.pathname.split('/').filter(Boolean).at(-1)||'home';
-  const titles={'settings':'設定','inventory':'持ち物','stage-sortie':'出撃準備','formation':'キャラクター編成','stage-play':'ステージ Play','unit-motion':'キャラモーション','enemy-motion':'敵モーション','effect-motion':'その他モーション','unit-search':'キャラ検索','unit-detail':'キャラ詳細','tunit-search':'敵検索','tunit-detail':'敵詳細','stage-search':'ステージ検索','stage-detail':'ステージ詳細',home:'ホーム'};
+  const titles={'settings':'設定','inventory':'持ち物','stage-sortie':'出撃準備','formation':'キャラクター編成','stage-play':'ステージ Play','unit-motion':'キャラモーション','enemy-motion':'敵モーション','effect-motion':'その他モーション','unit-search':'キャラ検索','unit-detail':'キャラ詳細','tunit-search':'敵検索','tunit-detail':'敵詳細','stage-search':'ステージ検索','stage-detail':'ステージ詳細','display-settings':'DBの表示設定',home:'ホーム'};
   const title=titles[page]||main.querySelector('h1')?.textContent||'KBCS';
   let saved={};
   try{saved=JSON.parse(localStorage.getItem('kbcs:workspace')||'{}')||{};}catch{}
@@ -128,7 +128,6 @@ export function initializeWorkspace(){
     });
   }else if(page==='stage-detail'){
     move('#stage-navigation',left.content);
-    move('#stage-detail-controls',settingsGroup);
     move('#stage-message',information);
   }else if(page==='unit-motion'||page==='enemy-motion'||page==='effect-motion'){
     left.panel.querySelector('h2').textContent='モーション';
@@ -204,7 +203,7 @@ export function initializeWorkspace(){
     separator.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();resize(state[side+'Width']+(event.key==='ArrowRight'?10:-10)*(side==='left'?1:-1));store();});
   }
   const updateStatus=()=>{
-    const count=element('unit-result-count')||element('enemy-count')||element('unit-summary')||element('stage-count')||element('stage-visible-count')||element('data-state');
+    const count=element('unit-result-count')||element('enemy-count')||element('unit-summary')||element('stage-count')||element('data-state');
     const version=element('unit-data-version')||element('unit-detail-version')||element('enemy-version')||element('stage-version');
     element('workspace-status').textContent=count?.textContent||document.title.replace(/ \| KBCS?$/,'');
     element('workspace-version').textContent=version?.textContent||'';
@@ -214,7 +213,7 @@ export function initializeWorkspace(){
     viewbar.firstElementChild.textContent=current;
   };
   const observer=new MutationObserver(updateStatus);
-  for(const id of ['unit-result-count','unit-data-version','unit-detail-version','unit-summary','enemy-count','enemy-version','stage-count','stage-visible-count','stage-version','data-state','unit-export','enemy-filters','unit-detail-content','enemy-content']){
+  for(const id of ['unit-result-count','unit-data-version','unit-detail-version','unit-summary','enemy-count','enemy-version','stage-count','stage-version','data-state','unit-export','enemy-filters','unit-detail-content','enemy-content']){
     const node=element(id);if(node)observer.observe(node,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['hidden','disabled']});
   }
   observer.observe(document.querySelector('title'),{childList:true});updateStatus();apply();

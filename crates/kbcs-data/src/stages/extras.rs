@@ -330,6 +330,10 @@ impl Extras {
             result["scoreBonus"] = json!({"name":self.label(&bonus["BonusNameLabel"]),"description":self.label(&bonus["BonusExplanationLabel"]),"raw":bonus});
         }
         let mut conditions = Vec::new();
+        let condition_group = |code| {
+            self.json("Data/MapConditions.json")
+                .pointer(&format!("/data/{code}"))
+        };
         for (column, kind) in [(3, "表示"), (4, "挑戦")] {
             let code = headers
                 .get(0)
@@ -338,14 +342,14 @@ impl Extras {
                 .and_then(|v| v.trim().parse::<i64>().ok())
                 .unwrap_or(0);
             if code != 0 && code != -1 {
-                conditions.push(json!({"kind":kind,"code":code,"group":self.json("Data/MapConditions.json").pointer(&format!("/data/{code}"))}));
+                conditions.push(json!({"kind":kind,"code":code,"group":condition_group(code)}));
             }
         }
         if let Some(s) = self.numeric.get("Data/PlayStageLimit.csv") {
             for (_, _, v) in s {
                 if number(v, 0) == id {
-                    conditions
-                        .push(json!({"kind":"挑戦","minStage":number(v,1),"code":number(v,2)}));
+                    let code = number(v, 2);
+                    conditions.push(json!({"kind":"挑戦","minStage":number(v,1),"code":code,"group":condition_group(code)}));
                 }
             }
         }

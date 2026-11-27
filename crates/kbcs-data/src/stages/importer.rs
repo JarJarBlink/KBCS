@@ -1,4 +1,4 @@
-﻿use super::{Row, number, rows};
+﻿use super::{Row, number, rows, sources::map_option_rows};
 use crate::{
     import::read_asset,
     model::{csv_rows, plain_text},
@@ -210,7 +210,7 @@ pub(crate) fn import(
         .into_iter()
         .filter_map(|r| Some((r.first()?.parse().ok()?, plain_text(r.get(1)?))))
         .collect();
-    let options = rows(&load("Data/Map_option.csv")?, Some(19))?;
+    let (_, options) = map_option_rows(&load("Data/Map_option.csv")?)?;
     let limits = rows(&load("Data/Stage_option.csv")?, Some(9))?;
     let difficulties: BTreeMap<i64, Vec<Option<f64>>> =
         if dataset.files.contains_key("Data/difficulty_level.tsv") {
@@ -508,12 +508,21 @@ pub(crate) fn import(
         }
     }
     super::extras::import(source, dataset, connection)?;
+    let definitions = crate::inventory::item_definition_rows(&load("Data/Gatyaitembuy.csv")?)?;
+    let mut icons = BTreeMap::new();
+    for (internal, definition) in definitions.iter().enumerate() {
+        if let Some(&id) = definition.get(3).filter(|&&id| id >= 0) {
+            icons.entry(i64::from(id))
+                .or_insert_with(|| crate::inventory::item_icon(internal, definition));
+        }
+    }
     let mut statement =
         connection.prepare("SELECT DISTINCT item_id FROM stage_reward WHERE region=?")?;
     for id in statement.query_map([region], |r| r.get::<_, i64>(0))? {
-        let path = format!("Image/gatyaitemD_{:02}_f.png", id?);
-        if dataset.files.contains_key(&path) {
-            load(&path)?;
+        if let Some(path) = icons.get(&id?)
+            && dataset.files.contains_key(path)
+        {
+            load(path)?;
         }
     }
     crate::stage_materials::import(source, dataset, connection)?;

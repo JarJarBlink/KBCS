@@ -127,7 +127,7 @@ CSV118の素の`alternate-respawn`を型付きpropertyへ追加した。値は�
 
 対象はN系列49マップ・324面。stage_mapは名前と元MapStageData、先頭2行、Map_option原値・元行を保持する。stage_crownは現版で照合した各冠の倍率、stage_limitはStage_optionの冠・ステージ・レア度マスクと全原値・元行を保存する。stageは統率力・基礎XP・表示幅・城HP・全体出現間隔・背景・上限数・敵城原ID・時間原値・城バリア・コンテ不可を型付きで保存し、設定/ヘッダー/報酬の全セルを別に保持する。difficultyは小数の原表示値なのでREAL、欠測はNULL。
 
-stage_spawnは出現順を主キーにし、同じ敵の複数行を統合しない。14列の整数を個別保存し、元行と空欄を含む全セルも保持する。catalogへ渡すnative配列だけ列2/3/4を×2する。負値・倍率0・非0の攻撃倍率列11・ボス1/2を保持する。stage_rewardは候補順・比較値・報酬ID・個数・元列を保存し、最終取得確率は生成しない。キャラ報酬はdrop_chara、進化権はunitbuy23、他はGatyaitemNameから名称と画像を結ぶ。
+stage_spawnは出現順を主キーにし、同じ敵の複数行を統合しない。14列の整数を個別保存し、元行と空欄を含む全セルも保持する。catalogへ渡すnative配列だけ列2/3/4を×2する。負値・倍率0・非0の攻撃倍率列11・ボス1/2を保持する。stage_rewardは候補順・比較値・報酬ID・個数・元列を保存し、最終取得確率は保存しない。通常アイテムはGatyaitembuyの報酬IDから内部行を探し、GatyaitemNameの同じ行で名称を引く。画像は内部行またはGatyaitembuyの列11で決める。キャラ報酬・進化権・本能玉の解決と抽選率表示は[ステージ表示資料](../../ui/docs/stage-display.md)を参照。
 
 原本はsource_fileでオフライン保持。調査レポートを製品の入力には使わない。stages::importは採用元から直接変換し、stages::catalogはDBから表示を組み立てる。Serviceの/api/stagesとcatalog --kind stagesが同じ変換を呼ぶ。progressionのPR番台は現版39000へ訂正した。
 

@@ -197,7 +197,7 @@ try{
   stageContext=await formationStageContext(new URLSearchParams(location.search));
   if(stageContext){if(stageContext.buildId!==database.buildId)throw Error('DBが更新されました。再読み込みしてください');const host=node('formation-context');host.hidden=false;const params=new URLSearchParams({map:stageContext.map.key,stage:stageContext.stage.index,crown:stageContext.crown});host.innerHTML='<a href="/pages/stage-sortie/?'+params+'">'+escape(stageContext.stage.name)+' / '+stageContext.crown+'冠の出撃準備に戻る</a>'; }
   renderDetails=createFormationDetails(database);
-  createFormationSearch(database,manifest,addUnit,showError);
+  createFormationSearch(database,addUnit,showError);
   reorder=createFormationReorder(screen,{
     getDocument:()=>entry.document,getDeployment:()=>deployment,paint:paintFormation,canStart:()=>!busy&&!trayDrag,
     onSelect:(slot,refresh=true)=>{selectedTray=-1;selected=slot;if(refresh)renderMember();},onDraw:draw,

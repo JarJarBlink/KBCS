@@ -1,0 +1,1073 @@
+﻿{
+  "schemaVersion": 1,
+  "game": "JP 16.0.3",
+  "abi": "arm64-v8a",
+  "nativeSha256": "941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73",
+  "sourceSha256": "269d50466cadb5595f9f70e6ddbd9c6479bcd83113481ed854331fdea23d854f",
+  "scopes": {
+    "battle.leading": [
+      {
+        "key": "battle.leading[0]",
+        "name": "castleAppearanceId",
+        "index": 0,
+        "meaning": "敵城外観番号",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.leading[1]",
+        "name": "noContinueFlag",
+        "index": 1,
+        "meaning": "コンティニュー不可",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.leading[2]",
+        "name": "directExChancePercent",
+        "index": 2,
+        "meaning": "直接EX出現率(%)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.leading[3]",
+        "name": "directExMapIndex",
+        "index": 3,
+        "meaning": "直接EXマップ内部番号",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.leading[4]",
+        "name": "directExStageMinIndex",
+        "index": 4,
+        "meaning": "EX面index下限",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.leading[5]",
+        "name": "directExStageMaxIndex",
+        "index": 5,
+        "meaning": "EX面index上限",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      }
+    ],
+    "battle.header": [
+      {
+        "key": "battle.header[0]",
+        "name": "battlefieldWidthRaw",
+        "index": 0,
+        "meaning": "ステージ幅(raw;内部×4)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[1]",
+        "name": "enemyCastleBaseHp",
+        "index": 1,
+        "meaning": "敵城HP",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[2]",
+        "name": "globalSpawnIntervalMinFrames",
+        "index": 2,
+        "meaning": "敵全体の生産間隔下限",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[3]",
+        "name": "globalSpawnIntervalMaxFrames",
+        "index": 3,
+        "meaning": "敵全体の生産間隔上限",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[4]",
+        "name": "backgroundId",
+        "index": 4,
+        "meaning": "背景ID",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[5]",
+        "name": "maxConcurrentEnemies",
+        "index": 5,
+        "meaning": "敵同時存在上限",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[6]",
+        "name": "enemyCastleRawUnitId",
+        "index": 6,
+        "meaning": "敵城ユニットraw ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[7]",
+        "name": "timeLimitMinutes",
+        "index": 7,
+        "meaning": "時間制限(分;通常×1800F)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[8]",
+        "name": "castleDamageProtectionFlag",
+        "index": 8,
+        "meaning": "敵城の保護/無敵指定",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/0099f/0099fe4c.md",
+        "note": ""
+      },
+      {
+        "key": "battle.header[9]",
+        "name": "reservedBattleHeaderColumn9",
+        "index": 9,
+        "meaning": "戦闘設定行の予約・現行ローダー不使用の第10数値列",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/009d6/009d6cf8.md",
+        "note": "当該ローダーでの不使用を確認しただけで、全版・改造データの任意の別ローダーで絶対に使用されないという否定はできない。9列目の原値は維持。"
+      }
+    ],
+    "battle.spawn": [
+      {
+        "key": "battle.spawn[0]",
+        "name": "enemyRawId",
+        "index": 0,
+        "meaning": "敵raw ID(0終端;表示ID=raw-2)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[1]",
+        "name": "spawnCountLimit",
+        "index": 1,
+        "meaning": "出現数(0無限)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[2]",
+        "name": "firstSpawnWaitRaw",
+        "index": 2,
+        "meaning": "初回待機(raw×2)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[3]",
+        "name": "respawnWaitMinRaw",
+        "index": 3,
+        "meaning": "再出現最短待機(raw×2)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[4]",
+        "name": "respawnWaitMaxRaw",
+        "index": 4,
+        "meaning": "再出現最長待機(raw×2)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[5]",
+        "name": "castleTriggerThresholdRaw",
+        "index": 5,
+        "meaning": "敵城HP%または累積ダメージ絶対値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/006ef/006ef2b0.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[6]",
+        "name": "spawnLayerMin",
+        "index": 6,
+        "meaning": "描画レイヤー最小",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[7]",
+        "name": "spawnLayerMax",
+        "index": 7,
+        "meaning": "描画レイヤー最大",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[8]",
+        "name": "bossAppearanceCode",
+        "index": 8,
+        "meaning": "ボス出現演出コード(0,1,2)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[9]",
+        "name": "enemyHpMultiplierPercent",
+        "index": 9,
+        "meaning": "敵HP倍率(%)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[10]",
+        "name": "killScoreRaw",
+        "index": 10,
+        "meaning": "撃破スコア原値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06ae4.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[11]",
+        "name": "enemyAttackMultiplierPercentOverride",
+        "index": 11,
+        "meaning": "敵攻撃倍率(%;0ならHP倍率へ代替)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/00a06/00a06cb8.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[12]",
+        "name": "preserveWaitBeforeCastleTriggerFlag",
+        "index": 12,
+        "meaning": "城条件による待機保持フラグ",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/006ef/006ef2b0.md",
+        "note": ""
+      },
+      {
+        "key": "battle.spawn[13]",
+        "name": "requiredAllyDeathCount",
+        "index": 13,
+        "meaning": "敵出現を許可する味方死亡累積数の閾値",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00a65/00a653d0.md",
+        "note": "本家側の+0x1120への加算命令の発見・追跡は未完了。閾値としての用途はネイティブで確認、増分の発生源はKBCS側実装と外部独立データによるクロスチェック。"
+      }
+    ],
+    "map.header": [
+      {
+        "key": "map.header[0]",
+        "name": "mapVisualPatternOrDisplayCode",
+        "index": 0,
+        "meaning": "画面マップ番号/パターン",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009a3/009a3a30.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.header[1]",
+        "name": "dropAcquisitionSaveSlot",
+        "index": 1,
+        "meaning": "通常報酬の保存番号(<=399)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009a3/009a3a30.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.header[2]",
+        "name": "highScoreSaveSlot",
+        "index": 2,
+        "meaning": "スコア報酬の保存番号(<=199)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009a3/009a3a30.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.header[3]",
+        "name": "mapDisplayConditionId",
+        "index": 3,
+        "meaning": "マップ表示条件コード",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009a3/009a3a30.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.header[4]",
+        "name": "mapEntryConditionId",
+        "index": 4,
+        "meaning": "ステージ挑戦条件コード",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009a3/009a3a30.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.header[5]",
+        "name": "requiredUserRank",
+        "index": 5,
+        "meaning": "ユーザーランク解放閾値",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/007d3/007d3200.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.header[6]",
+        "name": "declaredSortieCostTypeCode",
+        "index": 6,
+        "meaning": "ステージヘッダー上で指定された出撃時消費資源種別（0=統率力、1=アイテムを示すコード）",
+        "confidence": "C",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009a3/009a3a30.md",
+        "note": "本家が実際に統率力/アイテムを差し引く処理の列index6とのデータフローは未追跡。ネコビタン消費は別規則のため、この列名で最終支払通貨まで確定したと解釈しない。"
+      }
+    ],
+    "map.pattern": [
+      {
+        "key": "map.pattern[0]",
+        "name": "mapPatternCode",
+        "index": 0,
+        "meaning": "マップパターン番号（REなどは例外）",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009a3/009a3a30.md",
+        "note": "Chapter / RE use distinct formats"
+      }
+    ],
+    "map.stage": [
+      {
+        "key": "map.stage[0]",
+        "name": "sortieCostRaw",
+        "index": 0,
+        "meaning": "出撃コスト(raw;統率力または通貨・個数のパック値)",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[1]",
+        "name": "baseXp",
+        "index": 1,
+        "meaning": "基礎XP",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[2]",
+        "name": "startBgmId",
+        "index": 2,
+        "meaning": "開始BGM",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[3]",
+        "name": "bossBgmCastleHpThresholdPercent",
+        "index": 3,
+        "meaning": "敵城HP%でBGM切替する閾値",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[4]",
+        "name": "bossBgmId",
+        "index": 4,
+        "meaning": "後半BGM",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[5]",
+        "name": "drop1ChanceOrWeight",
+        "index": 5,
+        "meaning": "第1報酬比較値または重み",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[6]",
+        "name": "drop1ItemId",
+        "index": 6,
+        "meaning": "第1報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[7]",
+        "name": "drop1Quantity",
+        "index": 7,
+        "meaning": "第1報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[8]",
+        "name": "dropModeCode",
+        "index": 8,
+        "meaning": "報酬モード(-4,-3,-2,-1,0,1,2)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[9]",
+        "name": "drop2ChanceOrWeight",
+        "index": 9,
+        "meaning": "第2報酬比較値/重み",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[10]",
+        "name": "drop2ItemId",
+        "index": 10,
+        "meaning": "第2報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[11]",
+        "name": "drop2Quantity",
+        "index": 11,
+        "meaning": "第2報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[12]",
+        "name": "drop3ChanceOrWeight",
+        "index": 12,
+        "meaning": "第3報酬比較値/重み",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[13]",
+        "name": "drop3ItemId",
+        "index": 13,
+        "meaning": "第3報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[14]",
+        "name": "drop3Quantity",
+        "index": 14,
+        "meaning": "第3報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      },
+      {
+        "key": "map.stage[15]",
+        "name": "hasScoreRewardsFlag",
+        "index": 15,
+        "meaning": "スコア報酬フラグ",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "Chapter / RE use distinct formats"
+      }
+    ],
+    "stage.options": [
+      {
+        "key": "stage.options[0]",
+        "name": "globalMapId",
+        "index": 0,
+        "meaning": "global MapID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e4/009e4474.md",
+        "note": ""
+      },
+      {
+        "key": "stage.options[1]",
+        "name": "crownIndexZeroBased",
+        "index": 1,
+        "meaning": "冠インデックス(0基準;-1全冠)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e4/009e4474.md",
+        "note": ""
+      },
+      {
+        "key": "stage.options[2]",
+        "name": "stageIndexZeroBased",
+        "index": 2,
+        "meaning": "面インデックス(0基準;-1全ステージ)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e4/009e4474.md",
+        "note": ""
+      },
+      {
+        "key": "stage.options[3]",
+        "name": "allowedRarityMask",
+        "index": 3,
+        "meaning": "許可レア度bitmask",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e5/009e505c.md",
+        "note": ""
+      },
+      {
+        "key": "stage.options[4]",
+        "name": "maxConcurrentAllies",
+        "index": 4,
+        "meaning": "味方同時出撃数上限",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e5/009e505c.md",
+        "note": ""
+      },
+      {
+        "key": "stage.options[5]",
+        "name": "firstPageOnlyFlag",
+        "index": 5,
+        "meaning": "編成スロット制限(1なら先頭5枠)",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e5/009e505c.md",
+        "note": ""
+      },
+      {
+        "key": "stage.options[6]",
+        "name": "minimumUnitCost",
+        "index": 6,
+        "meaning": "キャラ生産コスト下限",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e5/009e505c.md",
+        "note": ""
+      },
+      {
+        "key": "stage.options[7]",
+        "name": "maximumUnitCost",
+        "index": 7,
+        "meaning": "キャラ生産コスト上限",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e5/009e505c.md",
+        "note": ""
+      },
+      {
+        "key": "stage.options[8]",
+        "name": "characterGroupId",
+        "index": 8,
+        "meaning": "Charagroup ID",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/009e5/009e505c.md",
+        "note": ""
+      }
+    ],
+    "stage.difficulty": [
+      {
+        "key": "stage.difficulty[0]",
+        "name": "globalMapId",
+        "index": 0,
+        "meaning": "global MapID",
+        "confidence": "B",
+        "evidence": null,
+        "note": "Native scoring/UI conversion NOT verified; parsed in KBCS only"
+      },
+      {
+        "key": "stage.difficulty[1]",
+        "name": "stageDifficultyByIndex",
+        "index": 1,
+        "meaning": "面別難易度の列。index1がstage0、index2がstage1、以降同様",
+        "confidence": "B",
+        "evidence": null,
+        "note": "Native scoring/UI conversion NOT verified; parsed in KBCS only"
+      }
+    ],
+    "map.stage.score": [
+      {
+        "key": "map.stage.score[16]",
+        "name": "scoreReward1Threshold",
+        "index": 16,
+        "meaning": "0番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[17]",
+        "name": "scoreReward1ItemId",
+        "index": 17,
+        "meaning": "0番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[18]",
+        "name": "scoreReward1Quantity",
+        "index": 18,
+        "meaning": "0番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[19]",
+        "name": "scoreReward2Threshold",
+        "index": 19,
+        "meaning": "1番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[20]",
+        "name": "scoreReward2ItemId",
+        "index": 20,
+        "meaning": "1番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[21]",
+        "name": "scoreReward2Quantity",
+        "index": 21,
+        "meaning": "1番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[22]",
+        "name": "scoreReward3Threshold",
+        "index": 22,
+        "meaning": "2番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[23]",
+        "name": "scoreReward3ItemId",
+        "index": 23,
+        "meaning": "2番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[24]",
+        "name": "scoreReward3Quantity",
+        "index": 24,
+        "meaning": "2番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[25]",
+        "name": "scoreReward4Threshold",
+        "index": 25,
+        "meaning": "3番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[26]",
+        "name": "scoreReward4ItemId",
+        "index": 26,
+        "meaning": "3番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[27]",
+        "name": "scoreReward4Quantity",
+        "index": 27,
+        "meaning": "3番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[28]",
+        "name": "scoreReward5Threshold",
+        "index": 28,
+        "meaning": "4番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[29]",
+        "name": "scoreReward5ItemId",
+        "index": 29,
+        "meaning": "4番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[30]",
+        "name": "scoreReward5Quantity",
+        "index": 30,
+        "meaning": "4番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[31]",
+        "name": "scoreReward6Threshold",
+        "index": 31,
+        "meaning": "5番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[32]",
+        "name": "scoreReward6ItemId",
+        "index": 32,
+        "meaning": "5番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[33]",
+        "name": "scoreReward6Quantity",
+        "index": 33,
+        "meaning": "5番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[34]",
+        "name": "scoreReward7Threshold",
+        "index": 34,
+        "meaning": "6番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[35]",
+        "name": "scoreReward7ItemId",
+        "index": 35,
+        "meaning": "6番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[36]",
+        "name": "scoreReward7Quantity",
+        "index": 36,
+        "meaning": "6番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[37]",
+        "name": "scoreReward8Threshold",
+        "index": 37,
+        "meaning": "7番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[38]",
+        "name": "scoreReward8ItemId",
+        "index": 38,
+        "meaning": "7番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[39]",
+        "name": "scoreReward8Quantity",
+        "index": 39,
+        "meaning": "7番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[40]",
+        "name": "scoreReward9Threshold",
+        "index": 40,
+        "meaning": "8番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[41]",
+        "name": "scoreReward9ItemId",
+        "index": 41,
+        "meaning": "8番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[42]",
+        "name": "scoreReward9Quantity",
+        "index": 42,
+        "meaning": "8番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[43]",
+        "name": "scoreReward10Threshold",
+        "index": 43,
+        "meaning": "9番目のスコア報酬閾値",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[44]",
+        "name": "scoreReward10ItemId",
+        "index": 44,
+        "meaning": "9番目のスコア報酬ID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      },
+      {
+        "key": "map.stage.score[45]",
+        "name": "scoreReward10Quantity",
+        "index": 45,
+        "meaning": "9番目のスコア報酬数量",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/15.7.2/arm64-v8a/6122e24879d58db6b0beceb43e2a6ee62d008a586fc03b7cb7726214bc86f3ea/functions/005d9/005d996c.md",
+        "note": "index15=1 & score save ID etc; threshold -1 is terminator; mode-specific"
+      }
+    ],
+    "map.options": [
+      {
+        "key": "map.options[0]",
+        "name": "globalMapId",
+        "index": 0,
+        "meaning": "stageID",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[1]",
+        "name": "crownCount",
+        "index": 1,
+        "meaning": "星解放",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[2]",
+        "name": "alternateCrownUnlockFlag",
+        "index": 2,
+        "meaning": "裏星・追加冠の解放を示すマップ設定",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "「abyss」と完全同義の証明はない。KBCS現行map.abyssへの写像は改名時に再評価し、元CSVが示す裏冠と別の要素を混同しない。"
+      },
+      {
+        "key": "map.options[3]",
+        "name": "crown1EnemyMultiplierPercent",
+        "index": 3,
+        "meaning": "星1倍率",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[4]",
+        "name": "crown2EnemyMultiplierPercent",
+        "index": 4,
+        "meaning": "星2倍率",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[5]",
+        "name": "crown3EnemyMultiplierPercent",
+        "index": 5,
+        "meaning": "星3倍率",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[6]",
+        "name": "crown4EnemyMultiplierPercent",
+        "index": 6,
+        "meaning": "星4倍率",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[7]",
+        "name": "guerrillaGroupMask",
+        "index": 7,
+        "meaning": "ゲリラset",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[8]",
+        "name": "rewardResetMode",
+        "index": 8,
+        "meaning": "報酬リセットType",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[9]",
+        "name": "mapClearCountLimit",
+        "index": 9,
+        "meaning": "1度きり表示",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": ""
+      },
+      {
+        "key": "map.options[10]",
+        "name": "displaySortKey",
+        "index": 10,
+        "meaning": "マップ一覧の表示並べ替えキー",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "同順位の安定性や全画面での優先順位上書きまでの全経路は別途確認可能。"
+      },
+      {
+        "key": "map.options[11]",
+        "name": "mapCooldownMinutes",
+        "index": 11,
+        "meaning": "再挑戦クールダウン時間の分単位指定",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "全マップで常時適用ではない。読み込みでは回数制限列9の条件も介在し、各ゲーム状態でのスキップ条件に従う。"
+      },
+      {
+        "key": "map.options[12]",
+        "name": "challengeEntryTrackingFlag",
+        "index": 12,
+        "meaning": "特殊挑戦マップの入場履歴登録対象フラグ",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "「挑戦可能」の解禁判定ではない。登録先の全消費側・永続化先は未検証のため「入場履歴登録対象」という読み込み・登録経路までに意味を限定する。"
+      },
+      {
+        "key": "map.options[13]",
+        "name": "mapDifficultyBadgeMask",
+        "index": 13,
+        "meaning": "マップ難易度の表示バッジを選択するビットマスク",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "difficulty_level.tsvの小数評価や戦闘難度算式とは別。各bitに対応する日本語ラベルはUIリソース照合が必要。"
+      },
+      {
+        "key": "map.options[14]",
+        "name": "hideAfterClearFlag",
+        "index": 14,
+        "meaning": "クリア済みマップを一覧から非表示にする設定",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "詳細な「どのクリア済み状態を参照するか」までは全分岐を要件化していない。"
+      },
+      {
+        "key": "map.options[15]",
+        "name": "doubleXpAdEligibilityFlag",
+        "index": 15,
+        "meaning": "XP獲得量を2倍にする広告導線の対象マップ",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "1は動画視聴成功やXP付与の即時確定を意味しない。広告・回線・報酬状態を別途評価する。"
+      },
+      {
+        "key": "map.options[16]",
+        "name": "productionPriceMultiplierPercent",
+        "index": 16,
+        "meaning": "ユニット生産費用への百分率倍率（0は倍率指定なし）",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "整数除算に伴う丸め順を維持する。0は0%費用ではなく指定なし。"
+      },
+      {
+        "key": "map.options[17]",
+        "name": "usesEnergyForSortie",
+        "index": 17,
+        "meaning": "統率力を消費するマップの設定値（1=通常経路、0=統率力無効側登録）",
+        "confidence": "B",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "CSV raw値と内部vectorを混同しないこと（内部集合は0側/非消費側）。ネコビタン等の別通貨判定を1列のBooleanだけで説明しない。"
+      },
+      {
+        "key": "map.options[18]",
+        "name": "showAllStagesFlag",
+        "index": 18,
+        "meaning": "対象マップのステージ一覧を全件表示する設定",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "「遊べる」状態を全件アンロックする意味ではない（あくまで一覧表示）。"
+      },
+      {
+        "key": "map.options[19]",
+        "name": "usesExtendedStageRecordStorage",
+        "index": 19,
+        "meaning": "拡張されたステージ記録格納構造を使用するマップの設定",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "ゲームの敵出現上限・味方出撃上限とは無関係。KBCS importerでSome(19)のためこのフィールドを現状読み捨てている。"
+      },
+      {
+        "key": "map.options[20]",
+        "name": "mapNameSourceAnnotation",
+        "index": 20,
+        "meaning": "Map_option.csv末尾の人間向けマップ名注釈・原データ表示用文字列",
+        "confidence": "A",
+        "evidence": "https://github.com/sinsuirakv0/KBCS/blob/main/research/reference/16.0.3/arm64-v8a/941278c8d9b42c2598836a75ff173ce3b2fb2215f8067351d5fc1d218ef67c73/functions/00801/00801934.md",
+        "note": "ゲーム内部の表示名の正本ではない。最新localeとの表記揺れ・同名・末尾空白は注釈として保持。"
+      }
+    ]
+  }
+}

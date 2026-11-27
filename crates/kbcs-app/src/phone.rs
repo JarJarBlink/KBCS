@@ -383,7 +383,10 @@ fn request_header<'a>(request: &'a Request, field: &'static str) -> Option<&'a s
 }
 
 fn respond(request: Request, status: u16, body: Vec<u8>, headers: &[(&str, &str)]) {
-    let mut response = Response::from_data(body).with_status_code(status);
+    // 長さが確定済みのUSB応答にチャンクの区切りを挟まない。
+    let mut response = Response::from_data(body)
+        .with_status_code(status)
+        .with_chunked_threshold(usize::MAX);
     for (key, value) in headers.iter().copied().chain([
         ("Referrer-Policy", "no-referrer"),
         ("X-Content-Type-Options", "nosniff"),
@@ -398,22 +401,46 @@ fn respond(request: Request, status: u16, body: Vec<u8>, headers: &[(&str, &str)
 
 fn service_reply(request: Request, reply: Reply, cache: bool) {
     let cache = cache && reply.status == 200;
+    // 小さいフレームには圧縮の待ち時間を足さない。大きいフレームはChromeのHTTP展開を使う。
+    let compressed = if reply.mime == "application/x-kbcs-battle-frame"
+        && reply.bytes.len() > 16 * 1024
+        && request_header(&request, "Accept-Encoding").is_some_and(accepts_gzip)
+    {
+        crate::battle_wire::gzip_if_smaller(&reply.bytes).unwrap_or(None)
+    } else {
+        None
+    };
+    let headers = [
+        ("Content-Type", reply.mime),
+        (
+            "Cache-Control",
+            if cache {
+                "private, max-age=3600"
+            } else {
+                "no-store"
+            },
+        ),
+        ("Content-Encoding", "gzip"),
+    ];
+    let header_count = if compressed.is_some() { 3 } else { 2 };
     respond(
         request,
         reply.status,
-        reply.bytes,
-        &[
-            ("Content-Type", reply.mime),
-            (
-                "Cache-Control",
-                if cache {
-                    "private, max-age=3600"
-                } else {
-                    "no-store"
-                },
-            ),
-        ],
+        compressed.unwrap_or(reply.bytes),
+        &headers[..header_count],
     );
+}
+
+fn accepts_gzip(value: &str) -> bool {
+    value.split(',').any(|entry| {
+        let (coding, quality) = entry.split_once(';').unwrap_or((entry, "q=1"));
+        coding.trim().eq_ignore_ascii_case("gzip")
+            && quality
+                .trim()
+                .strip_prefix("q=")
+                .and_then(|q| q.parse::<f32>().ok())
+                .is_some_and(|q| q > 0. && q <= 1.)
+    })
 }
 
 fn adb_path() -> PathBuf {
@@ -519,6 +546,8 @@ fn usb_session_pairs_once_and_exposes_only_battle_pages() {
     assert!(
         pairing.contains("200 OK") && pairing.contains("HttpOnly") && pairing.contains(DISPLAY)
     );
+    assert!(accepts_gzip("deflate, gzip, br"));
+    assert!(!accepts_gzip("gzip;q=0, br"));
     assert!(request("/phone-connect/test-ticket", "").contains("403"));
     assert!(request("/api/phone/screen", "").contains("403"));
     assert!(request("/api/asset/../../api/status", cookie).contains("404"));

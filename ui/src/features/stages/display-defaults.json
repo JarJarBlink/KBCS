@@ -1,0 +1,510 @@
+﻿{
+  "schemaVersion": 1,
+  "database": "stages",
+  "fields": {
+    "map.stageCount": {
+      "label": "ステージ数",
+      "order": 10,
+      "visibility": "always",
+      "width": "half"
+    },
+    "map.difficulty": {
+      "label": "マップ難易度",
+      "order": 20,
+      "visibility": "always",
+      "width": "half"
+    },
+    "map.crowns": {
+      "label": "冠倍率",
+      "order": 30,
+      "visibility": "always",
+      "width": "full"
+    },
+    "map.clearLimit": {
+      "label": "クリア回数上限",
+      "order": 40,
+      "visibility": "whenActive",
+      "width": "half"
+    },
+    "map.cooldown": {
+      "label": "再挑戦間隔",
+      "order": 50,
+      "visibility": "whenActive",
+      "width": "half"
+    },
+    "map.rewardReset": {
+      "label": "報酬リセット方式",
+      "order": 60,
+      "visibility": "whenActive",
+      "width": "half"
+    },
+    "map.hideAfterClear": {
+      "label": "クリア後の表示",
+      "order": 70,
+      "visibility": "whenActive",
+      "width": "half"
+    },
+    "map.limits": {
+      "label": "出撃制限",
+      "order": 80,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.rules": {
+      "label": "特殊ルール",
+      "order": 90,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.displayConditions": {
+      "label": "表示条件",
+      "order": 100,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.entryConditions": {
+      "label": "挑戦条件",
+      "order": 110,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.rank": {
+      "label": "必要ユーザーランク",
+      "order": 120,
+      "visibility": "whenActive",
+      "width": "half"
+    },
+    "map.points": {
+      "label": "イベントPt・上限解放",
+      "order": 130,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.scoreBonus": {
+      "label": "スコアボーナス",
+      "order": 140,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.notes": {
+      "label": "マップ固有の仕様",
+      "order": 150,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.price": {
+      "label": "生産コスト倍率",
+      "order": 160,
+      "visibility": "whenActive",
+      "width": "half"
+    },
+    "map.resource": {
+      "label": "消費資源設定",
+      "order": 170,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.abyss": {
+      "label": "アビス",
+      "order": 180,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "map.ad": {
+      "label": "XP2倍広告対象",
+      "order": 190,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.showAll": {
+      "label": "全ステージ一覧表示",
+      "order": 200,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.entryTracking": {
+      "label": "入場履歴登録対象",
+      "order": 210,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.alternateCrown": {
+      "label": "追加冠解放設定",
+      "order": 220,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.guerrilla": {
+      "label": "ゲリラ分類",
+      "order": 230,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.announcement": {
+      "label": "ゲリラ告知参照フラグ（bit 0）",
+      "order": 240,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.pattern": {
+      "label": "マップパターン",
+      "order": 250,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.sort": {
+      "label": "一覧表示順キー",
+      "order": 260,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.badges": {
+      "label": "難易度バッジ設定",
+      "order": 270,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.extendedStorage": {
+      "label": "拡張記録領域",
+      "order": 280,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.costCode": {
+      "label": "宣言上の消費資源種別",
+      "order": 290,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.appearance": {
+      "label": "マップ外観・表示コード",
+      "order": 300,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "map.otherCrowns": {
+      "label": "他の冠の出撃制限",
+      "order": 310,
+      "visibility": "detailOnly",
+      "width": "full"
+    },
+    "stage.energy": {
+      "label": "統率力",
+      "order": 10,
+      "visibility": "always",
+      "width": "half"
+    },
+    "stage.xp": {
+      "label": "基礎XP / 獲得XP",
+      "order": 20,
+      "visibility": "always",
+      "width": "half"
+    },
+    "stage.castleHealth": {
+      "label": "城体力",
+      "order": 30,
+      "visibility": "always",
+      "width": "half"
+    },
+    "stage.width": {
+      "label": "ステージ幅",
+      "order": 40,
+      "visibility": "always",
+      "width": "half"
+    },
+    "stage.difficulty": {
+      "label": "難易度",
+      "order": 50,
+      "visibility": "always",
+      "width": "half"
+    },
+    "stage.enemyLimit": {
+      "label": "敵出現上限",
+      "order": 60,
+      "visibility": "always",
+      "width": "half"
+    },
+    "stage.continue": {
+      "label": "コンティニュー",
+      "order": 70,
+      "visibility": "always",
+      "width": "half"
+    },
+    "stage.barrier": {
+      "label": "城バリア",
+      "order": 80,
+      "visibility": "always",
+      "width": "half"
+    },
+    "stage.spawnInterval": {
+      "label": "敵生産間隔",
+      "order": 90,
+      "visibility": "always",
+      "width": "full"
+    },
+    "stage.timeLimit": {
+      "label": "制限時間",
+      "order": 100,
+      "visibility": "whenActive",
+      "width": "half"
+    },
+    "stage.limits": {
+      "label": "出撃制限",
+      "order": 110,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "stage.conditions": {
+      "label": "ステージ固有の条件",
+      "order": 120,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "stage.formation": {
+      "label": "固定編成",
+      "order": 140,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "stage.cannon": {
+      "label": "にゃんこ砲",
+      "order": 150,
+      "visibility": "whenActive",
+      "width": "half"
+    },
+    "stage.levelSeal": {
+      "label": "Lv封印",
+      "order": 160,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "stage.ex": {
+      "label": "連戦・EX",
+      "order": 170,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "stage.pattern": {
+      "label": "抽選パターン",
+      "order": 180,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "stage.score": {
+      "label": "スコア・城条件",
+      "order": 190,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "stage.baseXp": {
+      "label": "基礎XP",
+      "order": 200,
+      "visibility": "sourceOnly",
+      "width": "half"
+    },
+    "stage.castleId": {
+      "label": "敵城ユニット指定",
+      "order": 210,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "stage.enemyLimitRaw": {
+      "label": "敵出現上限の設定値",
+      "order": 220,
+      "visibility": "detailOnly",
+      "width": "half"
+    },
+    "stage.otherCrowns": {
+      "label": "他の冠の出撃制限",
+      "order": 230,
+      "visibility": "detailOnly",
+      "width": "full"
+    },
+    "stage.exConfig": {
+      "label": "直接EX設定",
+      "order": 240,
+      "visibility": "detailOnly",
+      "width": "full"
+    },
+    "media.background": {
+      "label": "背景",
+      "order": 10,
+      "visibility": "always",
+      "width": "full"
+    },
+    "media.castle": {
+      "label": "城",
+      "order": 20,
+      "visibility": "always",
+      "width": "full"
+    },
+    "media.bgm": {
+      "label": "BGM",
+      "order": 30,
+      "visibility": "always",
+      "width": "full"
+    },
+    "reward.drops": {
+      "label": "クリア報酬",
+      "order": 10,
+      "visibility": "always",
+      "width": "full"
+    },
+    "reward.score": {
+      "label": "スコア報酬",
+      "order": 20,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "reward.clearCounts": {
+      "label": "クリア回数報酬",
+      "order": 30,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "reward.materials": {
+      "label": "城の開発素材",
+      "order": 40,
+      "visibility": "whenActive",
+      "width": "full"
+    },
+    "reward.policy": {
+      "label": "報酬抽選方式",
+      "order": 50,
+      "visibility": "detailOnly",
+      "width": "full"
+    },
+    "reward.materialDetails": {
+      "label": "素材の抽選内訳",
+      "order": 60,
+      "visibility": "detailOnly",
+      "width": "full"
+    },
+    "reward.policySource": {
+      "label": "報酬の判定条件",
+      "order": 70,
+      "visibility": "sourceOnly",
+      "width": "full"
+    },
+    "enemy.id": {
+      "label": "敵ID",
+      "order": 5,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.icon": {
+      "label": "アイコン",
+      "order": 10,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.name": {
+      "label": "敵名",
+      "order": 20,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.attributes": {
+      "label": "属性",
+      "order": 30,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.multipliers": {
+      "label": "倍率\n（体力／攻撃）",
+      "order": 40,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.count": {
+      "label": "出現数",
+      "order": 50,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.gate": {
+      "label": "城条件",
+      "order": 60,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.first": {
+      "label": "初登場",
+      "order": 70,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.interval": {
+      "label": "再出現",
+      "order": 80,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.layers": {
+      "label": "描画レイヤー",
+      "order": 90,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.score": {
+      "label": "基礎点",
+      "order": 100,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.deaths": {
+      "label": "味方死亡数条件",
+      "order": 110,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.preserveWait": {
+      "label": "城条件と待機保持",
+      "order": 120,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.hp": {
+      "label": "体力",
+      "order": 130,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.attack": {
+      "label": "攻撃力",
+      "order": 140,
+      "visibility": "always",
+      "width": "full"
+    },
+    "enemy.dps": {
+      "label": "DPS",
+      "order": 150,
+      "visibility": "always",
+      "width": "full"
+    },
+    "source.mapColumns": {
+      "label": "マップ設定の元データ",
+      "order": 10,
+      "visibility": "sourceOnly",
+      "width": "full"
+    },
+    "source.stageColumns": {
+      "label": "ステージ設定の元データ",
+      "order": 20,
+      "visibility": "sourceOnly",
+      "width": "full"
+    },
+    "source.xp": {
+      "label": "XP計算内訳",
+      "order": 30,
+      "visibility": "sourceOnly",
+      "width": "full"
+    },
+    "source.materials": {
+      "label": "開発素材の元データ",
+      "order": 40,
+      "visibility": "sourceOnly",
+      "width": "full"
+    }
+  }
+}

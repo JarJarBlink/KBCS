@@ -61,7 +61,7 @@ ScoreBonusMapの効果ごとの先頭Parametersを保持する。所有advance�
 - 実際のphase7のOKボタンは006ddfb8/006e296c側。`img101` cut3、文字は`img006_ja` cut1。009f560cは戦闘画面5かつ005e1400が真のとき`img101_nekoDojo`を読み、それ以外は`img101`を使う。通常visual=(中央−190,640−panel,381,72)、hit=(中央−190,632−panel,381,88)。押下delta=[0,0,6,−10,0,0]と、release後5表示更新のガードを保持する。特殊rendererのphase67以降の別経路と混同しない。
 - 通常報酬通知は005e53dc→00887594→00885170→00886a84。アイテム画像を並べる独自modalを廃止し、原本localizableの文面を使用する。背景は00adcbccのクラス+0x18=`img005_1`、cut0とcut8のpadding(6,6)で9分割、枠倍率2.7。width=max(670,min(文字幅,800)+54)、y=401、行間36、文字サイズ30。開く倍率は[0,50,80,90,100]、完全表示後のreleaseで閉じ、5表示更新後に次へ進む。親controllerはphase8、開始SE29、releaseSE11。
 - `ui/battle-result-popup.js`は原本のbr/color/flashだけを文字runへ変換する。文字幅/高さはホストのフォントメトリクスを解決入力としてC++へ渡す。AndroidとWindowsの字形やラスタライズまで同一と証明したものではない。通知のテクスチャ/5段階配置は一度準備し、毎フレームAPIを呼ばない。
-- 素材は005e82fcの`Castle_material_drop00/01`と原本書式`%@ %@%@%d`。非0の素材を番号順に最大4種類、2種類ごとにbr。個々の素材へ通常ドロップ通知を付けない。回数クリア報酬は005e1a5c case12の`backstage_result1`。
+- 素材は005e82fcの`Castle_material_drop00/01`と原本書式`%@ %@%@%d`。非0の素材を番号順に最大4種類、2種類ごとにbr。00885170と同じく、文末のbrから空行を作らず、文中のbrで行を分ける。個々の素材へ通常ドロップ通知を付けない。回数クリア報酬は005e1a5c case12の`backstage_result1`。
 - 通常アイテムの内部IDと公開dropIdはGatyaitembuy列3で対応する。名前はGatyaitemNameの内部行番号。XP変換前の原本名/個数で通知を作り、所持数は変換先へ加算する。内部6/22では所持数文を付けない。
 
 ## キャラ報酬と所持状態

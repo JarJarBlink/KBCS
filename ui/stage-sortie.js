@@ -1,16 +1,15 @@
 ﻿import {loadStageDatabase,loadStageVariant} from './src/shared/game/stages.js';
 import {loadEnemyDatabase} from './src/shared/game/enemies.js';
 import {loadUnitDatabase} from './src/shared/game/units.js';
-import {escapeHtml as esc,formatNumber,formatTime} from './src/shared/game/database-view.js';
+import {escapeHtml as esc,formatNumber} from './src/shared/game/database-view.js';
 import {resolveStageRoute,applicableLimits} from './src/features/stages/model.js';
-import {loadStageScene,stageMediaHtml,initializeStageMedia} from './src/features/stages/native-media.js';
+import {loadStageScene} from './src/features/stages/native-media.js';
 import {prepareBattleScreen,startBattleScreen} from './battle-screen.js';
 import {createBattleRecording} from './battle-recording.js';
 import {createFormationView,fitFormationName} from './formation-view.js';
 import {createFormationReorder} from './formation-reorder.js';
 import {readSortiePreferences,sortieItemsHtml,toggleSortieItem,sortieLaunchHtml,sortieFixedMoney,sortieEnemyLinksHtml} from './sortie-view.js';
 import {formationDisplayName} from './formation-model.js';
-import {stageRulesHtml,stageFormationHtml} from './src/features/stages/view.js';
 import {readBattleJson,battleFormation,castleHealth,prepareBattleAssets,effectiveStageLimit,stageDeployment} from './battle-support.js';
 import {enterPhoneFullscreen,phoneConnection} from './phone-connection.js';
 import {loadStageSearchIndex} from './search-index.js';
@@ -23,10 +22,7 @@ const phonePolling=new AbortController();
 let phoneLinked=false,phoneLoading=false,phoneMirror,phoneTimer,phoneDisconnect;
 function stopPhonePolling(){phonePolling.abort();clearTimeout(phoneTimer);phoneMirror?.stop();}
 window.addEventListener('pagehide',stopPhonePolling,{once:true});
-if(phone){
- node('enemies').inert=true;
- node('limits').inert=true;
-}
+if(phone)node('enemies').inert=true;
 let artwork,battleArtwork,paintFormation,formationIndex=1,deployment,deployVersion=0,battle;
 let database,enemies,units,map,stages=[],stage,entry,health,choiceVersion=0,controller,loadedAssets,prepared;
 let reorder,formationSaving=false,formationSelected=-1;
@@ -37,7 +33,8 @@ if(phone)window.addEventListener('kbcs:phone-leave',()=>{
 let saved={items:{},speed:2};try{saved=readSortiePreferences(localStorage,sessionStorage);}catch{}
 largeStart.checked=saved.large===true;
 let crown=Math.max(1,Number(route.get('crown'))||1),items={...saved.items},speed=saved.speed;
-const stageMedia=initializeStageMedia(node('media'),id=>stages.find(value=>value.id===id));
+let sidebar,sidebarRequest,sidebarDatabase;
+const variantRequests=new Map();
 node('enemies').addEventListener('error',event=>{
   const icon=event.target.closest?.('.enemy-icon');
   if(icon){icon.nextElementSibling.hidden=false;icon.remove();}
@@ -51,7 +48,7 @@ node('items').before(moneyControls);
 const moneyInput=moneyControls.querySelector('input');
 moneyInput.addEventListener('change',()=>{try{const value=sortieFixedMoney(map,moneyInput.valueAsNumber);saved.fixedMoney={...saved.fixedMoney,[map.key]:value};moneyInput.setCustomValidity('');store();}catch(error){moneyInput.setCustomValidity(error.message);moneyInput.reportValidity();}});
 moneyControls.querySelector('button').onclick=()=>{if(saved.fixedMoney)delete saved.fixedMoney[map.key];moneyInput.value=sortieFixedMoney(map);moneyInput.setCustomValidity('');store();};
-function ready(){node('launch').disabled=!!controller||phoneLoading||!!phoneMirror||formationSaving||!!reorder?.active||!entry||!health||!deployment||!stage||!!(stage.variants?.length&&!stage.patternSource)||!(stage.width>0)||stage.background==null;}
+function ready(){node('launch').disabled=!!controller||phoneLoading||!!phoneMirror||formationSaving||!!reorder?.active||!entry||!health||!deployment||!stage||variantRequests.has(stage.index)||!!(stage.variants?.length&&!stage.patternSource)||!(stage.width>0)||stage.background==null;}
 function drawFormation(){
   if(!entry){node('formation-preview').innerHTML=phone?'PCで編成を作成してください':'<a href="/pages/formation/">編成を作成</a>';return;}
   const document=battleFormation(units,entry.document);
@@ -108,6 +105,22 @@ async function chooseFormation(id){
     else status('使用する編成を作成してください');
   }catch(error){status(error.message,true);}finally{if(version===choiceVersion)ready();}
 }
+function showSidebarMessage(message){node('details-message').textContent=message;}
+function refreshStageDetails(){
+  if(phone||!stage||!node('initial').hidden)return;
+  if(!sidebar){
+    if(!sidebarRequest)sidebarRequest=import('./sortie-stage-detail.js').then(({mountSortieStageDetail})=>
+      mountSortieStageDetail(node('details'),{onCrown:selectCrown,onPattern:selectPattern,onMessage:showSidebarMessage})
+    ).then(details=>{sidebar=details;refreshStageDetails();})
+      .catch(error=>{showSidebarMessage(error.message);node('details').setAttribute('aria-busy','false');})
+      .finally(()=>{sidebarRequest=null;});
+    return;
+  }
+  showSidebarMessage('');
+  node('details').setAttribute('aria-busy','false');
+  void sidebar.render({database:sidebarDatabase,map,stage,stages,crown,units,enemies})
+    .catch(error=>showSidebarMessage(error.message));
+}
 function renderStage(){
   const fixed=sortieFixedMoney(map,saved.fixedMoney?.[map.key]);moneyControls.hidden=fixed===null;moneyInput.value=fixed??'';moneyInput.setCustomValidity('');
   node('title').textContent=stage.name;document.title=stage.name+' 出撃準備 | KBCS';node('map').textContent=map.key+'-'+stage.index+' '+map.name;
@@ -120,16 +133,20 @@ function renderStage(){
   node('enemies').innerHTML=sortieEnemyLinksHtml(stage,map,crown,enemies);
   const limit=effectiveStageLimit(map,stage,crown),hasLimit=Object.keys(limit).length>0;
   node('limit-summary').textContent=hasLimit||map.rules.length||stage.formation?'出撃制限・特殊条件あり':'';
-  node('limits').innerHTML=stageRulesHtml(database,stage,map,crown,units,true,{selectedLimits:hasLimit?[limit]:[],showOtherCrowns:false})+stageFormationHtml(stage,units);
-  const enemyCastle=enemies.enemies.find(enemy=>enemy.id===stage.enemyCastle);
-  node('stage-facts').innerHTML=[['統率力',stage.energy],['敵最大数',stage.maxEnemies],['ステージ幅',stage.width],['難易度',stage.difficulty==null?'—':'★'+stage.difficulty],['敵城',stage.timeLimit?'スコア制':stage.enemyCastle!=null?(enemyCastle?.name??'敵ID '+stage.enemyCastle):stage.castleHealth],['城バリア',stage.width==null?'未収録':stage.bossGuard?'あり':'なし'],['コンテニュー',continueStatus],['制限時間',stage.timeLimit?formatTime(stage.timeLimit,true):'なし']].map(([label,value])=>'<dt>'+label+'</dt><dd>'+esc(typeof value==='number'?formatNumber(value):value??'—')+'</dd>').join('');
-  stageMedia.clear();node('media').innerHTML=stageMediaHtml(database,stage,enemies);stageMedia.refresh();
+  refreshStageDetails();
   node('database-link').href='/pages/stage-detail/?'+new URLSearchParams({map:map.key,stage:stage.index,crown});
-  history.replaceState(null,'','/pages/stage-sortie/?'+new URLSearchParams({map:map.key,stage:stage.index,crown,...(phone?{phone:'1'}:{})}));drawFormation();refreshDeployment();ready();
+  const nextRoute=new URLSearchParams({map:map.key,stage:stage.index,crown});
+  if(phone)nextRoute.set('phone','1');
+  else if(route.get('text-preview')==='pixel8')nextRoute.set('text-preview','pixel8');
+  history.replaceState(null,'','/pages/stage-sortie/?'+nextRoute);drawFormation();refreshDeployment();ready();
 }
 function report(label,current,total){node('loading-status').textContent=label+' '+current+' / '+total;node('progress').max=Math.max(1,total);node('progress').value=current;}
 let recording;
-function battleMode(active){document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:active}));}
+function battleMode(active){
+  if(active)sidebar?.clear();
+  document.dispatchEvent(new CustomEvent('kbcs:battle-mode',{detail:active}));
+  if(!active)refreshStageDetails();
+}
 async function sortieSnapshot(signal){
   // 出撃時点の保存版を固定し、編集タブで変更された設定を黙って使わない。
   const latest=await readBattleJson('/api/formations?current='+entry.id,{signal});
@@ -161,7 +178,7 @@ async function depart(assigned){
     if(scene.missing?.length)throw Error('ステージ素材が未収録です：'+scene.missing.join(', '));
     loadedAssets=phone?{images:new Map()}:await prepareBattleAssets(snapshot.stage,snapshot.formation,scene,report,active.signal);
     const screen=await prepareBattleScreen(units,snapshot,loadedAssets,active.signal,report,enemies,{phone,onFailure:phone?phoneFailure:undefined});active.signal.throwIfAborted();
-    prepared=snapshot;stageMedia.clear();
+    prepared=snapshot;
     battle=await startBattleScreen(node('initial'),node('canvas'),scene,snapshot,screen,returnToPreparation,recording,active.signal,phone||largeStart.checked);active.signal.throwIfAborted();status('');
   }catch(error){
     if(entering)returnToPreparation();
@@ -174,12 +191,34 @@ node('cancel').addEventListener('click',()=>controller?.abort());
 function returnToPreparation(){
  battle?.stop();battle=null;phoneMirror?.stop();phoneMirror=null;phoneLoading=false;
  if(phone)window.top.document.documentElement.classList.remove('phone-playing');
- document.body.classList.remove('phone-battle-monitor');prepared=null;loadedAssets=null;node('initial').hidden=true;node('setup').hidden=false;battleMode(false);stageMedia.refresh();ready();
+ document.body.classList.remove('phone-battle-monitor');prepared=null;loadedAssets=null;node('initial').hidden=true;node('setup').hidden=false;battleMode(false);ready();
 }
 node('formation').addEventListener('change',event=>chooseFormation(event.target.value));
 node('stages').addEventListener('click',event=>{const target=event.target.closest('[data-stage]');if(target){stage=stages.find(value=>value.index===Number(target.dataset.stage));renderStage();}});
-node('crowns').addEventListener('click',event=>{const target=event.target.closest('[data-crown]');if(target){crown=Number(target.dataset.crown);renderStage();}});
-node('pattern').addEventListener('change',async event=>{const index=stage.index;node('launch').disabled=true;try{const value=await loadStageVariant(map.key,index,event.target.value);stages=stages.map(stage=>stage.index===index?value:stage);if(stage.index===index){stage=value;renderStage();status('');}}catch(error){status(error.message,true);}finally{ready();}});
+function selectCrown(value){crown=value;renderStage();}
+async function selectPattern(target,source){
+  const index=target.index,request=loadStageVariant(map.key,index,source);
+  variantRequests.set(index,request);ready();
+  try{
+    const variant=await request;
+    if(variantRequests.get(index)!==request)return;
+    const value={...target,...variant};
+    stages=stages.map(item=>item.index===index?value:item);
+    if(stage.index===index){stage=value;renderStage();status('');}
+  }catch(error){
+    if(variantRequests.get(index)===request)throw error;
+  }finally{
+    if(variantRequests.get(index)===request){variantRequests.delete(index);ready();}
+  }
+}
+node('crowns').addEventListener('click',event=>{const target=event.target.closest('[data-crown]');if(target)selectCrown(Number(target.dataset.crown));});
+node('pattern').addEventListener('change',async event=>{
+  const select=event.target,previous=stage;
+  select.disabled=true;
+  try{await selectPattern(previous,select.value);}
+  catch(error){select.value=previous.patternSource??'';status(error.message,true);}
+  finally{select.disabled=false;}
+});
 node('formation-preview').addEventListener('click',event=>{
  if(formationSaving||reorder?.active||reorder?.suppressClick)return;
  const target=event.target.closest('[data-action],[data-slot]');if(!target)return;
@@ -204,6 +243,8 @@ async function load(){
     detail??=await readMap(routeResult.map.key);
     if(detail.buildId!==database.buildId||detail.revision!==database.revision)throw Error('DBが更新されました。画面を再読み込みしてください');
     if(phone)database={...database,musicCatalog:detail.musicCatalog};
+    else sidebarDatabase={...database,musicCatalog:detail.musicCatalog,
+      rewards:detail.rewardCatalogVersion===1?{...database.rewards,...detail.rewards}:database.rewards};
     map=detail.maps.find(value=>value.key===routeResult.map.key);stages=detail.stages;stage=stages.find(value=>value.id===routeResult.selected)||stages[0];crown=Math.min(map.stars.length,crown);
 
     paintFormation=createFormationView(units,artwork);
@@ -214,13 +255,19 @@ async function load(){
     });
     node('items').innerHTML=sortieItemsHtml(battleArtwork,items,speed);node('launch').innerHTML=sortieLaunchHtml(battleArtwork);
     renderStage();node('status').hidden=true;node('content').hidden=false;
+    node('options').inert=false;
     await refreshFormationList(saved.formation);
   }catch(error){node('status').textContent=error.message;}
+  finally{node('content').setAttribute('aria-busy','false');}
 }
 let refreshTime=0;
 function refreshSavedFormation(){if(!map||!units||controller||battle||phoneMirror||formationSaving||reorder?.active||Date.now()-refreshTime<300)return;refreshTime=Date.now();refreshFormationList().catch(error=>status(error.message,true));}
 window.addEventListener('pageshow',event=>{if(event.persisted)refreshSavedFormation();});
 window.addEventListener('focus',refreshSavedFormation);
+window.addEventListener('kbcs:simulation-change',refreshStageDetails);
+window.addEventListener('storage',event=>{
+  if(event.key==='kbcs:database-display:stages'||event.key===null)refreshStageDetails();
+});
 window.addEventListener('storage',event=>{if(event.key==='kbcs:formation-update')refreshSavedFormation();});
 async function listenToPc(){
  if(phonePolling.signal.aborted)return;
@@ -246,7 +293,7 @@ async function pollPhoneBattle(){
   const value=await readBattleJson('/api/phone/battle',{signal:phonePolling.signal});
   if(phonePolling.signal.aborted)return;
   if(value.id&&value.start&&units&&!battle&&!controller){
-   document.body.classList.add('phone-battle-monitor');node('initial').hidden=false;node('setup').hidden=true;stageMedia.clear();battleMode(true);
+   document.body.classList.add('phone-battle-monitor');node('initial').hidden=false;node('setup').hidden=true;battleMode(true);
    phoneMirror=startPhoneBattle(value.id,value.start,units,enemies,phoneBattleEnded);return;
   }
   if(value.loading!==phoneLoading||value.error&&node('message').textContent!==value.error){

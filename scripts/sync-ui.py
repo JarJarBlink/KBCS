@@ -14,9 +14,11 @@ for name,key in [('compile.mjs','compilerSha256'),('castles.mjs','castlesSha256'
         raise SystemExit('敵の解釈元が変更されています。enemy-fields.jsonとRust変換器を確認してください。')
 if hashlib.sha256((lab/'icons.mjs').read_bytes()).hexdigest()!=enemy_definitions['iconsSha256']:
     raise SystemExit('特性アイコンの対応元が変更されています。property-icons.jsonを確認してください。')
-queue=['src/app/main.js','src/features/units/search.js','src/features/units/growth.js','src/features/units/combo-builder.js','src/features/enemies/search.js','src/features/enemies/detail.js','src/features/enemies/style.css','src/shared/ui/site.css','src/features/units/style.css','src/features/stages/search.js','src/features/stages/view.js']
-# ステージDBのページと表示モデルはKBCS側で保守し、共通の依存だけ同期する。
-stage_modules={'src/features/stages/'+name+'.js' for name in ['search','view','model']}
+queue=['src/app/main.js','src/features/units/search.js','src/features/units/growth.js','src/features/units/combo-builder.js','src/features/enemies/search.js','src/features/enemies/detail.js','src/features/enemies/style.css','src/shared/ui/site.css','src/features/units/style.css','src/features/stages/search.js','src/features/stages/view.js','src/features/stages/style.css']
+# ステージDBと表示基盤はKBCS側で保守し、上流由来の依存だけ同期する。
+local_ui_files={'src/features/stages/'+name for name in ['search.js','view.js','model.js','style.css']}
+local_ui_files.update('src/shared/ui/'+name for name in ['data-sheet.js','data-sheet.css','display-settings.js','display-editor.js','display-editor.css'])
+local_ui_files.update('src/shared/browser/'+name for name in ['capture.js','session-id.js'])
 local_dependencies={'simulation-profile.js','simulation-store.js','effect-support.js'}
 seen=set();manifest={}
 def save(path,text):
@@ -68,7 +70,7 @@ while queue:
     name=queue.pop()
     if name in seen:continue
     seen.add(name)
-    if name in stage_modules:
+    if name in local_ui_files:
         path=output/name
         for dependency in relative_dependencies(path.read_text(encoding='utf-8-sig')):
             queue.append((path.parent/dependency).resolve().relative_to(output.resolve()).as_posix())

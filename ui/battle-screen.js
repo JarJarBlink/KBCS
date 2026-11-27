@@ -1,5 +1,6 @@
 ﻿import {comboAvailable,partialCalculation,battlePrecisionReasons} from './effect-support.js';
-import {nativeFont,loadNativeFonts} from './native-font.js';
+import {nativeFont} from './native-font.js';
+import {prepareNativeText} from './native-text.js';
 import {readBattleKeys,defaultBattleKeys,battleKeyAction,editableKeyTarget} from './keyboard.js';
 import {createSessionId} from './src/shared/browser/session-id.js';
 import {battleAspects,battleViewportWidth,phoneCanvasSize,phoneHudPoint,battleCameraView,battlePlaybackRate,battleFpsLimits,battlePresentationClock,accumulateBattleTicks} from './battle-view.js';
@@ -13,7 +14,7 @@ import {createBattleMonitor} from './battle-monitor.js';
 import {createBattleFrameClient} from './battle-frame.js';
 import {initializeSceneGestures,createSceneMotion} from './src/features/stages/scene-controls.js';
 import {sortieFixedMoney} from './sortie-view.js';
-import {prepareBattleInfo,drawBattleInfo} from './battle-info.js';
+import {prepareBattleInfo,drawBattleInfo,drawBattleSlotOrbs} from './battle-info.js';
 import {prepareInspectorAssets,createBattleInspector} from './battle-inspector.js';
 import {createBattleDisplay} from './battle-display.js';
 import {createBattleDetails} from './battle-details.js';
@@ -30,8 +31,7 @@ export function battleScreenConfiguration(database,snapshot){
  return {config:{worker_level:facility('worker'),wallet_level:facility('wallet'),attack_level:facility('cannonAttack'),charge_level:facility('cannonCharge'),chapter:['EOC','EOCZ'].includes(map.series)?map.number:3,income_treasure:treasure(3),wallet_treasure:treasure(4),charge_treasure:treasure(1),speed_treasure:treasure(17),income_combo:combo(8),wallet_combo:combo(9),charge_combo:combo(7),charge_start_combo:combo(3),items:mask|1,speed,fixed_money:rule?fixed*100:-1,costs:deployment.slots.map(v=>v.cost),present:formation.slots.map(v=>Number(!!v)),blocked:deployment.slots.map(v=>v.reasons)},itemsOn:mask,speedMode:mask&1?speed-1:0,worker:items.rich||rule?7:Math.min(7,combo(4)),money:rule?fixed*100:combo(5)*100};
 }
 export async function prepareBattleScreen(database,snapshot,assets,signal,report,enemies,{phone=false,onFailure}={}){
- await loadNativeFonts();
- const [atlas,options]=await Promise.all([readBattleJson('/images/native-battle/manifest.json',{signal}),readBattleJson('/api/battle-options',{signal})]);
+ const [atlas,options,textDiagnostics]=await Promise.all([readBattleJson('/images/native-battle/manifest.json',{signal}),readBattleJson('/api/battle-options',{signal}),prepareNativeText()]);
  let presentationDifferences=[];
  if(atlas.buildId!==snapshot.buildId||atlas.version!==snapshot.version){
   const sources=Object.values(atlas.atlases).flatMap(value=>Object.entries(value.sources)),paths=[...new Set([...sources.map(([path])=>path),atlas.soundSource.path])];
@@ -63,7 +63,7 @@ export async function prepareBattleScreen(database,snapshot,assets,signal,report
  // 後の曲の取得は開始を待たせない。将来の切替入口は読込完了を確認する。
  const optionalAudio=tracks=>Promise.all(tracks.map(async track=>{try{await loadAudio(track);}catch(error){if(error.name!=='AbortError')audioErrors.set(track.id,error.message);}}));
  if(!phone)void optionalAudio(tracks.slice(1));
- return {phone,database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,presentationDifferences,
+ return {phone,database,enemies,statusImages,atlas,options,forms,info,images,sceneImages:assets.images,audioUrls,audioErrors,presentationDifferences,textDiagnostics,
   preloadMusic:ids=>optionalAudio([...new Set([...tracks.map(track=>track.id),...ids])].filter(id=>id>=0).map(id=>({id}))),
   mediaVersion,report,onFailure,dispose:()=>{signal.removeEventListener('abort',dispose);dispose();},...values};
 }
@@ -135,7 +135,8 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   if(playbackPaused||runtime.result.mode)audio.pause();else if(audio.paused&&!audio.ended&&state.bgm_level){audioStarted=true;audio.play().catch(()=>{});}
  }
  const sounds=createBattleSounds(resources.audioErrors,resources.atlas.sounds,{preloadedOnly:phone,version:resources.mediaVersion}),tints=new Map();
- const results=createBattleResults(controls,{summary:!phone});
+ const pixel8TextPreview=!phone&&new URLSearchParams(globalThis.location?.search).get('text-preview')==='pixel8';
+ const results=createBattleResults(controls,{summary:!phone,pixel8TextPreview});
  let leftInset=0,rightInset=0;
  if(!phone)sounds.preload([8,9,10,11,15,19,20,21,22,23,24,25,26,27,28,29,36,37,42,44,45,50,57,59,60,61,65,70,71,72,73,74,83,84,85,86,90,105,106,110,111,112,124,137,138,139,159,162,167,168,169,188,189,194]);
  function tinted(image,cut,color,key){
@@ -278,7 +279,9 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   // 005d0508は後ろのページを先に描き、選択ページを重ねる。
   function slots(){
   const order=view.order;
-  for(const index of order){const [x,y,w,h]=view.slots[index],form=resources.forms[index];
+  for(const index of order){
+   if(view.modes[index]===0)continue;
+   const [x,y,w,h]=view.slots[index],form=resources.forms[index];
    if(!form){sprite('uni',0,x,y,w,h);if(view.modes[index]===2){context.fillStyle='rgba(0,0,0,.392)';context.fillRect(x,y,w,h);}continue;}
    const summon=runtime.hud.summons[index],image=resources.images.get(form.icon);
    const restricted=!summon[0]&&(runtime.deployment.blocked[index]&(0x7f|0x100))!==0;
@@ -294,6 +297,10 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
     context.fillStyle='#f00';context.fillRect(gx+2,gy+2,red,10);context.fillStyle='#0ff';context.fillRect(gx+2,gy+2,cyan,10);
    }else if(!summon[0]&&(!restricted||resources.config.fixed_money>=0&&view.modes[index]!==2)){const [labelX,labelY]=view.labels[index];number(Math.trunc(cost/100),base,labelX+94,labelY+62,-3);sprite('img001_ja',disabled?56:45,labelX+94,labelY+62,22,26);}
    if(index<5&&!state.info_mode&&view.modes[index]===1&&!skipCombos&&runtime.comboIntro?.layout.blink<2&&runtime.comboIntro.combo?.members.some(member=>member.id===snapshot.formation.slots[index]?.unitId))sprite('img002_ja',44,x-8,y-8,w+16,h+16);
+   if(view.modes[index]===1){
+    const [labelX,labelY]=view.labels[index];
+    drawBattleSlotOrbs(context,resources.info,runtime.hud.orbIcons?.[index],labelX,labelY);
+   }
   }
   }
   context.save();context.translate(0,slide);
@@ -410,7 +417,7 @@ export async function startBattleScreen(root,canvas,scene,snapshot,resources,onR
   else if(action==='camera'){camera={...camera,center:snapshot.stage.width,zoom:1};++cameraVersion;}
   else if(action==='large')setLargeBattle(true);
   else if(action==='fullscreen')display.request();
-  else if(action==='report'&&monitor){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  else if(action==='report'&&monitor){const blob=new Blob([JSON.stringify({gameVersion:snapshot.version,buildId:snapshot.buildId,abi:5,error:failure,textRendering:{...resources.textDiagnostics,notificationRenderer:pixel8TextPreview?'pixel8-canvas-preview':'browser-legacy'},...monitor.snapshot()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='kbcs-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   else if(action==='return'||button.dataset.battleControl==='return'){stop();onReturn();return;}
   else if(!action)control=Number(button.dataset.battleControl);
  }

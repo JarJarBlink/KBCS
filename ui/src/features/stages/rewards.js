@@ -41,4 +41,5 @@ export function initializeRewardPicker(root,database){
   root.querySelector('[data-reward-open]').addEventListener('click',open);
   selected.addEventListener('click',event=>{const button=event.target.closest('[data-remove-reward]');if(!button)return;input.value=queryTerms(input.value).filter((_,index)=>index!==Number(button.dataset.removeReward)).join(' ');apply();});
   renderSelected();
+  return renderSelected;
 }

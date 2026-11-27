@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.kbcs.textprobe">
+    <uses-sdk android:minSdkVersion="35" android:targetSdkVersion="36" />
+    <application android:label="KBCS Text Probe" android:debuggable="true" android:allowBackup="false" />
+    <instrumentation android:name=".NativeText1603" android:targetPackage="dev.kbcs.textprobe" />
+</manifest>

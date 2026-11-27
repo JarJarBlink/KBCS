@@ -30,6 +30,14 @@
 
 本能玉報酬はstages/rewards.rsが原本equipmentlistのIDを報酬ID−30000で解決する。effect/grade/attributeの原本名称と3層アトラスで表示する。原本の全preset/本能玉定義を保全し、所持や装着の戦闘状態とは分ける。
 
+ステージ報酬の名前と画像は、`inventory::item_catalog` が `Gatyaitembuy.csv` の列3をキー、行番号を `GatyaitemName.csv` の参照先として解決する。画像は内部行番号または列11の上書きID。`006e34b0` → `006f2f8c` の原本経路に従う。逆襲のカオル君の報酬ID11は内部行20のにゃんこチケットで、ガチャ排出用の内部行11とは別。データ更新時は原本の定義と画像を取り込むため、通常アイテムの追加に個別の定義変更は不要。キャラ報酬と進化権は `drop_chara.csv`、`unitbuy.csv` の列23/24、原本のヴァルキリー専用経路で解決する。
+
+開発素材は戦闘用の内部番号を `id` に保持し、表示・絞り込み用に同じアイテム定義から `rewardId` を解決する。`rewardCatalogVersion: 1` はステージ検索・詳細APIの名称・画像が報酬IDで解決済みであることを示す。
+
+JP 15.7.4のステージ報酬にある0〜999番台の86 IDは、すべて対応する原本定義が一意。報酬ID 207「軍資金」の画像は採用元に収録されていないため、名前と数量だけを表示する。
+
+`Extras::map` はマップヘッダーと `PlayStageLimit.csv` の条件IDを、同じ `MapConditions.json` の原本グループへ接続する。マップと面の条件に同じHTML表示を使い、表示時に根拠のある対象へリンクする。
+
 0.1.16 / importer10：motions::importが共有済みstemの全モデル・cut・maanim・Number PNGと共通魂を保存する。manifestはキャラ/形態と原本ファイル一覧を構築する。制作PCの絶対パスを含むimgcutでもstemで画像を結ぶ回帰を、既存2取り込み試験へ追加した。公式snapshotを変更せず原本追加の再生成で公開する。
 
 0.1.17 / importer12：effects::import/catalog/manifestはその他モデルの素材所有・画像対応・原本保持を扱う。skillのパーツid、敵専用/共有maanim、最長stem、同名PNG優先/実在ヘッダー名のfallbackを既存取り込み試験へ追加。未知の対応は未確認として残す。
@@ -99,6 +107,8 @@ Apple Silicon利用者から背景7/139/1057でQuery returned no rows、開始�
 2026-10-30: 変換器14の[欠損検査・再生成・持ち物画像・管理API](validation.md)。schema8を維持し、旧DBの再生成案内と検査/原本再取得を追加した。
 
 ## 検索用のデータと詳細項目
+
+正式116列、旧CSV・旧DBの対応は[ステージ原列台帳 v3](stage-columns-v3.md)を参照。
 
 `stages::search_index` は既存カタログと同じ集計から一覧・絞り込みに使う属性だけを返す。検索と詳細のAPIは同じ冠・報酬・出現定義を読む。集計は同一マップのステージ範囲を使い、報酬定義はIDごとに取得する。`view::search_index` は同一の成長曲線を共有し、詳細専用の説明や進化条件を省く。キャラ詳細の攻撃段別データは `attack` の発生F、特性フラグ、範囲を使う。
 

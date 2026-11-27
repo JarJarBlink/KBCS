@@ -1,0 +1,15 @@
+.display-editor-layout { display:grid; grid-template-columns:minmax(225px,1fr) minmax(0,1.5fr); gap:12px; margin-top:8px; }
+.display-editor-layout > section { min-width:0; }
+.display-editor-layout .db-toolbar label { display:flex; align-items:center; gap:4px; }
+.display-editor-layout .db-toolbar input[type="search"], .display-editor-layout .db-toolbar select { width:auto; max-width:min(100%,230px); }
+.display-editor-layout h2,.display-editor-layout p { margin-block:4px; }
+.display-field-list { display:grid; gap:2px; max-height:14em; overflow:auto; list-style:none; padding:3px; margin:5px 0; border:1px solid var(--color-border); }
+.display-field-list li { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:2px; }
+.display-field-list li > button:first-child { flex-wrap:wrap; justify-content:flex-start; text-align:left; overflow-wrap:anywhere; }
+.display-field-list button[aria-pressed="true"] { border-color:var(--color-accent); }
+.display-editor-layout fieldset { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; margin-block:5px; min-width:0; }
+.display-editor-layout fieldset small { color:var(--color-muted); }
+.display-editor-layout fieldset label:has(textarea) { grid-column:1/-1; }
+.display-editor-layout output { display:block; overflow-wrap:anywhere; }
+@container kbcs-content (max-width:560px){.display-editor-layout { grid-template-columns:minmax(0,1fr); }}
+@media(max-width:640px){.display-editor-layout { grid-template-columns:minmax(0,1fr); }}

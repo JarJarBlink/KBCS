@@ -859,6 +859,31 @@ extern "C" uint32_t kbcs_core_battle_warning(const KbcsBattle *battle,int32_t ou
  std::copy_n(value,3,out);return 0;
 }
 
+// 005d0a68 / 005c3330: 次の通常生産が有効な、待機中でない枠の玉だけを返す。
+extern "C" uint32_t kbcs_core_battle_orb_visibility(const KbcsBattle *battle,int32_t out[10]){
+ if(!battle||!out)return 1;
+ int32_t masks[10]{};
+ try{
+  for(const auto &p:battle->definitions){
+   const int slot=p.deployment_slot;
+   if(p.spawn.side||slot<0||slot>=10||p.spawn.form<2||!p.orb_count||battle->production.wait[slot])continue;
+   constexpr uint32_t conditional=(1u<<5)|(1u<<7)|(1u<<10)|(1u<<11)|(1u<<13)|(1u<<17)|(1u<<19)|(1u<<22)|(1u<<24);
+   uint32_t equipped=0;
+   for(int i=0;i<p.orb_count;++i){const int effect=p.orbs[i].effect;if(effect>=0&&effect<32)equipped|=1u<<effect;}
+   // 005c322c: 固定再生産がある場合、短縮の玉だけでは表示経路に入らない。
+   const uint32_t candidates=conditional&~(battle->config.rules.recharge_fixed?(1u<<19):0u);
+   if(!(equipped&candidates)||!battle->productionCondition(slot))continue;
+   uint32_t drawn=0;
+   for(int i=0;i<p.orb_count;++i){
+    const int effect=p.orbs[i].effect;if(effect<0||effect>=32)continue;const uint32_t bit=1u<<effect;
+    // equipment_option.csvの重複許可は条件付きの玉では還元の玉だけ。
+    if((conditional&bit)&&(effect==7||!(drawn&bit))){masks[slot]|=1<<i;drawn|=bit;}
+   }
+  }
+ }catch(const AttackFailure &failure){return failure.code;}
+ std::copy_n(masks,10,out);return 0;
+}
+
 extern "C" uint32_t kbcs_core_battle_hud(const KbcsBattle *battle,const KbcsSceneLayout *scene,const int32_t point[2],KbcsBattleHud *out){
  ActorPoolScope pool_scope(battle?&battle->pool:nullptr);
  if(!battle||!scene||!point||!out||!std::isfinite(scene->zoom)||scene->zoom<=0)return 1;
